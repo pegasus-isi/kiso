@@ -1,0 +1,95 @@
+- name: Install Docker
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Disable SELinux
+      shell: setenforce 0
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      dnf:
+        name:
+          - curl
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      apt:
+        name:
+          - ca-certificates
+          - curl
+        update_cache: yes
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Install Docker repository
+      get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Install Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/{{ansible_facts['distribution']|lower}}/gpg
+        dest: /etc/apt/keyrings/docker.asc
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Install Docker repository
+      apt_repository:
+        repo: deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else
+             'arm64' if ansible_architecture == 'aarch64' else
+             ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ansible_facts['distribution_release']|lower}} stable
+        filename: docker
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Installing Docker
+      dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        update_cache: yes
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Enable and start Docker
+      service:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add user to the docker group
+      user:
+        name: "{{ansible_user}}"
+        groups:
+          - docker
+        append: yes
+        state: present
+
+    - name: Add user to the docker group
+      user:
+        name: kiso
+        groups:
+          - docker
+        append: yes
+        state: present

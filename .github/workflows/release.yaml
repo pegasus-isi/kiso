@@ -1,0 +1,21 @@
+name: Publish
+on:
+  push:
+    tags: ["*"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: astral-sh/setup-uv@v6.1.0
+        with:
+          enable-cache: true
+          prune-cache: false
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version-file: pyproject.toml
+      - run: echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
+      - run: uv build
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          path: ./dist
