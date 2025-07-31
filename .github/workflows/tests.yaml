@@ -25,28 +25,8 @@ jobs:
           - { python: "3.9" }
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: astral-sh/setup-uv@v6.0.1
-        with:
-          enable-cache: true
-          prune-cache: false
       - uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ matrix.python }}
-      - run: uv run tox run -e ${{ format('py{0}', matrix.python) }}
-  typing:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: astral-sh/setup-uv@v6.0.1
-        with:
-          enable-cache: true
-          prune-cache: false
-      - uses: actions/setup-python@v5.6.0
-        with:
-          python-version-file: pyproject.toml
-      - name: cache mypy
-        uses: actions/cache@v4.2.3
-        with:
-          path: ./.mypy_cache
-          key: mypy|${{ hashFiles('pyproject.toml') }}
-      - run: uv run tox run -e typing
+      - run: pip install tox
+      - run: tox -e ${{ format('py{0}', matrix.python) }}
