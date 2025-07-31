@@ -1,0 +1,89 @@
+- name: Install HTCondor
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Disable SELinux
+      shell: setenforce 0
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Disable Firewall
+      service:
+        name: "{{item}}"
+        enabled: false
+        state: stopped
+      loop:
+        - iptables
+        - firewalld
+        - ufw
+      ignore_errors: yes
+
+    - name: Installing dependencies
+      dnf:
+        name:
+          - curl
+          - sudo
+          - python3
+          - python3-pip
+          - epel-release
+          - sqlite
+          - findutils
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      apt:
+        name:
+          - curl
+          - sudo
+          - python3
+          - python3-pip
+          - sqlite3
+          - findutils
+        update_cache: yes
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Create a group
+      group:
+        name: kiso
+        state: present
+
+    - name: Create a user
+      user:
+        name: kiso
+        state: present
+        group: kiso
+        create_home: yes
+        shell: /bin/bash
+
+    - name: Allow passwordless sudo for kiso
+      copy:
+        dest: /etc/sudoers.d/kiso
+        content: "kiso ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: 0440
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Copy .ssh dir
+      copy:
+        src: ~{{ansible_user}}/.ssh/
+        dest: ~kiso/.ssh
+        remote_src: yes
+        owner: kiso
+        group: kiso
+        mode: 0600
+        directory_mode: 0700
+
+    - name: Set permissions on .ssh dir
+      file:
+        path: ~kiso/.ssh
+        owner: kiso
+        group: kiso
+        mode: 0700

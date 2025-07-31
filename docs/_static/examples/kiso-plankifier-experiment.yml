@@ -1,0 +1,96 @@
+# -------------------------------------------------------------------------
+#
+# Clone the repository from GitHub,
+#   git clone https://github.com/pegasus-isi/kiso-plankifier-experiment.git
+# Install Kiso and its dependencies,
+#   pip install kiso[chameleon]
+# Check the experiment configuration.
+#   kiso check
+# Set up the experiment.
+#   kiso up
+# Run the experiment.
+#   kiso run
+# Destroy the experiment.
+#   kiso down
+# See: https://github.com/pegasus-isi/kiso-plankifier-experiment.README.md
+#
+# -------------------------------------------------------------------------
+name: plankifier-experiment
+condor:
+  central-manager:
+    roles:
+      - central-manager
+  submit:
+    roles:
+      - submit
+  execute-1:
+    roles:
+      - execute-cloud
+  execute-2:
+    roles:
+      - execute-edge
+    config-file: config/execute.conf
+
+sites:
+  - kind: chameleon-edge
+    walltime: "04:00:00"
+    lease_name: edge-lease
+    rc_file: secrets/edge-app-cred-oac-edge-openrc.sh
+    resources:
+      machines:
+        - roles:
+            - execute-edge
+          machine_name: raspberrypi4-64
+          count: 1
+          container:
+            name: execute
+            image: pegasus/plankifier
+
+  - kind: chameleon
+    walltime: "04:00:00"
+    lease_name: tacc-lease
+    rc_file: secrets/tacc-app-cred-oac-edge-openrc.sh
+    key_name: mayani-mac-mini
+    image: CC-Ubuntu18.04
+    resources:
+      machines:
+        - roles:
+            - central-manager
+            - submit
+            - execute-cloud
+          flavour: compute_zen3
+          number: 1
+          image: CC-Ubuntu22.04
+      networks:
+        - sharednet1
+
+experiments:
+  - kind: pegasus
+    name: plankifier-experiment
+    count: 1
+    main: ./workflow.py
+    submit-node-roles:
+      - submit
+    inputs:
+      - roles:
+          - execute-edge
+        src: bin/train.py
+        dst: /srv/plankifier/
+      - roles:
+          - execute-edge
+        src: bin/predict.py
+        dst: /srv/plankifier/
+    setup:
+      - roles:
+          - submit
+        script: |
+          chmod +x workflow.py
+      - roles:
+          - execute-edge
+        script: |
+          chmod +x /srv/plankifier/train.py /srv/plankifier/predict.py
+    outputs:
+      - roles:
+          - submit
+        src: ~kiso/kiso-plankifier-experiment/output/count.txt
+        dst: ./

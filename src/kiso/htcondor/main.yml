@@ -1,0 +1,120 @@
+- name: Install HTCondor
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Installing HTCondor dependencies
+      dnf:
+        name:
+          - https://research.cs.wisc.edu/htcondor/repo/24.x/htcondor-release-current.el{{ansible_facts['distribution_major_version']|int}}.noarch.rpm
+        state: present
+        disable_gpg_check: true
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Add HTCondor GPG key
+      apt_key:
+        url: https://research.cs.wisc.edu/htcondor/repo/keys/HTCondor-24.x-Key
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Install HTCondor repository
+      apt_repository:
+        repo: "deb https://research.cs.wisc.edu/htcondor/repo/{{ansible_facts['distribution']|lower}}/24.x {{ansible_facts['distribution_release']|lower}} main"
+        filename: htcondor
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Install Pegasus repository
+      get_url:
+        url: https://download.pegasus.isi.edu/pegasus/rhel/{{ansible_facts['distribution_major_version']|int}}/pegasus.repo
+        dest: /etc/yum.repos.d/pegasus.repo
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Add Pegasus GPG key
+      apt_key:
+        url: https://download.pegasus.isi.edu/pegasus/gpg.txt
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Install Pegasus repository
+      apt_repository:
+        repo: "deb https://download.pegasus.isi.edu/pegasus/{{ansible_facts['distribution']|lower}} {{ansible_facts['distribution_release']|lower}} main"
+        filename: pegasus
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Installing HTCondor and Pegasus
+      dnf:
+        name:
+          - condor
+          - pegasus
+        state: present
+        enablerepo:
+          - powertools
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int == 8
+
+    - name: Installing HTCondor and Pegasus
+      dnf:
+        name:
+          - condor
+          - pegasus
+        state: present
+        enablerepo:
+          - devel
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int >= 9
+
+    - name: Installing HTCondor and Pegasus
+      apt:
+        name:
+          - condor
+          - pegasus
+        update_cache: yes
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Get HTCondor CONFIG_ROOT
+      command: "condor_config_val CONFIG_ROOT"
+      register: CONFIG_ROOT
+
+    - name: Delete old HTCondor config files
+      command: "rm -f {{CONFIG_ROOT.stdout}}/config.d/kiso-*-config-file"
+
+    - name: Add HTCondor Config
+      copy:
+        content: "{{htcondor_config|join('\n')}}"
+        dest: "{{CONFIG_ROOT.stdout}}/config.d/01-kiso"
+      when: |
+        htcondor_config is defined and
+        htcondor_config
+
+    - name: Add HTCondor Config
+      copy:
+        src: "{{item.value}}"
+        dest: "{{CONFIG_ROOT.stdout}}/config.d/{{item.key}}"
+      loop: "{{config_files|dict2items}}"
+      when: config_files is defined
+
+    - name: Get HTCondor SEC_PASSWORD_DIRECTORY
+      command: "condor_config_val SEC_PASSWORD_DIRECTORY"
+      register: SEC_PASSWORD_DIRECTORY
+
+    - name: Add HTCondor Pool Password
+      copy:
+        src: "{{pool_passwd_file}}"
+        dest: "{{SEC_PASSWORD_DIRECTORY.stdout}}/POOL"
+        mode: 0600
+      when: |
+        pool_passwd_file is defined
+
+    - name: Get HTCondor SEC_TOKEN_SYSTEM_DIRECTORY
+      command: "condor_config_val SEC_TOKEN_SYSTEM_DIRECTORY"
+      register: SEC_TOKEN_SYSTEM_DIRECTORY
+
+    - name: Create HTCondor Pool Token
+      command: "condor_token_create -key POOL -identity {{token_identity}} -file {{SEC_TOKEN_SYSTEM_DIRECTORY.stdout}}/POOL.token"
+
+    - name: Enable and start HTCondor
+      service:
+        name: condor
+        enabled: yes
+        state: restarted

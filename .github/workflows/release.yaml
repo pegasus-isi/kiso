@@ -1,0 +1,52 @@
+name: Publish
+on:
+  push:
+    tags: ["*"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: astral-sh/setup-uv@v6.1.0
+        with:
+          enable-cache: true
+          prune-cache: false
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version-file: pyproject.toml
+      - run: echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
+      - run: uv build
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          path: ./dist
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      discussions: write
+    steps:
+      - uses: actions/download-artifact@v4.3.0
+      - name: create release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ github.ref_name }} \
+            --notes-file CHANGELOG.md \
+            --discussion-category "announcements" \
+            ${{ github.ref_name }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  publish-pypi:
+    needs: [build]
+    environment:
+      name: publish
+      url: https://pypi.org/project/kiso/${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4.3.0
+      - uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          packages-dir: artifact/

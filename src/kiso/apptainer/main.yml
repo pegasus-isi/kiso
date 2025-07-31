@@ -1,0 +1,41 @@
+- name: Install Apptainer
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Disable SELinux
+      shell: setenforce 0
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      dnf:
+        name:
+          - epel-release
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing Apptainer
+      dnf:
+        name:
+          - apptainer
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing apt repository
+      apt_repository:
+        repo: ppa:apptainer/ppa
+        state: present
+        update_cache: yes
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Installing dependencies
+      apt:
+        name:
+          - apptainer
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')

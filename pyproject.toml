@@ -1,0 +1,163 @@
+[build-system]
+
+requires = ["setuptools>=44.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+
+zip-safe = false
+
+[tool.setuptools.packages.find]
+
+where = ["src"]
+namespaces = true
+
+[project]
+
+name = "kiso"
+version = "0.0.0"
+authors = [{ name = "Rajiv Mayani", email = "mayani@isi.edu" }]
+maintainers = [{ name = "Rajiv Mayani", email = "mayani@isi.edu" }]
+description = "Kiso experiment manager"
+license = { file = "LICENSE.md" }
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = ["enoslib>=10.1.0", "rich-click", "jsonschema", "jsonschema-pyref", "PyYAML", "dacite"]
+
+[project.urls]
+
+Homepage = "https://pegasus.isi.edu"
+Repository = "https://github.com/pegasus-isi/kiso.git"
+Issues = "https://github.com/pegasus-isi/kiso/issues"
+Changelog = "https://github.com/pegasus-isi/kiso/blob/main/CHANGELOG.md"
+Documentation = "https://kiso.readthedocs.io/en/latest/"
+
+[project.scripts]
+
+kiso = "kiso.__main__:kiso"
+
+[project.entry-points."kiso.wf"]
+
+pegasus = "kiso.workflow.__init__"
+
+[project.optional-dependencies]
+
+all = ["kiso[vagrant]", "kiso[chameleon]"]#, "kiso[fabric]"]
+vagrant = ["enoslib[vagrant]"]
+chameleon = ["enoslib[chameleon]"]
+fabric = ["enoslib[fabric]"]
+tests = [
+    "pytest",
+    "pytest-mock",
+    "coverage",
+    "pytest-cov",
+    "pytest-resource-path",
+]
+docs = [
+    "sphinx",
+    "sphinx-book-theme",
+    "sphinx-jsonschema",
+    "sphinx_tabs",
+    "sphinx-click",
+    "myst-parser",
+]
+
+
+[tool.commitizen]
+
+version = "0.0.0"
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "commitizen"
+version_files = [
+    "pyproject.toml:version",
+    "src/kiso/version.txt",
+    "docs/conf.py:release",
+    "docs/getting-started.md",
+]
+update_changelog_on_bump = true
+major_version_zero = true
+
+
+[tool.ruff]
+
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+
+extend-select = [
+    "F",   # pyflakes
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "D",   # flake8-docstrings
+    "B",   # flake8-bugbear
+    "C90", # mccabe
+    "C4",  # flake8-comprehensions
+    "YTT", # flake8-2020
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit
+    "EXE", # flake8-executable
+    "FA",  # flake8-future-annotations
+    "ICN", # flake8-import-conventions
+    "ISC", # flake8-implicit-str-concat
+    "LOG", # flake8-logging
+    "G",   # flake8-logging-format
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "TC",  # flake8-type-checking
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = ["S101"]
+
+[tool.ruff.lint.flake8-import-conventions]
+
+banned-from = ["enoslib"]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+
+enoslib = "en"
+
+[tool.ruff.lint.pydocstyle]
+
+convention = "google"
+
+[tool.ruff.format]
+
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+
+known-first-party = ["kiso"]
+known-third-party = ["enoslib", "click", "jsonschema", "yaml"]
+forced-separate = ["kiso"]
+
+
+[tool.pytest.ini_options]
+
+markers = ["incremental"]
+
+"resource-path.directory-name-test-resources" = "resources"
