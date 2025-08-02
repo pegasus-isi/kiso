@@ -1,49 +1,55 @@
 repos:
-- hooks:
-  - id: commitizen
-  - id: commitizen-branch
-    stages:
-    - pre-push
-  repo: https://github.com/commitizen-tools/commitizen
-  rev: v2.42.1
+  - hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages:
+          - pre-push
+    repo: https://github.com/commitizen-tools/commitizen
+    rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
 
-- hooks:
-  - id: mypy
-    additional_dependencies:
-      - types-PyYAML
-  repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.15.0
+  # - hooks:
+  #     - id: uv-lock
+  #   repo: https://github.com/astral-sh/uv-pre-commit
+  #   rev: 9eb8a5492241b44a52c8a0c9612cd46cbc69fb01  # frozen: 0.8.4
 
-- hooks:
-  - id: ruff
-    args: [ --fix ]
-  - id: ruff-format
-  repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.2
+  - hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-PyYAML
+          - types-paramiko
+    repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 412de98d50e846f31ea6f4b0ad036f2c24a7a024  # frozen: v1.17.1
 
-- hooks:
-  - id: mdformat
-    exclude: "^(.github/|LICENSE.md)"
-    additional_dependencies:
-      - mdformat-ruff
-      - ruff
-  repo: https://github.com/executablebooks/mdformat
-  rev: 0.7.13
+  - hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+    repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 4cbc74d53fe5634e58e0e65db7d28939c9cec3f7  # frozen: v0.12.7
 
-# - hooks:
-#   - id: shellcheck
-#   repo: https://github.com/shellcheck-py/shellcheck-py
-#   rev: v0.10.0.1
+  - hooks:
+      - id: mdformat
+        exclude: "^(.github/|LICENSE.md)"
+        additional_dependencies:
+          - mdformat-ruff
+          - ruff
+    repo: https://github.com/executablebooks/mdformat
+    rev: ff29be1a1ba8029d9375882aa2c812b62112a593  # frozen: 0.7.22
 
-- hooks:
-  - id: check-ast
-  - id: check-builtin-literals
-  - id: check-case-conflict
-  - id: check-merge-conflict
-  - id: check-toml
-  - id: check-yaml
-  - id: debug-statements
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-  repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  # - hooks:
+  #   - id: shellcheck
+  #   repo: https://github.com/shellcheck-py/shellcheck-py
+  #   rev: a23f6b85d0fdd5bb9d564e2579e678033debbdff  # frozen: v0.10.0.1
+
+  - hooks:
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+    repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # frozen: v5.0.0

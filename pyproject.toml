@@ -1,6 +1,6 @@
 [build-system]
 
-requires = ["setuptools>=44.0.0", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -37,7 +37,15 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = ["enoslib>=10.1.0", "rich-click", "jsonschema", "jsonschema-pyref", "PyYAML", "dacite"]
+dependencies = [
+    "enoslib>=10.1.0",
+    "rich-click",
+    "jsonschema",
+    "jsonschema-pyref",
+    "PyYAML",
+    "dacite",
+    "paramiko",
+]
 
 [project.urls]
 
@@ -57,10 +65,17 @@ pegasus = "kiso.workflow.__init__"
 
 [project.optional-dependencies]
 
-all = ["kiso[vagrant]", "kiso[chameleon]"]#, "kiso[fabric]"]
+all = ["kiso[vagrant]", "kiso[chameleon]"] #, "kiso[fabric]"]
 vagrant = ["enoslib[vagrant]"]
 chameleon = ["enoslib[chameleon]"]
 fabric = ["enoslib[fabric]"]
+
+[dependency-groups]
+
+dev = ["ruff", "tox"]
+pre-commit = ["pre-commit"]
+typing = ["mypy", "types-PyYAML", "types-paramiko"]
+gha-update = ["gha-update ; python_full_version >= '3.12'"]
 tests = [
     "pytest",
     "pytest-mock",
@@ -161,3 +176,51 @@ forced-separate = ["kiso"]
 markers = ["incremental"]
 
 "resource-path.directory-name-test-resources" = "resources"
+
+
+[tool.tox]
+
+env_list = ["py37", "py38", "py39", "py310", "py311", "py312", "py313"]
+
+[tool.tox.env_run_base]
+
+dependency_groups = ["tests"]
+setenv = { PYTHONPATH = "{toxinidir}/src", PYTHONUNBUFFERED = "yes", PYTHONHASHSEED = "3104488430" }
+commands = [["pytest", "--cov", "src", "--no-cov-on-fail", "{posargs:tests}"]]
+
+[tool.tox.env.lint]
+
+skip_install = true
+dependency_groups = ["dev"]
+commands = [["ruff", "check"], ["ruff", "format", "--diff"]]
+
+[tool.tox.env.docs]
+
+allowlist_externals = ["make"]
+changedir = "docs"
+extras = ["all"]
+dependency_groups = ["docs"]
+commands = [
+    [
+        "make",
+        "clean",
+    ],
+    [
+        "make",
+        "html",
+        { replace = "posargs", default = [
+        ], extend = true },
+    ],
+]
+
+[tool.tox.env.update-actions]
+
+dependency_groups = ["gha-update"]
+skip_install = true
+commands = [["gha-update"]]
+
+[tool.tox.env.update-pre-commit]
+
+dependency_groups = ["pre-commit"]
+skip_install = true
+commands = [["pre-commit", "autoupdate", "--freeze", "-j4"]]
