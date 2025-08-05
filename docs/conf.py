@@ -63,7 +63,8 @@ html_theme_options = {
     "show_toc_level": 2,
     # "announcement": "⚠️ Announcement",
     "logo": {
-        # "image_dark": "_static/logo-wide-dark.svg",
+        "image_light": "_static/assets/images/favicon.png",
+        "image_dark": "_static/assets/images/favicon.svg",
         "alt_text": "Kiso - Home",
         # "text": html_title,  # Uncomment to try text with logo
     },

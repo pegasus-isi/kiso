@@ -138,4 +138,4 @@ method to run the experiment.
 Example
 -------
 
-The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso.workflow` directory of Kiso.
+The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso/workflow` directory of Kiso.
