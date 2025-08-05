@@ -4,9 +4,10 @@ python:
   install:
     - method: pip
       path: .
+      dependency_groups:
+        - docs
       extra_requirements:
         - all
-        - docs
 
 build:
   os: ubuntu-22.04
