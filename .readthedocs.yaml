@@ -13,6 +13,7 @@ build:
     python: "3.13"
   jobs:
     install:
+      - pip install --upgrade pip
       - pip install --group docs
 
 # Optionally build your docs in additional formats such as PDF and ePub
