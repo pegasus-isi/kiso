@@ -19,16 +19,16 @@ name: plankifier-experiment
 condor:
   central-manager:
     roles:
-      - central-manager
+      - central-manager-daemon
   submit:
     roles:
-      - submit
+      - submit-daemon
   execute-1:
     roles:
-      - execute-cloud
+      - execute-cloud-daemon
   execute-2:
     roles:
-      - execute-edge
+      - execute-edge-daemon
     config-file: config/execute.conf
 
 sites:
@@ -39,7 +39,7 @@ sites:
     resources:
       machines:
         - roles:
-            - execute-edge
+            - execute-edge-daemon
           machine_name: raspberrypi4-64
           count: 1
           container:
@@ -55,9 +55,9 @@ sites:
     resources:
       machines:
         - roles:
-            - central-manager
-            - submit
-            - execute-cloud
+            - central-manager-daemon
+            - submit-daemon
+            - execute-cloud-daemon
           flavour: compute_zen3
           number: 1
           image: CC-Ubuntu22.04
@@ -70,14 +70,14 @@ experiments:
     count: 1
     main: ./workflow.py
     submit-node-roles:
-      - submit
+      - submit-daemon
     inputs:
       - roles:
-          - execute-edge
+          - execute-edge-daemon
         src: bin/train.py
         dst: /srv/plankifier/
       - roles:
-          - execute-edge
+          - execute-edge-daemon
         src: bin/predict.py
         dst: /srv/plankifier/
     setup:
@@ -86,11 +86,11 @@ experiments:
         script: |
           chmod +x workflow.py
       - roles:
-          - execute-edge
+          - execute-edge-daemon
         script: |
           chmod +x /srv/plankifier/train.py /srv/plankifier/predict.py
     outputs:
       - roles:
-          - submit
+          - submit-daemon
         src: ~kiso/kiso-plankifier-experiment/output/count.txt
         dst: ./
