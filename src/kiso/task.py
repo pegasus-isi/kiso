@@ -25,6 +25,7 @@ from rich.console import Console
 
 import kiso.constants as const
 from kiso import display, edge, utils
+from kiso.errors import KisoError
 from kiso.log import get_process_pool_executor
 from kiso.schema import SCHEMA
 from kiso.version import __version__
@@ -836,6 +837,7 @@ def _associate_floating_ip(
     :type is_public_ip_required: bool, optional
     :raises NotImplementedError: If floating IP assignment is not supported for a
     specific testbed
+    :raises KisoError: If assigning a public IP is unsupported
     :raises ValueError: If an unsupported site type is encountered
     """
     if is_public_ip_required and (
@@ -851,7 +853,7 @@ def _associate_floating_ip(
                 "Assigning floating IP for FABRIC testbed hasn't been implemented yet"
             )
         elif kind == "vagrant":
-            raise ValueError("Assigning public IPs to Vagrant VMs is not supported")
+            raise KisoError("Assigning public IPs to Vagrant VMs is not supported")
         else:
             raise ValueError(f"Unknown site type {kind}", kind)
 
@@ -1692,7 +1694,7 @@ def run(
     if force is True:
         env["experiments"] = {}
 
-    # _copy_experiment_dir(env)
+    _copy_experiment_dir(env)
     for experiment_index, experiment in enumerate(experiments):
         env["experiments"].setdefault(experiment_index, {})
         _run_experiments(experiment_index, experiment, variables, env)

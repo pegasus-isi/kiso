@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import enoslib as en
+import paramiko
 from enoslib.api import CommandResult
 from enoslib.objects import Roles
 from enoslib.task import Environment
@@ -86,6 +87,20 @@ def get_pool_passwd_file() -> str:
             raise ValueError(f"File <{pool_passwd_file}> must have permissions 0600")
 
     return str(pool_passwd_file)
+
+
+def generate_ssh_key() -> None:
+    """Generate SSH keys for the current user."""
+    ssh_dir = Path("~/.kiso/ssh")
+    ssh_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate SSH key
+    key = paramiko.RSAKey.generate(bits=2048)
+
+    # Save SSH to file
+    key.write_private_key_file(ssh_dir / "id_rsa")
+    with (ssh_dir / "id_rsa.pub").open("w") as f:
+        f.write(f"{key.get_name()} {key.get_base64()} kiso-key")
 
 
 def get_random_string(length: int = 64) -> str:
