@@ -51,7 +51,7 @@ STATUS_FAILED: str = "FAILED"
 STATUS_TIMEOUT: str = "TIMEOUT"
 
 #: Entry point group for workflow runners.
-KISO_RUNNER_ENTRY_POINT_GROUP: str = "kiso.wf"
+KISO_RUNNER_ENTRY_POINT_GROUP: str = "kiso.experiment"
 
 #: Map status code to console color.
 STATUS_COLOR_MAP: dict[str, str] = {

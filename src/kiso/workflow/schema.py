@@ -49,7 +49,9 @@ SCHEMA: dict = {
             "type": "array",
             "items": {"$ref": "#/$defs/setup"},
         },
-        "submit-node-roles": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"},
+        "submit-node-labels": {
+            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
+        },
         "post-scripts": {
             "description": "Define all scripts to be executed after the experiment",
             "type": "array",
@@ -62,14 +64,14 @@ SCHEMA: dict = {
             "items": {"$ref": "#/$defs/location"},
         },
     },
-    "required": ["kind", "name", "main", "submit-node-roles"],
+    "required": ["kind", "name", "main", "submit-node-labels"],
     "additionalProperties": False,
     "$defs": {
         "setup": {
             "title": "Script Setup Schema",
             "type": "object",
             "properties": {
-                "roles": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"},
+                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
                 "executable": {
                     "description": "The executable (shebang) to be used to run the "
                     "script",
@@ -81,14 +83,14 @@ SCHEMA: dict = {
                     "type": "string",
                 },
             },
-            "required": ["roles", "script"],
+            "required": ["labels", "script"],
             "additionalProperties": False,
         },
         "location": {
             "title": "File Upload/Download Schema",
             "type": "object",
             "properties": {
-                "roles": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"},
+                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
                 "src": {"description": "The src file to be copied", "type": "string"},
                 "dst": {
                     "description": "The dst where the src should be copied too. This "
@@ -96,7 +98,7 @@ SCHEMA: dict = {
                     "type": "string",
                 },
             },
-            "required": ["roles", "src", "dst"],
+            "required": ["labels", "src", "dst"],
             "additionalProperties": False,
         },
     },

@@ -8,12 +8,12 @@ import enoslib as en
 if TYPE_CHECKING:
     from importlib.metadata import EntryPoints
 
-_roles_schema: dict = {
-    "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles",
-    "description": "A list of roles identify the resources. The values are strings "
+_labels_schema: dict = {
+    "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels",
+    "description": "A list of labels identify the resources. The values are strings "
     "that can contain alphanumeric characters, dots, underscores and hyphens",
     "type": "array",
-    "title": "Roles Schema",
+    "title": "Labels Schema",
     "items": {"type": "string", "pattern": "^[a-zA-Z0-9._-]+$"},
     "minItems": 1,
     "uniqueItems": True,
@@ -22,7 +22,7 @@ _roles_schema: dict = {
 COMMONS_SCHEMA: dict = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$defs": {
-        "roles": _roles_schema,
+        "labels": _labels_schema,
         "variables": {
             "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/variables",
             "description": "A map of variable name and values. The variable names can "
@@ -62,79 +62,50 @@ SCHEMA: dict = {
             "items": {"$ref": "#/$defs/experiment"},
             "minItems": 1,
         },
-        "docker": {
-            "description": "Specify on which resources the Docker runtime should be "
-            "installed",
+        "software": {
+            "description": "Software to be installed on the resources",
             "type": "object",
             "properties": {
-                "roles": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"},
-                "version": {"type": "string"},
-            },
-            "required": ["roles"],
-            "additionalProperties": False,
-        },
-        "apptainer": {
-            "description": "Specify on which resources the Apptainer runtime should be "
-            "installed",
-            "type": "object",
-            "properties": {
-                "roles": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"},
-                "version": {"type": "string"},
-            },
-            "required": ["roles"],
-            "additionalProperties": False,
-        },
-        "condor": {
-            "description": "Specify how and on which resources HTCondor should be "
-            "installed",
-            "type": "object",
-            "properties": {
-                "central-manager": {
-                    "description": "Specify which resource will have the central "
-                    "manager and it's configuration",
+                "docker": {
+                    "description": "Specify on which resources the Docker runtime "
+                    "should be installed",
                     "type": "object",
                     "properties": {
-                        "roles": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"
+                        "labels": {
+                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
                         },
-                        "config-file": {"type": "string"},
+                        "version": {"type": "string"},
                     },
+                    "required": ["labels"],
+                    "additionalProperties": False,
+                },
+                "apptainer": {
+                    "description": "Specify on which resources the Apptainer runtime "
+                    "should be installed",
+                    "type": "object",
+                    "properties": {
+                        "labels": {
+                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
+                        },
+                        "version": {"type": "string"},
+                    },
+                    "required": ["labels"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "deployment": {
+            "description": "Workload management system to be installed on the "
+            "resources",
+            "type": "object",
+            "properties": {
+                "htcondor": {
+                    "description": "Specify how and on which resources HTCondor "
+                    "should be installed",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/htcondor"},
+                    "minItems": 1,
                 }
-            },
-            "patternProperties": {
-                "^personal(-\\d{1,})?$": {
-                    "description": "Specify which resource(s) should be setup as a "
-                    "personal HTCondor pool and it's configuration",
-                    "type": "object",
-                    "properties": {
-                        "roles": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"
-                        },
-                        "config-file": {"type": "string"},
-                    },
-                },
-                "^execute(-\\d{1,})?$": {
-                    "description": "Specify which resource(s) should be setup as an "
-                    "execute node of a HTCondor pool and it's configuration",
-                    "type": "object",
-                    "properties": {
-                        "roles": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"
-                        },
-                        "config-file": {"type": "string"},
-                    },
-                },
-                "^submit(-\\d{1,})?$": {
-                    "description": "Specify which resource(s) should be setup as an "
-                    "submit node of a HTCondor pool and it's configuration",
-                    "type": "object",
-                    "properties": {
-                        "roles": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/roles"
-                        },
-                        "config-file": {"type": "string"},
-                    },
-                },
             },
             "additionalProperties": False,
         },
@@ -150,18 +121,35 @@ SCHEMA: dict = {
             "title": "Experiment Definition",
             "oneOf": [],
         },
+        "htcondor": {
+            "description": "Specify how and on which resources HTCondor "
+            "should be installed",
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "description": "Specify which resource will have the "
+                    "central manager and it's configuration",
+                    "type": "string",
+                    "enum": ["central-manager", "execute", "submit", "personal"],
+                },
+                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
+                "config-file": {"type": "string"},
+            },
+            "required": ["kind", "labels"],
+            "additionalProperties": False,
+        },
     },
 }
 
 
-_roles_schema = _roles_schema.copy()
-_roles_schema["description"] = (
-    "A list of roles identify the resources. The values are "
+_labels_schema = _labels_schema.copy()
+_labels_schema["description"] = (
+    "A list of labels identify the resources. The values are "
     "strings that can't start with 'kiso.' and can contain alphanumeric characters, "
     "dots, underscores and hyphens"
 )
-_roles_schema["items"] = _roles_schema["items"].copy()
-_roles_schema["items"]["pattern"] = "^(?!kiso\\.)[a-zA-Z0-9._-]+$"
+_labels_schema["items"] = _labels_schema["items"].copy()
+_labels_schema["items"]["pattern"] = "^(?!kiso\\.)[a-zA-Z0-9._-]+$"
 
 
 if hasattr(en, "Vagrant"):
@@ -171,8 +159,8 @@ if hasattr(en, "Vagrant"):
     # https://sphinx-jsonschema.readthedocs.io/en/latest/schemakeywords.html#target
     VAGRANT_SCHEMA["$$target"] = "py-obj:kiso.schema.VAGRANT_SCHEMA"
     VAGRANT_SCHEMA["properties"]["kind"] = {"const": "vagrant"}
-    VAGRANT_SCHEMA["definitions"]["machine"]["properties"]["roles"] = _roles_schema
-    VAGRANT_SCHEMA["definitions"]["network"]["properties"]["roles"] = _roles_schema
+    VAGRANT_SCHEMA["definitions"]["machine"]["properties"]["roles"] = _labels_schema
+    VAGRANT_SCHEMA["definitions"]["network"]["properties"]["roles"] = _labels_schema
     SCHEMA["$defs"]["site"]["oneOf"].append(
         {
             "allOf": [
@@ -188,7 +176,7 @@ if hasattr(en, "CBM"):
     CBM_SCHEMA["$$target"] = "py-obj:kiso.schema.CBM_SCHEMA"
     CBM_SCHEMA["title"] = "Chameleon Configuration Schema"
     CBM_SCHEMA["properties"]["kind"] = {"const": "chameleon"}
-    CBM_SCHEMA["machine"]["properties"]["roles"] = _roles_schema
+    CBM_SCHEMA["machine"]["properties"]["roles"] = _labels_schema
     SCHEMA["$defs"]["site"]["oneOf"].append(
         {
             "allOf": [
@@ -204,9 +192,9 @@ if hasattr(en, "ChameleonEdge"):
     CHAMELEON_EDGE_SCHEMA["$$target"] = "py-obj:kiso.schema.CHAMELEON_EDGE_SCHEMA"
     CHAMELEON_EDGE_SCHEMA["title"] = "Chameleon Edge Configuration Schema"
     CHAMELEON_EDGE_SCHEMA["properties"]["kind"] = {"const": "chameleon-edge"}
-    CHAMELEON_EDGE_SCHEMA["deviceCluster"]["properties"]["roles"] = _roles_schema
-    CHAMELEON_EDGE_SCHEMA["device"]["properties"]["roles"] = _roles_schema
-    CHAMELEON_EDGE_SCHEMA["network"]["properties"]["roles"] = _roles_schema
+    CHAMELEON_EDGE_SCHEMA["deviceCluster"]["properties"]["roles"] = _labels_schema
+    CHAMELEON_EDGE_SCHEMA["device"]["properties"]["roles"] = _labels_schema
+    CHAMELEON_EDGE_SCHEMA["network"]["properties"]["roles"] = _labels_schema
     SCHEMA["$defs"]["site"]["oneOf"].append(
         {
             "allOf": [
@@ -221,7 +209,7 @@ if hasattr(en, "Fabric"):
 
     FABRIC_SCHEMA["$$target"] = "py-obj:kiso.schema.FABRIC_SCHEMA"
     FABRIC_SCHEMA["properties"]["kind"] = {"const": "fabric"}
-    FABRIC_SCHEMA["definitions"]["machine"]["properties"]["roles"] = _roles_schema
+    FABRIC_SCHEMA["definitions"]["machine"]["properties"]["roles"] = _labels_schema
     SCHEMA["$defs"]["site"]["oneOf"].append(
         {
             "allOf": [
@@ -235,9 +223,9 @@ if hasattr(en, "Fabric"):
 def _get_experiment_kinds() -> list[dict[str, str]]:
     all_eps: dict | EntryPoints = entry_points()
     if isinstance(all_eps, dict):
-        all_eps = all_eps.get("kiso.wf", [])
+        all_eps = all_eps.get("kiso.experiment", [])
     else:
-        all_eps = all_eps.select(group="kiso.wf")
+        all_eps = all_eps.select(group="kiso.experiment")
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install

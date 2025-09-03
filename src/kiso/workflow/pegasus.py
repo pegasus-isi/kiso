@@ -51,7 +51,7 @@ class PegasusWMS:
         wd: str,
         remote_wd: str,
         resultdir: str,
-        roles: Roles,
+        labels: Roles,
         env: Environment,
         console: Console | None = None,
         log: logging.Logger | None = None,
@@ -71,8 +71,8 @@ class PegasusWMS:
         :type remote_wd: str
         :param resultdir: Results directory
         :type resultdir: str
-        :param roles: All provisioned resources
-        :type roles: Roles
+        :param labels: All provisioned resources
+        :type labels: Roles
         :param env: Environment context
         :type env: Environment
         :param console: Rich console object to output experiment progress,
@@ -83,12 +83,12 @@ class PegasusWMS:
         :param variables: Globally defined variables, defaults to None
         :type variables: dict[str, str  |  int  |  float] | None, optional
         """
-        self.log = log or logging.getLogger("kiso.wf.pegasus")
+        self.log = log or logging.getLogger("kiso.experiment.pegasus")
         self.index = index
         self.wd = wd
         self.remote_wd = remote_wd
         self.resultdir = resultdir
-        self.roles = roles
+        self.labels = labels
         self.env = env
         self.variables = copy.deepcopy(variables or {})
 
@@ -96,7 +96,7 @@ class PegasusWMS:
         self.experiment = experiment
         self.name = experiment.name
         self.main = experiment.main
-        self.submit_node_roles = experiment.submit_node_roles
+        self.submit_node_labels = experiment.submit_node_labels
         self.variables.update(experiment.variables or {})
         self.args = experiment.args or []
         self.setup = experiment.setup or []
@@ -107,9 +107,9 @@ class PegasusWMS:
         self.poll_interval = experiment.poll_interval or const.POLL_INTERVAL
         self.timeout = experiment.timeout or const.WORKFLOW_TIMEOUT
 
-        # Resolve roles
-        self._roles = utils.resolve_roles(roles, self.submit_node_roles)
-        self.vms, self.containers = utils.split_roles(self._roles, roles)
+        # Resolve labels
+        self._labels = utils.resolve_labels(labels, self.submit_node_labels)
+        self.vms, self.containers = utils.split_labels(self._labels, labels)
 
         for instance in range(self.count):
             self.env.setdefault(instance, {})
@@ -142,7 +142,7 @@ class PegasusWMS:
         """Copy input files to specified destinations across virtual machines and containers.
 
         Iterates through input locations defined in the experiment configuration, resolving
-        roles and copying files to their destination. Supports copying to both virtual
+        labels and copying files to their destination. Supports copying to both virtual
         machines and containers while tracking the status of each copy operation.
         """  # noqa: E501
         name = self.name
@@ -166,8 +166,8 @@ class PegasusWMS:
     ) -> list[CommandResult | CustomCommandResult]:
         """Copy input file to specified destination on virtual machines and containers.
 
-        Resolving roles and copying files to their destination. Supports copying to both
-        virtual machines and containers while tracking the status of each copy
+        Resolving labels and copying files to their destination. Supports copying to
+        both virtual machines and containers while tracking the status of each copy
         operation.
 
         :param index: The overall experiment index
@@ -178,9 +178,9 @@ class PegasusWMS:
         :rtype: list[CommandResult | CustomCommandResult]
         """
         results: list[CommandResult | CustomCommandResult] = []
-        roles = self.roles
-        _roles = utils.resolve_roles(roles, input.roles)
-        vms, containers = utils.split_roles(_roles, roles)
+        labels = self.labels
+        _labels = utils.resolve_labels(labels, input.labels)
+        vms, containers = utils.split_labels(_labels, labels)
         src = Path(input.src)
         dst = Path(input.dst)
 
@@ -215,7 +215,7 @@ class PegasusWMS:
         return results
 
     def _run_setup_scripts(self) -> None:
-        """Run setup scripts for an experiment across specified roles.
+        """Run setup scripts for an experiment across specified labels.
 
         Executes setup scripts defined in the experiment configuration on virtual
         machines and containers. Handles script preparation, copying, and execution
@@ -240,7 +240,7 @@ class PegasusWMS:
     def _run_setup_script(
         self, instance: int, setup_script: Script
     ) -> list[CommandResult | CustomCommandResult]:
-        """Run setup scripts for an experiment across specified roles.
+        """Run setup scripts for an experiment across specified labels.
 
         Executes setup scripts defined in the experiment configuration on virtual
         machines and containers. Handles script preparation, copying, and execution
@@ -256,9 +256,9 @@ class PegasusWMS:
         :rtype: list[CommandResult | CustomCommandResult]
         """
         results: list[CommandResult | CustomCommandResult] = []
-        roles = self.roles
-        _roles = utils.resolve_roles(roles, setup_script.roles)
-        vms, containers = utils.split_roles(_roles, roles)
+        labels = self.labels
+        _labels = utils.resolve_labels(labels, setup_script.labels)
+        vms, containers = utils.split_labels(_labels, labels)
         executable = setup_script.executable
 
         kiso_state_key = "run-setup-script"
@@ -308,7 +308,7 @@ class PegasusWMS:
         """Run post-execution scripts for an experiment.
 
         Executes post-scripts defined in the experiment configuration across specified
-        roles, supporting both virtual machines and containers. Handles script
+        labels, supporting both virtual machines and containers. Handles script
         copying, execution, and tracking of script run status.
         """
         name = self.name
@@ -333,7 +333,7 @@ class PegasusWMS:
         """Run post-execution scripts for an experiment.
 
         Executes post-scripts defined in the experiment configuration across specified
-        roles, supporting both virtual machines and containers. Handles script
+        labels, supporting both virtual machines and containers. Handles script
         copying, execution, and tracking of script run status.
 
         :param instance: Instance number of the post-script
@@ -345,9 +345,9 @@ class PegasusWMS:
         :rtype: list[CommandResult | CustomCommandResult]
         """
         results: list[CommandResult | CustomCommandResult] = []
-        roles = self.roles
-        _roles = utils.resolve_roles(roles, post_script.roles)
-        vms, containers = utils.split_roles(_roles, roles)
+        labels = self.labels
+        _labels = utils.resolve_labels(labels, post_script.labels)
+        vms, containers = utils.split_labels(_labels, labels)
         executable = post_script.executable
 
         kiso_state_key = "run-post-script"
@@ -396,7 +396,7 @@ class PegasusWMS:
     def _fetch_outputs(self) -> None:
         """Copy output files from remote machines and containers to a local destination.
 
-        Iterates through specified outputs, resolves target roles, and fetches
+        Iterates through specified outputs, resolves target labels, and fetches
         output files from VMs and containers to a local destination directory.
         """
         name = self.name
@@ -422,7 +422,7 @@ class PegasusWMS:
     ) -> list[CommandResult | CustomCommandResult]:
         """Copy output file from remote machines and containers to a local destination.
 
-        Resolves target roles, and fetches output files from VMs and containers to a
+        Resolves target labels, and fetches output files from VMs and containers to a
         local destination directory.
 
         :param instance: Output instance index
@@ -437,9 +437,9 @@ class PegasusWMS:
         :rtype: list[CommandResult | CustomCommandResult]
         """
         results: list[CommandResult | CustomCommandResult] = []
-        roles = self.roles
-        _roles = utils.resolve_roles(roles, output.roles)
-        vms, containers = utils.split_roles(_roles, roles)
+        labels = self.labels
+        _labels = utils.resolve_labels(labels, output.labels)
+        vms, containers = utils.split_labels(_labels, labels)
 
         src = Path(output.src)
         if not src.is_absolute() and output.src[0] != "~":
@@ -1029,7 +1029,7 @@ class PegasusWMS:
     def _fetch_submit_dir(self, instance: int) -> None:
         """Copy output files from remote machines and containers to a local destination.
 
-        Iterates through specified result locations, resolves target roles, and fetches
+        Iterates through specified result locations, resolves target labels, and fetches
         output files from VMs and containers to a local destination directory.
 
         :param instance: Experiment index in the environment configuration

@@ -23,7 +23,7 @@ class PegasusWorkflow:
     main: str
 
     #:
-    submit_node_roles: list[str]
+    submit_node_labels: list[str]
 
     #:
     variables: dict[str, Union[str, int, float]] = field(default_factory=dict)
@@ -58,7 +58,7 @@ class Script:
     """Script configuration."""
 
     #:
-    roles: list[str]
+    labels: list[str]
 
     #:
     script: str
@@ -72,7 +72,7 @@ class Location:
     """Location configuration."""
 
     #:
-    roles: list[str]
+    labels: list[str]
 
     #:
     src: str

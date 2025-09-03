@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import itertools
 import json
 import logging
 import re
@@ -25,6 +26,7 @@ from rich.console import Console
 
 import kiso.constants as const
 from kiso import display, edge, utils
+from kiso.configuration import Kiso
 from kiso.errors import KisoError
 from kiso.log import get_process_pool_executor
 from kiso.schema import SCHEMA
@@ -35,6 +37,8 @@ if TYPE_CHECKING:
 
     from enoslib.api import CommandResult
     from enoslib.infra.provider import Provider
+
+    from kiso.configuration import ExperimentTypes
 
 
 T = TypeVar("T")
@@ -93,7 +97,9 @@ def validate_config(func: Callable[..., T]) -> Callable[..., T]:
                 config = yaml.safe_load(_experiment_config)
 
         try:
-            validate(config, SCHEMA)
+            validate(_replace_labels_key_with_roles_key(config), SCHEMA)
+            # Convert the JSON configuration to a :py:class:`dataclasses.dataclass`
+            config = from_dict(Kiso, config, Config(convert_key=_to_snake_case))
         except ValidationError:
             log.exception("Invalid Kiso experiment config <%s>", experiment_config)
             raise
@@ -104,318 +110,351 @@ def validate_config(func: Callable[..., T]) -> Callable[..., T]:
     return wrapper
 
 
+def _replace_labels_key_with_roles_key(experiment_config: Kiso | dict) -> dict:
+    """Replace labels with roles in the experiment configuration."""
+    experiment_config = copy.deepcopy(experiment_config)
+    sites = (
+        experiment_config["sites"]
+        if isinstance(experiment_config, dict)
+        else experiment_config.sites
+    )
+    for site in sites:
+        for machine in site["resources"]["machines"]:
+            machine["roles"] = machine["labels"]
+            del machine["labels"]
+
+        for network in site["resources"].get("networks", []):
+            if isinstance(network, str):
+                continue
+
+            network["roles"] = network["labels"]
+            del network["labels"]
+
+    return experiment_config
+
+
 @validate_config
-def check(experiment_config: dict[str, Any], **kwargs: dict) -> None:
+def check(experiment_config: Kiso, **kwargs: dict) -> None:
     """Check the experiment configuration for various validation criteria.
 
     This function performs multiple validation checks on the experiment configuration,
     including:
     - Verifying vagrant site constraints
-    - Validating role definitions
-    - Checking docker and Condor configurations
+    - Validating label definitions
+    - Checking docker and HTCondor configurations
     - Ensuring proper node configurations
     - Validating input file locations
     - Performing EnOSlib platform checks
 
     :param experiment_config: The experiment configuration dictionary
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param kwargs: Additional keyword arguments
     :type kwargs: dict
     """
     console.rule("[bold green]Check experiment configuration[/bold green]")
     log.debug("Check only one vagrant site is present in the experiment")
-    role_to_machines: dict[str, set] = _get_defined_roles(experiment_config)
+    label_to_machines: dict[str, set] = _get_defined_machines(experiment_config)
 
-    if "docker" in experiment_config:
+    if experiment_config.software and experiment_config.software.docker:
         log.debug("Check docker is not installed on Chameleon edge")
-        _check_docker_is_not_on_edge(experiment_config)
+        _check_docker_is_not_on_edge(experiment_config, label_to_machines)
+
+    if experiment_config.software and experiment_config.software.apptainer:
+        log.debug(
+            "Check labels referenced in apptainer section are defined in the sites "
+            "section"
+        )
+        _check_apptainer_labels(experiment_config, label_to_machines)
+
+    if experiment_config.deployment and experiment_config.deployment.htcondor:
+        log.debug(
+            "Check labels referenced in HTCondor section are defined in the sites "
+            "section"
+        )
+        _check_condor_labels(experiment_config, label_to_machines)
+
+        log.debug("Check there is only one central-manager")
+        _check_central_manager_cardinality(experiment_config, label_to_machines)
+
+        log.debug("Check execute node configurations doesn't overlap")
+        _check_exec_node_overlap(experiment_config, label_to_machines)
+
+        log.debug("Check submit nodes configurations doesn't overlap")
+        _check_submit_node_overlap(experiment_config, label_to_machines)
+
+        log.debug(
+            "Check submit-node-labels specified in the experiment are valid submit "
+            "nodes as per the HTCondor configuration"
+        )
+        _check_submit_labels_are_submit_nodes(experiment_config, label_to_machines)
 
     log.debug(
-        "Check roles referenced in condor section are defined in the sites section"
+        "Check labels referenced in experiments section are defined in the sites "
+        "section"
     )
-    _check_condor_roles(experiment_config, role_to_machines)
-
-    log.debug("Check there is only one central-manager")
-    _check_central_manager_cardinality(experiment_config, role_to_machines)
-
-    log.debug("Check execute node configurations doesn't overlap")
-    _check_exec_node_overlap(experiment_config)
-
-    log.debug("Check worker nodes configurations doesn't overlap")
-    _check_worker_node_overlap(experiment_config)
-
-    log.debug(
-        "Check roles referenced in experiments section are defined in the sites section"
-    )
-    _check_undefined_roles(experiment_config, role_to_machines)
+    _check_undefined_labels(experiment_config, label_to_machines)
 
     log.debug("Check for missing files in inputs")
     _check_missing_input_files(experiment_config)
-
-    log.debug(
-        "Check submit-node-roles specified in the experiment are valid submit "
-        "nodes as per the Condor configuration"
-    )
-    _check_submit_roles_are_submit_nodes(experiment_config, role_to_machines)
 
     log.debug("Check EnOSlib")
     en.MOTD = en.INFO = ""
     en.check(platform_filter=["Vagrant", "Fabric", "Chameleon", "ChameleonEdge"])
 
 
-def _get_defined_roles(experiment_config: dict[str, Any]) -> dict[str, set]:
-    """Get the defined roles from the experiment configuration.
+def _get_defined_machines(experiment_config: Kiso) -> dict[str, set]:
+    """Get the defined machines from the experiment configuration.
 
-    Extracts and counts roles defined in the sites section of the experiment
+    Extracts and counts labels defined in the sites section of the experiment
     configuration. Validates that only one Vagrant site is present and generates
-    additional role variants.
+    additional label variants.
 
     :param experiment_config: Configuration dictionary containing site and resource
     definitions
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :raises ValueError: If multiple Vagrant sites are detected
-    :return: A counter of defined roles with their counts
+    :return: A counter of defined labels with their counts
     :rtype: dict[str, set]
     """
     vagrant_sites = 0
-    def_roles: Counter = Counter()
-    role_to_machines: dict[str, set] = defaultdict(set)
+    def_labels: Counter = Counter()
+    label_to_machines: dict[str, set] = defaultdict(set)
 
-    for site_index, site in enumerate(experiment_config["sites"]):
+    for site_index, site in enumerate(experiment_config.sites):
         if site["kind"] == "vagrant":
             vagrant_sites += 1
 
         for machine_index, machine in enumerate(site["resources"]["machines"]):
-            def_roles.update({site["kind"]: machine.get("number", 1)})
+            def_labels.update({site["kind"]: machine.get("number", 1)})
 
-            for role in machine["roles"]:
-                def_roles.update({role: machine.get("number", 1)})
+            for label in machine["labels"]:
+                def_labels.update({label: machine.get("number", 1)})
 
             for index in range(machine.get("number", 1)):
                 machine_key = f"site-{site_index}-machine-{machine_index}-index-{index}"
-                role_to_machines[site["kind"]].add(machine_key)
+                label_to_machines[site["kind"]].add(machine_key)
 
-                for role in machine["roles"]:
-                    role_to_machines[role].add(machine_key)
+                for label in machine["labels"]:
+                    label_to_machines[label].add(machine_key)
 
     else:
         if vagrant_sites > 1:
             raise ValueError("Multiple vagrant sites are not supported")
 
-        extra_roles = {}
-        for role, count in def_roles.items():
-            machines = list(role_to_machines[role])
+        extra_labels = {}
+        for label, count in def_labels.items():
+            machines = list(label_to_machines[label])
             for index in range(1, count + 1):
-                extra_roles[f"kiso.{role}.{index}"] = 1
-                role_to_machines[f"kiso.{role}.{index}"].add(machines[index - 1])
+                extra_labels[f"kiso.{label}.{index}"] = 1
+                label_to_machines[f"kiso.{label}.{index}"].add(machines[index - 1])
 
-    return role_to_machines
+    return label_to_machines
 
 
-def _check_docker_is_not_on_edge(experiment_config: dict[str, Any]) -> None:
+def _check_docker_is_not_on_edge(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
     """Check that Docker is not configured to run on Chameleon Edge devices.
 
-    Validates that no Docker roles are assigned to Chameleon Edge resources,
+    Validates that no Docker labels are assigned to Chameleon Edge resources,
     which is not supported. Raises a ValueError if such a configuration is detected.
 
     :param experiment_config: Experiment configuration dictionary
-    :type experiment_config: dict[str, Any]
-    :raises ValueError: If Docker roles are found on Chameleon Edge devices
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If Docker labels are found on Chameleon Edge devices
     """
-    docker_roles = set(experiment_config.get("docker", []))
-    edge_roles = set()
+    labels = experiment_config.software.docker
+    labels = set(labels.labels) if labels else []
 
-    if not docker_roles:
+    if not labels:
         return
 
-    for site in experiment_config["sites"]:
-        if site["kind"] != "chameleon-edge":
-            continue
+    machines: set = set()
+    machines.update(_ for label in labels for _ in label_to_machines[label])
 
-        for machine in site["resources"]["machines"]:
-            edge_roles.update(machine["roles"])
+    if not machines:
+        raise ValueError("No machines found to install Docker")
 
-    docker_edge_roles = docker_roles.intersection(edge_roles)
-
-    if docker_edge_roles:
-        raise ValueError(
-            "Docker cannot be installed on Chameleon Edge devices", docker_edge_roles
-        )
+    docker_edge_machines = machines.intersection(label_to_machines["chameleon-edge"])
+    if docker_edge_machines:
+        raise ValueError("Docker cannot be installed on Chameleon Edge devices")
 
 
-def _check_condor_roles(
-    experiment_config: dict[str, Any], role_to_machines: dict[str, set]
+def _check_apptainer_labels(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
 ) -> None:
-    """Check Condor roles and configuration files in an experiment configuration.
+    """Check Apptainer labels in an experiment configuration.
 
-    Validates that all Condor roles are defined and all referenced configuration files
-    exist.
+    Validates that all Apptainer labels are defined.
 
-    :param experiment_config: Dictionary containing Condor configuration for an
+    :param experiment_config: Dictionary containing Apptainer configuration for an
     experiment
-    :type experiment_config: dict[str, Any]
-    :param role_to_machines: Mapping of predefined roles
-    :type role_to_machines: dict[str, set]
-    :raises ValueError: If undefined roles are referenced or configuration files are
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If undefined labels are referenced or configuration files are
     missing
     """
-    unrole_to_machines = defaultdict(set)
+    labels = experiment_config.software.apptainer
+    labels = set(labels.labels) if labels else []
+
+    if not labels:
+        return
+
+    machines: set = set()
+    machines.update(_ for label in labels for _ in label_to_machines[label])
+
+    if not machines:
+        raise ValueError("No machines found to install Apptainer")
+
+
+def _check_condor_labels(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
+    """Check HTCondor labels and configuration files in an experiment configuration.
+
+    Validates that all HTCondor labels are defined and all referenced configuration
+    files exist.
+
+    :param experiment_config: Dictionary containing HTCondor configuration for an
+    experiment
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If undefined labels are referenced or configuration files are
+    missing
+    """
+    unlabel_to_machines = defaultdict(set)
     missing_config_files = []
-    for condor, nodes in experiment_config.get("condor", {}).items():
-        for node, roles in nodes.items():
-            if node.endswith("-file"):
-                if not Path(roles).exists():
-                    missing_config_files.append((condor, node, roles))
+    for index, daemon_config in enumerate(experiment_config.deployment.htcondor or []):
+        kind = daemon_config.kind
+        labels = daemon_config.labels
+        config_file = daemon_config.config_file
 
-                continue
+        if config_file and not Path(config_file).exists():
+            missing_config_files.append((index, kind, config_file))
+            continue
 
-            unrole_to_machines[condor].update(
-                [role for role in roles if role not in role_to_machines]
-            )
+        machines: set = set()
+        machines.update(_ for label in labels for _ in label_to_machines[label])
 
-            if not unrole_to_machines[condor]:
-                del unrole_to_machines[condor]
+        if not machines:
+            unlabel_to_machines[index] = labels
     else:
-        if unrole_to_machines:
+        if unlabel_to_machines:
             raise ValueError(
-                "Undefined roles referenced in condor section", unrole_to_machines
+                "No machines found to install HTCondor configuration section",
+                unlabel_to_machines,
             )
 
         if missing_config_files:
             raise ValueError(
-                "Missing config files referenced in condor section",
+                "Missing config files referenced in HTCondor section",
                 missing_config_files,
             )
 
 
 def _check_central_manager_cardinality(
-    experiment_config: dict[str, Any], role_to_machines: dict[str, set]
+    experiment_config: Kiso, label_to_machines: dict[str, set]
 ) -> None:
-    """Check the cardinality of Condor central manager nodes in an experiment configuration.
+    """Check the cardinality of HTCondor central manager nodes in an experiment configuration.
 
-    Validates that only one machine is assigned the central-manager role.
+    Validates that only one machine is assigned the central-manager label.
 
-    :param experiment_config: Dictionary containing Condor configuration for an
+    :param experiment_config: Dictionary containing HTCondor configuration for an
     experiment
-    :type experiment_config: dict[str, Any]
-    :param role_to_machines: Mapping of predefined roles
-    :type role_to_machines: dict[str, set]
-    :raises ValueError: If more than one machine is assigned the central-manager role
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If more than one machine is assigned the central-manager label
     """  # noqa: E501
-    central_manager = experiment_config.get("condor", {}).get("central-manager", None)
+    central_manager = [
+        daemon_config
+        for daemon_config in experiment_config.deployment.htcondor or []
+        if daemon_config.kind[0] == "c"
+    ]
+
+    if len(central_manager) > 1:
+        raise ValueError("Multiple central-manager configurations are not supported")
+
     if central_manager:
-        for role in central_manager["roles"]:
-            if len(role_to_machines[role]) > 1:
+        for label in central_manager[0].labels:
+            if len(label_to_machines[label]) > 1:
                 raise ValueError("Multiple central-manager machines are not supported")
 
 
-def _check_exec_node_overlap(experiment_config: dict[str, Any]) -> None:
-    """Check for overlapping roles in Condor execute nodes.
+def _check_exec_node_overlap(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
+    """Check for overlapping labels in HTCondor execute nodes.
 
     Validates that no two execute nodes in the experiment configuration
-    have overlapping role assignments, which could cause configuration conflicts.
+    have overlapping label assignments, which could cause configuration conflicts.
 
-    :param experiment_config: Dictionary containing Condor node configuration
-    :type experiment_config: dict[str, Any]
-    :raises ValueError: If execute nodes have roles that intersect
+    :param experiment_config: Dictionary containing HTCondor node configuration
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If execute nodes have labels that intersect
     """
-    for i, nodes_i in experiment_config.get("condor", {}).items():
-        if not i.startswith("execute"):
-            continue
-
-        for j, nodes_j in experiment_config["condor"].items():
-            if not j.startswith("execute") or i == j:
-                continue
-
-            if set(nodes_i["roles"]).intersection(set(nodes_j["roles"])):
-                raise ValueError(
-                    f"Execute nodes <{i}> and <{j}> have overlapping roles"
-                )
+    _check_node_overlap(experiment_config, label_to_machines, "execute")
 
 
-def _check_worker_node_overlap(experiment_config: dict[str, Any]) -> None:
-    """Check for overlapping roles in Condor submit nodes.
+def _check_submit_node_overlap(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
+    """Check for overlapping labels in HTCondor submit nodes.
 
     Validates that no two submit nodes in the experiment configuration
-    have overlapping role assignments, which could cause configuration conflicts.
+    have overlapping label assignments, which could cause configuration conflicts.
 
-    :param experiment_config: Dictionary containing Condor node configuration
-    :type experiment_config: dict[str, Any]
-    :raises ValueError: If submit nodes have roles that intersect
+    :param experiment_config: Dictionary containing HTCondor node configuration
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If submit nodes have labels that intersect
     """
-    for i, nodes_i in experiment_config.get("condor", {}).items():
-        if not i.startswith("submit"):
+    _check_node_overlap(experiment_config, label_to_machines, "submit")
+
+
+def _check_node_overlap(
+    experiment_config: Kiso, label_to_machines: dict[str, set], kind: str
+) -> None:
+    """Check for overlapping labels in HTCondor nodes.
+
+    Validates that no two nodes in the experiment configuration
+    have overlapping label assignments, which could cause configuration conflicts.
+
+    :param experiment_config: Dictionary containing HTCondor node configuration
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels
+    :type label_to_machines: dict[str, set]
+    :param kind: Kind of node overlap to check
+    :type kind: str
+    :raises ValueError: If nodes have labels that intersect
+    """
+    condor_config = experiment_config.deployment.htcondor or []
+    for i, j in itertools.product(range(len(condor_config)), range(len(condor_config))):
+        kind_i = condor_config[i].kind
+        labels_i = set(condor_config[i].labels)
+
+        kind_j = condor_config[j].kind
+        labels_j = set(condor_config[j].labels)
+
+        if i == j or kind_i[0] != kind[0] or kind_j[0] != kind[0]:
             continue
 
-        for j, nodes_j in experiment_config["condor"].items():
-            if not j.startswith("submit") or i == j:
-                continue
-
-            if set(nodes_i["roles"]).intersection(set(nodes_j["roles"])):
-                raise ValueError(f"Submit nodes <{i}> and <{j}> have overlapping roles")
-
-
-def _check_undefined_roles(
-    experiment_config: dict[str, Any], role_to_machines: dict[str, set]
-) -> None:
-    """Check for undefined roles in experiment configuration.
-
-    Validates that all roles referenced in experiment setup, input locations,
-    and result locations are defined in the experiment configuration.
-
-    :param experiment_config: Complete experiment configuration dictionary
-    :type experiment_config: dict[str, Any]
-    :param role_to_machines: Mapping of predefined roles in the configuration
-    :type role_to_machines: dict[str, set]
-    :raises ValueError: If any undefined roles are found in the experiment configuration
-    """
-    unrole_to_machines = defaultdict(set)
-    for experiment in experiment_config["experiments"]:
-        for index, setup in enumerate(experiment.get("setup", [])):
-            unrole_to_machines[experiment["name"]].update(
-                [
-                    (f"setup[{index}]", role)
-                    for role in setup["roles"]
-                    if role not in role_to_machines
-                ]
-            )
-
-        for index, location in enumerate(experiment.get("inputs", [])):
-            unrole_to_machines[experiment["name"]].update(
-                [
-                    (f"inputs[{index}]", role)
-                    for role in location["roles"]
-                    if role not in role_to_machines
-                ]
-            )
-
-        for index, location in enumerate(experiment.get("outputs", [])):
-            unrole_to_machines[experiment["name"]].update(
-                [
-                    (f"outputs[{index}]", role)
-                    for role in location["roles"]
-                    if role not in role_to_machines
-                ]
-            )
-        for index, setup in enumerate(experiment.get("post-scripts", [])):
-            unrole_to_machines[experiment["name"]].update(
-                [
-                    (f"post-scripts[{index}]", role)
-                    for role in setup["roles"]
-                    if role not in role_to_machines
-                ]
-            )
-
-        if not unrole_to_machines[experiment["name"]]:
-            del unrole_to_machines[experiment["name"]]
-    else:
-        if unrole_to_machines:
+        if labels_i.intersection(labels_j):
             raise ValueError(
-                "Undefined roles referenced in experiments section", unrole_to_machines
+                f"{kind.capitalize()} nodes <{i}> and <{j}> have overlapping labels"
             )
 
 
-def _check_missing_input_files(experiment_config: dict[str, Any]) -> None:
+def _check_submit_labels_are_submit_nodes(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
     """Check for missing input files in experiment configurations.
 
     Validates the existence of input files specified in experiment configurations.
@@ -423,15 +462,120 @@ def _check_missing_input_files(experiment_config: dict[str, Any]) -> None:
     experiments.
 
     :param experiment_config: Configuration dictionary containing experiment details
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
+    :raises ValueError: If any specified input files do not exist
+    """
+    submit_node_labels = set()
+    submit_nodes = set()
+    for daemon_config in experiment_config.deployment.htcondor or []:
+        kind = daemon_config.kind
+        labels = set(daemon_config.labels)
+        if not (
+            kind[0] == "s"  # submit
+            or kind[0] == "p"  # personal
+        ):
+            continue
+
+        submit_node_labels.update(labels)
+        for label in labels:
+            submit_nodes.update(label_to_machines[label])
+
+    for experiment in experiment_config.experiments:
+        for label in experiment.submit_node_labels:
+            if label_to_machines[label].intersection(submit_nodes):
+                break
+        else:
+            raise ValueError(
+                f"Experiment <{experiment['name']}>'s submit-node-labels do not map to "
+                f"any submit node(s) {submit_node_labels}"
+            )
+
+
+def _check_undefined_labels(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
+    """Check for undefined labels in experiment configuration.
+
+    Validates that all labels referenced in experiment setup, input locations,
+    and result locations are defined in the experiment configuration.
+
+    :param experiment_config: Complete experiment configuration dictionary
+    :type experiment_config: Kiso
+    :param label_to_machines: Mapping of predefined labels in the configuration
+    :type label_to_machines: dict[str, set]
+    :raises ValueError: If any undefined labels are found in the experiment
+    configuration
+    """
+    unlabel_to_machines = defaultdict(set)
+    for experiment in experiment_config.experiments:
+        if experiment.kind != "pegasus":
+            continue
+
+        for index, setup in enumerate(experiment.setup or []):
+            unlabel_to_machines[experiment.name].update(
+                [
+                    (f"setup[{index}]", label)
+                    for label in setup.labels
+                    if label not in label_to_machines
+                ]
+            )
+
+        for index, location in enumerate(experiment.inputs or []):
+            unlabel_to_machines[experiment.name].update(
+                [
+                    (f"inputs[{index}]", label)
+                    for label in location.labels
+                    if label not in label_to_machines
+                ]
+            )
+
+        for index, location in enumerate(experiment.outputs or []):
+            unlabel_to_machines[experiment.name].update(
+                [
+                    (f"outputs[{index}]", label)
+                    for label in location.labels
+                    if label not in label_to_machines
+                ]
+            )
+        for index, setup in enumerate(experiment.post_scripts or []):
+            unlabel_to_machines[experiment.name].update(
+                [
+                    (f"post-scripts[{index}]", label)
+                    for label in setup.labels
+                    if label not in label_to_machines
+                ]
+            )
+
+        if not unlabel_to_machines[experiment.name]:
+            del unlabel_to_machines[experiment.name]
+    else:
+        if unlabel_to_machines:
+            raise ValueError(
+                "Undefined labels referenced in experiments section",
+                unlabel_to_machines,
+            )
+
+
+def _check_missing_input_files(experiment_config: Kiso) -> None:
+    """Check for missing input files in experiment configurations.
+
+    Validates the existence of input files specified in experiment configurations.
+    Raises a ValueError with details of any missing input files and their associated
+    experiments.
+
+    :param experiment_config: Configuration dictionary containing experiment details
+    :type experiment_config: Kiso
     :raises ValueError: If any specified input files do not exist
     """
     missing_files = []
-    for experiment in experiment_config["experiments"]:
-        for location in experiment.get("inputs", []):
-            src = Path(location["src"])
+    for experiment in experiment_config.experiments:
+        if experiment.kind != "pegasus":
+            continue
+
+        for location in experiment.inputs or []:
+            src = Path(location.src)
             if not src.exists():
-                missing_files.append((experiment["name"], src))
+                missing_files.append((experiment.name, src))
 
     if missing_files:
         raise ValueError(
@@ -445,47 +589,10 @@ def _check_missing_input_files(experiment_config: dict[str, Any]) -> None:
         )
 
 
-def _check_submit_roles_are_submit_nodes(
-    experiment_config: dict[str, Any], role_to_machines: dict[str, set]
-) -> None:
-    """Check for missing input files in experiment configurations.
-
-    Validates the existence of input files specified in experiment configurations.
-    Raises a ValueError with details of any missing input files and their associated
-    experiments.
-
-    :param experiment_config: Configuration dictionary containing experiment details
-    :type experiment_config: dict[str, Any]
-    :raises ValueError: If any specified input files do not exist
-    """
-    submit_node_roles = set()
-    submit_nodes = set()
-    for i, nodes_i in experiment_config.get("condor", {}).items():
-        if not (
-            i[0] == "s"  # submit
-            or i[0] == "p"  # personal
-        ):
-            continue
-
-        submit_node_roles.update(nodes_i["roles"])
-        for role in nodes_i["roles"]:
-            submit_nodes.update(role_to_machines[role])
-
-    for experiment in experiment_config["experiments"]:
-        for role in experiment["submit-node-roles"]:
-            if role_to_machines[role].intersection(submit_nodes):
-                break
-        else:
-            raise ValueError(
-                f"Experiment <{experiment['name']}>'s submit-node-roles do not map to "
-                f"any submit node(s) {submit_node_roles}"
-            )
-
-
 @validate_config
 @enostask(new=True, symlink=False)
 def up(
-    experiment_config: dict[str, Any],
+    experiment_config: Kiso,
     force: bool = False,
     env: Environment = None,
     **kwargs: Any,  # noqa: ANN401
@@ -493,11 +600,11 @@ def up(
     """Create and set up resources for running an experiment.
 
     Initializes the experiment environment, sets up working directories, and prepares
-    infrastructure by initializing sites, installing Docker, Apptainer, and Condor
-    across specified roles.
+    infrastructure by initializing sites, installing Docker, Apptainer, and HTCondor
+    across specified labels.
 
     :param experiment_config: Configuration dictionary defining experiment parameters
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param force: Force recreation of resources, defaults to False
     :type force: bool, optional
     :param env: Optional environment context for the experiment, defaults to None
@@ -510,6 +617,8 @@ def up(
     env["wd"] = str(kwargs.get("wd", Path.cwd()))
     env["remote_wd"] = str(Path("~kiso") / Path(env["wd"]).name)
 
+    experiment_config = _replace_labels_key_with_roles_key(experiment_config)
+
     _init_sites(experiment_config, env, force)
     _install_commons(env)
     _install_docker(experiment_config, env)
@@ -518,7 +627,7 @@ def up(
 
 
 def _init_sites(
-    experiment_config: dict[str, Any], env: Environment, force: bool = False
+    experiment_config: Kiso, env: Environment, force: bool = False
 ) -> tuple[list[Provider], Roles, Networks]:
     """Initialize sites for an experiment.
 
@@ -526,44 +635,44 @@ def _init_sites(
     processing.
     Performs the following key tasks:
     - Initializes providers for each site concurrently
-    - Aggregates roles and networks from initialized sites
-    - Extends roles with daemon-to-site mappings
+    - Aggregates labels and networks from initialized sites
+    - Extends labels with daemon-to-site mappings
     - Determines public IP requirements
     - Associates floating IPs and selects preferred IPs for nodes
 
     :param experiment_config: Configuration dictionary containing site definitions
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param env: Environment context for the experiment
     :type env: Environment
     :param force: Force recreation of resources, defaults to False
     :type force: bool, optional
-    :return: A tuple of providers, roles, and networks for the experiment
+    :return: A tuple of providers, labels, and networks for the experiment
     :rtype: tuple[list[Provider], Roles, Networks]
     """
     log.debug("Initializing sites")
 
     providers = []
-    roles = Roles()
+    labels = Roles()
     networks = Networks()
 
     with get_process_pool_executor() as executor:
         futures = [
             executor.submit(_init_site, site_index, site, force)
-            for site_index, site in enumerate(experiment_config["sites"])
+            for site_index, site in enumerate(experiment_config.sites)
         ]
 
         for future in futures:
-            provider, _roles, _networks = future.result()
+            provider, _labels, _networks = future.result()
 
             providers.append(provider)
-            roles.extend(_roles)
+            labels.extend(_labels)
             networks.extend(_networks)
 
-    daemon_to_site = _extend_roles(experiment_config, roles)
+    daemon_to_site = _extend_labels(experiment_config, labels)
     is_public_ip_required = _is_public_ip_required(daemon_to_site)
     env["is_public_ip_required"] = is_public_ip_required
 
-    for node in roles.all():
+    for node in labels.all():
         # TODO(mayani): Remove the floating ip assignment code after it has been
         # implemented into the EnOSlib ChameleonEdge provider
         _associate_floating_ip(node, is_public_ip_required)
@@ -577,10 +686,10 @@ def _init_sites(
 
     providers = en.Providers(providers)
     env["providers"] = providers
-    env["roles"] = roles
+    env["labels"] = labels
     env["networks"] = networks
 
-    return providers, roles, networks
+    return providers, labels, networks
 
 
 def _init_site(
@@ -604,7 +713,7 @@ def _init_site(
     :param force: Force recreation of resources, defaults to False
     :type force: bool, optional
     :raises TypeError: If an invalid site provider type is specified
-    :return: A tuple containing the provider, roles, and networks for the site
+    :return: A tuple containing the provider, labels, and networks for the site
     :rtype: tuple[Provider, Roles, Networks]
     """
     kind = site["kind"]
@@ -624,9 +733,9 @@ def _init_site(
     conf = PROVIDER_MAP[kind][0](site)
     provider = PROVIDER_MAP[kind][1](conf)
 
-    _roles, _networks = provider.init(force_deploy=force)
-    _deduplicate_hosts(_roles)
-    _roles[kind] = _roles.all()
+    _labels, _networks = provider.init(force_deploy=force)
+    _deduplicate_hosts(_labels)
+    _labels[kind] = _labels.all()
     _networks[kind] = _networks.all()
 
     # For Chameleon site, the region name is important as each region will act like
@@ -634,11 +743,11 @@ def _init_site(
     region_name = kind
     if kind.startswith("chameleon"):
         region_name = _get_region_name(site["rc_file"])
-        _roles[region_name] = _roles.all()
+        _labels[region_name] = _labels.all()
         _networks[region_name] = _networks.all()
 
     # To each node we add a tag to identify what site/region it was provisioned on
-    for node in _roles.all():
+    for node in _labels.all():
         # ChameleonDevice object does not have an attribute named extra
         if kind == "chameleon-edge":
             attr = "extra"
@@ -652,24 +761,24 @@ def _init_site(
         node.extra["site"] = region_name
 
     if kind != "chameleon-edge":
-        _roles = en.sync_info(_roles, _networks)
+        _labels = en.sync_info(_labels, _networks)
     else:
         # Because zunclient.v1.containers.Container is not pickleable
         provider.client.concrete_resources = []
 
-    return provider, _roles, _networks
+    return provider, _labels, _networks
 
 
-def _deduplicate_hosts(roles: Roles) -> None:
+def _deduplicate_hosts(labels: Roles) -> None:
     """Deduplicate_hosts _summary_.
 
     _extended_summary_
 
-    :param roles: _description_
-    :type roles: Roles
+    :param labels: _description_
+    :type labels: Roles
     """
     dedup = {}
-    for _, nodes in roles.items():
+    for _, nodes in labels.items():
         update = set()
         for node in nodes:
             if node not in dedup:
@@ -708,48 +817,48 @@ def _get_region_name(rc_file: str) -> str | None:
     return region_name
 
 
-def _extend_roles(experiment_config: dict[str, Any], roles: Roles) -> dict[str, set]:
-    """Extend roles for an experiment configuration by adding unique roles and flags to nodes.
+def _extend_labels(experiment_config: Kiso, labels: Roles) -> dict[str, set]:
+    """Extend labels for an experiment configuration by adding unique labels and flags to nodes.
 
-    Processes the given roles and experiment configuration to:
-    - Create unique roles for each node based on their original role
+    Processes the given labels and experiment configuration to:
+    - Create unique labels for each node based on their original label
     - Add flags to nodes indicating their HTCondor daemon types (central manager,
     submit, execute, personal)
     - Add flags for container technologies (Docker, Apptainer)
     - Track the sites where different HTCondor daemon types are located
 
     :param experiment_config: Configuration dictionary for the experiment
-    :type experiment_config: dict[str, Any]
-    :param roles: Dictionary of roles and their associated nodes
-    :type roles: Roles
+    :type experiment_config: Kiso
+    :param labels: Dictionary of labels and their associated nodes
+    :type labels: Roles
     :return: A mapping of HTCondor daemon types to their sites
     :rtype: dict[str, set]
     """  # noqa: E501
     extra: dict[str, set] = defaultdict(set)
     daemon_to_site = defaultdict(set)
-    central_manager_roles, submit_roles, execute_roles, personal_roles = (
-        _get_condor_daemon_roles(experiment_config)
+    central_manager_labels, submit_labels, execute_labels, personal_labels = (
+        _get_condor_daemon_labels(experiment_config)
     )
-    docker_roles = set()
-    if "docker" in experiment_config:
-        docker_roles = experiment_config["docker"]["roles"]
+    docker_labels = set()
+    if experiment_config.software.docker:
+        docker_labels = experiment_config.software.docker.labels
 
-    apptainer_roles = set()
-    if "apptainer" in experiment_config:
-        apptainer_roles = experiment_config["apptainer"]["roles"]
+    apptainer_labels = set()
+    if experiment_config.software.apptainer:
+        apptainer_labels = experiment_config.software.apptainer.labels
 
-    for role, nodes in roles.items():
-        is_central_manager = role in central_manager_roles
-        is_submit = role in submit_roles
-        is_execute = role in execute_roles
-        is_personal = role in personal_roles
-        is_docker = role in docker_roles
-        is_apptainer = role in apptainer_roles
+    for label, nodes in labels.items():
+        is_central_manager = label in central_manager_labels
+        is_submit = label in submit_labels
+        is_execute = label in execute_labels
+        is_personal = label in personal_labels
+        is_docker = label in docker_labels
+        is_apptainer = label in apptainer_labels
         for index, node in enumerate(nodes, 1):
             # EnOSlib resources.machines.number can be greater than 1, so we add the
-            # host with a new unique role of the form kiso.<role>.<index>
-            _role = f"kiso.{role}.{index}"
-            extra[_role].add(node)
+            # host with a new unique label of the form kiso.<label>.<index>
+            _label = f"kiso.{label}.{index}"
+            extra[_label].add(node)
 
             # To each node we add flags to identify what HTCondor daemons will run on
             # the node
@@ -779,7 +888,7 @@ def _extend_roles(experiment_config: dict[str, Any], roles: Roles) -> dict[str, 
             if is_central_manager:
                 daemon_to_site["central-manager"].update(site)
 
-    roles.update(extra)
+    labels.update(extra)
 
     return daemon_to_site
 
@@ -826,9 +935,9 @@ def _associate_floating_ip(
 ) -> None:
     """Associate a floating IP address to a node based on specific conditions.
 
-    Determines whether to assign a floating IP to a node depending on its role and type.
-    Supports different cloud providers and testbed types with specific IP assignment
-    strategies.
+    Determines whether to assign a floating IP to a node depending on its label and
+    type. Supports different cloud providers and testbed types with specific IP
+    assignment strategies.
 
     :param node: The node to potentially assign a floating IP to
     :type node: Host | ChameleonDevice
@@ -1107,42 +1216,44 @@ def _get_best_ip(
     return str(preferred_ip)
 
 
-def _get_condor_daemon_roles(
-    experiment_config: dict[str, Any],
+def _get_condor_daemon_labels(
+    experiment_config: Kiso,
 ) -> tuple[set[str], set[str], set[str], set[str]]:
-    """Get roles for different Condor daemon types from an experiment configuration.
+    """Get labels for different HTCondor daemon types from an experiment configuration.
 
-    Parses the Condor configuration to extract roles for central manager, submit,
+    Parses the HTCondor configuration to extract labels for central manager, submit,
     execute, and personal daemon types. Validates daemon types and raises an error for
     invalid types.
 
-    :param experiment_config: Dictionary containing Condor cluster configuration
-    :type experiment_config: dict[str, Any]
-    :raises ValueError: If an invalid Condor daemon type is encountered
-    :return: Tuple of role sets for central manager, submit, execute, and personal
+    :param experiment_config: Dictionary containing HTCondor cluster configuration
+    :type experiment_config: Kiso
+    :raises ValueError: If an invalid HTCondor daemon type is encountered
+    :return: Tuple of label sets for central manager, submit, execute, and personal
     daemons
     :rtype: tuple[set[str], set[str], set[str], set[str]]
     """
-    condor_cluster = experiment_config.get("condor")
-    central_manager_roles = set()
-    submit_roles = set()
-    execute_roles = set()
-    personal_roles = set()
+    condor_cluster = experiment_config.deployment.htcondor
+    central_manager_labels = set()
+    submit_labels = set()
+    execute_labels = set()
+    personal_labels = set()
 
     if condor_cluster:
-        for daemon, nodes in condor_cluster.items():
-            if daemon[0] == "c":  # central-manager
-                central_manager_roles.update(nodes["roles"])
-            elif daemon[0] == "s":  # submit
-                submit_roles.update(nodes["roles"])
-            elif daemon[0] == "e":  # execute
-                execute_roles.update(nodes["roles"])
-            elif daemon[0] == "p":  # personal
-                personal_roles.update(nodes["roles"])
+        for config in condor_cluster:
+            if config.kind[0] == "c":  # central-manager
+                central_manager_labels.update(config.labels)
+            elif config.kind[0] == "s":  # submit
+                submit_labels.update(config.labels)
+            elif config.kind[0] == "e":  # execute
+                execute_labels.update(config.labels)
+            elif config.kind[0] == "p":  # personal
+                personal_labels.update(config.labels)
             else:
-                raise ValueError(f"Invalid condor daemon <{daemon}> in configuration")
+                raise ValueError(
+                    f"Invalid HTCondor daemon <{config.kind}> in configuration"
+                )
 
-    return central_manager_roles, submit_roles, execute_roles, personal_roles
+    return central_manager_labels, submit_labels, execute_labels, personal_labels
 
 
 def _install_commons(env: Environment) -> None:
@@ -1161,11 +1272,11 @@ def _install_commons(env: Environment) -> None:
     log.debug("Install Commons")
     console.rule("[bold green]Installing Commons[/bold green]")
 
-    roles = env["roles"]
-    # Special case here. Do not pass (roles, roles) to split_roles. Since the Roles
-    # object is like a dictionary, so roles - roles["<key>"] and roles & roles["<key>"]
-    # doesn't work.
-    vms, containers = utils.split_roles(roles.all(), roles)
+    labels = env["labels"]
+    # Special case here. Do not pass (labels, labels) to split_labels. Since the Roles
+    # object is like a dictionary, so labels - labels["<key>"] and
+    # labels & labels["<key>"] doesn't work.
+    vms, containers = utils.split_labels(labels.all(), labels)
     results = []
 
     if vms:
@@ -1189,8 +1300,8 @@ def _install_commons(env: Environment) -> None:
     display.commons(console, results)
 
 
-def _install_docker(experiment_config: dict[str, Any], env: Environment) -> None:
-    """Install Docker on specified roles in an experiment configuration.
+def _install_docker(experiment_config: Kiso, env: Environment) -> None:
+    """Install Docker on specified labels in an experiment configuration.
 
     Installs Docker on virtual machines and containers based on the provided
     configuration.
@@ -1198,20 +1309,20 @@ def _install_docker(experiment_config: dict[str, Any], env: Environment) -> None
 
     :param experiment_config: Configuration dictionary containing Docker installation
     details
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param env: Environment context for the installation
     :type env: Environment
     """
-    config = experiment_config.get("docker")
+    config = experiment_config.software.docker
     if config is None:
         return
 
     log.debug("Install Docker")
     console.rule("[bold green]Installing Docker[/bold green]")
 
-    roles = env["roles"]
-    _roles = utils.resolve_roles(roles, config["roles"])
-    vms, containers = utils.split_roles(_roles, roles)
+    labels = env["labels"]
+    _labels = utils.resolve_labels(labels, config.labels)
+    vms, containers = utils.split_labels(_labels, labels)
     if vms:
         results = utils.run_ansible(
             [Path(__file__).parent / "docker/main.yml"], roles=vms
@@ -1226,8 +1337,8 @@ def _install_docker(experiment_config: dict[str, Any], env: Environment) -> None
     display.docker(console, results)
 
 
-def _install_apptainer(experiment_config: dict[str, Any], env: Environment) -> None:
-    """Install Apptainer on specified roles in an experiment configuration.
+def _install_apptainer(experiment_config: Kiso, env: Environment) -> None:
+    """Install Apptainer on specified labels in an experiment configuration.
 
     Installs Apptainer on virtual machines and containers based on the provided
     configuration. Supports optional version specification and uses Ansible for VM
@@ -1235,20 +1346,20 @@ def _install_apptainer(experiment_config: dict[str, Any], env: Environment) -> N
 
     :param experiment_config: Configuration dictionary containing Apptainer installation
     details
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param env: Environment context for the installation
     :type env: Environment
     """
-    config = experiment_config.get("apptainer")
+    config = experiment_config.software.apptainer
     if config is None:
         return
 
     log.debug("Install Apptainer")
     console.rule("[bold green]Installing Apptainer[/bold green]")
 
-    roles = env["roles"]
-    _roles = utils.resolve_roles(roles, config["roles"])
-    vms, containers = utils.split_roles(_roles, roles)
+    labels = env["labels"]
+    _labels = utils.resolve_labels(labels, config.labels)
+    vms, containers = utils.split_labels(_labels, labels)
     results = []
 
     if vms:
@@ -1269,8 +1380,8 @@ def _install_apptainer(experiment_config: dict[str, Any], env: Environment) -> N
     display.apptainer(console, results)
 
 
-def _install_condor(experiment_config: dict[str, Any], env: Environment) -> None:
-    """Install HTCondor on machines based on experiment configuration and roles.
+def _install_condor(experiment_config: Kiso, env: Environment) -> None:
+    """Install HTCondor on machines based on experiment configuration and labels.
 
     Configures and installs HTCondor daemons across different machines in an experiment,
     handling central manager, personal, submit, and execute daemon types. Uses parallel
@@ -1278,23 +1389,22 @@ def _install_condor(experiment_config: dict[str, Any], env: Environment) -> None
 
     :param experiment_config: Configuration dictionary containing HTCondor deployment
     details
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param env: Environment configuration for the experiment
     :type env: Environment
     """
-    condor_config = experiment_config.get("condor")
+    condor_config = experiment_config.deployment.htcondor
     if condor_config is None:
         return
 
     log.debug("Install HTCondor")
     console.rule("[bold green]Installing HTCondor[/bold green]")
 
-    roles = env["roles"]
+    labels = env["labels"]
+    _condor_hosts = [c for c in condor_config if c.kind[0] == "c"]
     _condor_host = (
-        next(
-            iter(utils.resolve_roles(roles, condor_config["central-manager"]["roles"]))
-        )
-        if "central-manager" in condor_config
+        next(iter(utils.resolve_labels(labels, _condor_hosts[0].labels)))
+        if _condor_hosts
         else None
     )
     condor_host_ip = _condor_host.extra["kiso_preferred_ip"] if _condor_host else None
@@ -1311,7 +1421,7 @@ def _install_condor(experiment_config: dict[str, Any], env: Environment) -> None
     with get_process_pool_executor() as executor:
         results = []
         futures = []
-        machine_to_daemons = _get_role_daemon_machine_map(condor_config, roles)
+        machine_to_daemons = _get_label_daemon_machine_map(condor_config, labels)
         for machine, daemons in machine_to_daemons.items():
             log.debug(
                 "Install HTCondor Daemons <%s> on Machine <%s>",
@@ -1357,34 +1467,36 @@ def _install_condor(experiment_config: dict[str, Any], env: Environment) -> None
             result = future.result()
             results.append(result[-1])
 
-        display.condor(console, results)
+        display.htcondor(console, results)
 
 
-def _get_role_daemon_machine_map(
-    condor_config: dict, roles: Roles
+def _get_label_daemon_machine_map(
+    condor_config: list, labels: Roles
 ) -> dict[ChameleonDevice | Host, set]:
-    """Get a mapping of roles, daemons, and machines from the HTCondor configuration.
+    """Get a mapping of labels, daemons, and machines from the HTCondor configuration.
 
     _extended_summary_
 
     :param condor_config: _description_
-    :type condor_config: dict
-    :param roles: _description_
-    :type roles: Roles
+    :type condor_config: list
+    :param labels: _description_
+    :type labels: Roles
     :return: _description_
     :rtype: dict[ChameleonDevice | Host, set]
     """
-    role_to_daemons: dict[str, set] = defaultdict(set)
+    label_to_daemons: dict[str, set] = defaultdict(set)
     machine_to_daemons: dict[ChameleonDevice | Host, set] = defaultdict(set)
 
-    for daemon, nodes in condor_config.items():
-        for role in nodes["roles"]:
-            role_to_daemons[role].add(daemon)
+    for index, config in enumerate(condor_config):
+        kind = config.kind
+        _labels = config.labels
+        for label in _labels:
+            label_to_daemons[label].add((index, kind))
 
-    for role, machines in roles.items():
-        if role in role_to_daemons:
+    for label, machines in labels.items():
+        if label in label_to_daemons:
             for machine in machines:
-                machine_to_daemons[machine].update(role_to_daemons[role])
+                machine_to_daemons[machine].update(label_to_daemons[label])
 
     # Sort on daemons so that the HTCondor central-manager is installed first
     return dict(sorted(machine_to_daemons.items(), key=_cmp))
@@ -1403,24 +1515,24 @@ def _cmp(item: tuple[str, set]) -> int:
     """
     rv = 10
     for daemon in item[1]:
-        if daemon[0] == "c":  # central-manager
+        if daemon[1][0] == "c":  # central-manager
             rv = min(rv, 0)
             break
-        if daemon[0] == "p":  # personal
+        if daemon[1][0] == "p":  # personal
             rv = min(rv, 1)
-        elif daemon[0] == "e":  # execute
+        elif daemon[1][0] == "e":  # execute
             rv = min(rv, 2)
-        elif daemon[0] == "s":  # submit
+        elif daemon[1][0] == "s":  # submit
             rv = min(rv, 3)
         else:
-            raise ValueError(f"Daemon <{daemon}> is not valid")
+            raise ValueError(f"Daemon <{daemon[1]}> is not valid")
 
     return rv
 
 
 def _get_condor_config(
-    condor_config: dict,
-    daemons: set[str],
+    condor_config: list,
+    daemons: set[tuple[int, str]],
     condor_host_ip: str | None,
     machine: Host | ChameleonDevice,
     env: Environment,
@@ -1428,14 +1540,14 @@ def _get_condor_config(
     """Get HTCondor configuration for a specific machine and set of daemons.
 
     Generates HTCondor configuration based on the specified daemons, machine type,
-    and environment requirements. Handles configuration for different daemon roles
+    and environment requirements. Handles configuration for different daemon labels
     (personal, central manager, submit, execute) and special networking scenarios.
 
     :param condor_config: Configuration dictionary for HTCondor
-    :type condor_config: dict
+    :type condor_config: list
     :param daemons: Set of daemon types to configure
     :type daemons: set[str]
-    :param condor_host_ip: IP address of the Condor host
+    :param condor_host_ip: IP address of the HTCondor host
     :type condor_host_ip: str | None
     :param machine: Machine (Host or ChameleonDevice) being configured
     :type machine: Host | ChameleonDevice
@@ -1451,7 +1563,7 @@ def _get_condor_config(
         f"TRUST_DOMAIN = {const.TRUST_DOMAIN}",
     ]
     config_files = {}
-    for daemon in daemons:
+    for index, daemon in daemons:
         if daemon[0] == "p":  # personal
             htcondor_config = [
                 "CONDOR_HOST = $(IP_ADDRESS)",
@@ -1468,9 +1580,9 @@ def _get_condor_config(
                 htcondor_config.append("USE_CCB = True")
                 htcondor_config.append("CCB_ADDRESS = $(CONDOR_HOST)")
 
-        if "config-file" in condor_config[daemon]:
+        if condor_config[index].config_file:
             config_files[f"kiso-{daemon}-config-file"] = str(
-                Path(condor_config[daemon]["config-file"]).resolve()
+                Path(condor_config[index].config_file).resolve()
             )
 
     if (
@@ -1661,7 +1773,7 @@ EOF
 @validate_config
 @enostask()
 def run(
-    experiment_config: dict[str, Any],
+    experiment_config: Kiso,
     force: bool = False,
     env: Environment = None,
     **kwargs: Any,  # noqa: ANN401
@@ -1669,7 +1781,7 @@ def run(
     """Run the defined experiments.
 
     Executes a series of experiments by performing the following steps:
-    - Copies experiment directory to remote roles
+    - Copies experiment directory to remote labels
     - Copies input files for each experiment
     - Runs setup scripts
     - Executes experiment workflows
@@ -1677,10 +1789,10 @@ def run(
     - Copies output files
 
     :param experiment_config: Configuration dictionary containing experiment details
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param force: Force rerunning of experiments, defaults to False
     :type force: bool, optional
-    :param env: Environment configuration containing providers, roles, and networks
+    :param env: Environment configuration containing providers, labels, and networks
     :type env: Environment, optional
     :param kwargs: Additional keyword arguments
     :type kwargs: dict
@@ -1688,8 +1800,8 @@ def run(
     log.debug("Run Kiso experiments")
     console.rule("[bold green]Run experiments[/bold green]")
 
-    experiments = experiment_config["experiments"]
-    variables = copy.deepcopy(experiment_config.get("variables", {}))
+    experiments = experiment_config.experiments
+    variables = copy.deepcopy(experiment_config.variables, {})
     env.setdefault("experiments", {})
     if force is True:
         env["experiments"] = {}
@@ -1701,25 +1813,25 @@ def run(
 
 
 def _copy_experiment_dir(env: Environment) -> None:
-    """Copy experiment directory to remote roles.
+    """Copy experiment directory to remote labels.
 
     Copies the experiment directory from the local working directory to the remote
-    working directory for specified submit node roles. Supports copying to both virtual
+    working directory for specified submit node labels. Supports copying to both virtual
     machines and containers.
 
-    :param env: Environment configuration containing roles and working directory
+    :param env: Environment configuration containing labels and working directory
     information
     :type env: Environment
-    :raises Exception: If directory copy fails for any role
+    :raises Exception: If directory copy fails for any label
     """
     log.debug("Copy experiment directory to remote nodes")
     console.print("Copying experiment directory to remote nodes")
 
-    roles = env["roles"]
-    # Special case here. Do not pass (roles, roles) to split_roles. Since the Roles
-    # object is like a dictionary, so roles - roles["<key>"] and roles & roles["<key>"]
-    # doesn't work.
-    vms, containers = utils.split_roles(roles.all(), roles)
+    labels = env["labels"]
+    # Special case here. Do not pass (labels, labels) to split_labels. Since the Roles
+    # object is like a dictionary, so labels - labels["<key>"] and
+    # labels & labels["<key>"] doesn't work.
+    vms, containers = utils.split_labels(labels.all(), labels)
 
     try:
         kiso_state = env["experiments"]
@@ -1747,7 +1859,7 @@ def _copy_experiment_dir(env: Environment) -> None:
 
 
 def _run_experiments(
-    index: int, experiment: dict, variables: dict, env: Environment
+    index: int, experiment: ExperimentTypes, variables: dict, env: Environment
 ) -> None:
     """Run multiple workflow instances for a specific experiment.
 
@@ -1761,30 +1873,23 @@ def _run_experiments(
     :type env: Environment
     """
     # Get the `kind` of experiment
-    kind = experiment["kind"]
+    kind = experiment.kind
 
     # Locate the EntryPoint for the runner `kind` of experiment and load it
     runner_cfg = utils.get_runner(kind)
 
-    # Runner's DATACLASS attribute points to a :py:class:`dataclasses.dataclass` that
-    # defines the experiment configuration schema for the `kind` of experiment
-    data_cls = runner_cfg.DATACLASS
-
-    # Convert the JSON configuration to a :py:class:`dataclasses.dataclass`
-    runner_obj = from_dict(data_cls, experiment, Config(convert_key=_to_snake_case))
-
     # Instantiate the runner class. The runner class to use is defined in the
     # runner's `RUNNER` attribute
     runner = runner_cfg.RUNNER(
-        runner_obj,
+        experiment,
         index,
         env["wd"],  # Local experiment working directory
         env["remote_wd"],  # Remote experiment working directory
         env["resultdir"],  # Local results directory
-        env["roles"],  # Provisioned resources
+        env["labels"],  # Provisioned resources
         env["experiments"][index],  # Store to maintain the state of the experiment
         console=console,  # Console object to output experiment progress
-        log=logging.getLogger("kiso.wf.pegasus"),  # Logger object to use
+        log=logging.getLogger("kiso.experiment.pegasus"),  # Logger object to use
         variables=variables,  # Variables defined globally for the experiment
     )
 
@@ -1798,16 +1903,14 @@ def _to_snake_case(key: str) -> str:
 
 @validate_config
 @enostask()
-def down(
-    experiment_config: dict[str, Any], env: Environment = None, **kwargs: dict
-) -> None:
+def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:
     """Destroy the resources provisioned for the experiments.
 
     This function is responsible for tearing down and cleaning up resources
     associated with an experiment configuration using the specified providers.
 
     :param experiment_config: Configuration dictionary for the experiment
-    :type experiment_config: dict[str, Any]
+    :type experiment_config: Kiso
     :param env: Environment object containing provider information
     :type env: Environment, optional
     :param kwargs: Additional keyword arguments

@@ -39,28 +39,28 @@ run_ansible = partial(en.run_ansible, on_error_continue=True)
 actions = partial(en.actions, on_error_continue=True)
 
 
-def resolve_roles(roles: Roles, role_names: list[str]) -> Roles:
-    """Resolve and combine roles based on provided role names.
+def resolve_labels(labels: Roles, label_names: list[str]) -> Roles:
+    """Resolve and combine labels based on provided label names.
 
-    Filters or combines roles from a given Roles object based on the specified role
-    names. If no role names are provided, returns the original roles. If multiple
-    role names are given, merges the corresponding roles using a logical OR
+    Filters or combines labels from a given Roles object based on the specified label
+    names. If no label names are provided, returns the original labels. If multiple
+    label names are given, merges the corresponding labels using a logical OR
     operation.
 
-    :param roles: Collection of roles to resolve from
-    :type roles: Roles
-    :param role_names: List of role names to filter or combine
-    :type role_names: list[str]
-    :return: Resolved roles matching the specified role names
+    :param labels: Collection of labels to resolve from
+    :type labels: Roles
+    :param label_names: List of label names to filter or combine
+    :type label_names: list[str]
+    :return: Resolved labels matching the specified label names
     :rtype: Roles
     """
-    if not role_names:
-        return roles
+    if not label_names:
+        return labels
 
     return (
-        roles[role_names[0]]
-        if len(role_names) == 1
-        else reduce(lambda a, b: roles[a] | roles[b], role_names)
+        labels[label_names[0]]
+        if len(label_names) == 1
+        else reduce(lambda a, b: labels[a] | labels[b], label_names)
     )
 
 
@@ -121,21 +121,21 @@ def get_random_string(length: int = 64) -> str:
     return "".join(secrets.choice(chars) for _ in range(length))
 
 
-def split_roles(split: Roles, roles: Roles) -> tuple[Roles, Roles]:
-    """Split a set of roles into virtual machines and containers.
+def split_labels(split: Roles, labels: Roles) -> tuple[Roles, Roles]:
+    """Split a set of labels into virtual machines and containers.
 
-    Separates the input roles into two groups: non-edge virtual machines and edge
+    Separates the input labels into two groups: non-edge virtual machines and edge
     containers.
 
-    :param split: The complete set of roles to be split
+    :param split: The complete set of labels to be split
     :type split: Roles
-    :param roles: The reference role set containing the chameleon-edge role
-    :type roles: Roles
+    :param labels: The reference label set containing the chameleon-edge label
+    :type labels: Roles
     :return: A tuple containing (non-edge VMs, edge containers)
     :rtype: tuple[Roles, Roles]
     """
-    vms = split - roles["chameleon-edge"]
-    containers = split & roles["chameleon-edge"]
+    vms = split - labels["chameleon-edge"]
+    containers = split & labels["chameleon-edge"]
 
     return vms, containers
 
@@ -210,7 +210,7 @@ def command_result(
 def get_runner(kind: str) -> EntryPoint:
     """Retrieve a specific workflow runner entry point by its kind.
 
-    Searches for and returns an entry point from the "kiso.wf" group matching the specified kind.
+    Searches for and returns an entry point from the "kiso.experiment" group matching the specified kind.
 
     :param kind: The name of the workflow runner entry point to retrieve
     :type kind: str
@@ -218,7 +218,7 @@ def get_runner(kind: str) -> EntryPoint:
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given kind is found
     """  # noqa: E501
-    runner = _get_single("kiso.wf", kind)
+    runner = _get_single("kiso.experiment", kind)
     try:
         return runner.load()
     except ModuleNotFoundError as e:

@@ -53,7 +53,7 @@ def apptainer(
     _render(console, results)
 
 
-def condor(
+def htcondor(
     console: Console, results: list[CommandResult | CustomCommandResult]
 ) -> None:
     """Display status of installation of HTCondor."""

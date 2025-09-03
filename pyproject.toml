@@ -59,7 +59,16 @@ Documentation = "https://kiso.readthedocs.io/en/latest/"
 
 kiso = "kiso.__main__:kiso"
 
-[project.entry-points."kiso.wf"]
+[project.entry-points."kiso.software"]
+
+apptainer = "kiso.apptainer.__init__"
+docker = "kiso.docker.__init__"
+
+[project.entry-points."kiso.deployment"]
+
+htcondor = "kiso.htcondor.__init__"
+
+[project.entry-points."kiso.experiment"]
 
 pegasus = "kiso.workflow.__init__"
 

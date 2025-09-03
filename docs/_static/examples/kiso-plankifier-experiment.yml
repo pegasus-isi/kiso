@@ -16,20 +16,21 @@
 #
 # -------------------------------------------------------------------------
 name: plankifier-experiment
-condor:
-  central-manager:
-    roles:
-      - central-manager-daemon
-  submit:
-    roles:
-      - submit-daemon
-  execute-1:
-    roles:
-      - execute-cloud-daemon
-  execute-2:
-    roles:
-      - execute-edge-daemon
-    config-file: config/execute.conf
+deployment:
+  htcondor:
+    - kind: central-manager
+      labels:
+        - central-manager-daemon
+    - kind: submit
+      labels:
+        - submit-daemon
+    - kind: execute
+      labels:
+        - execute-cloud-daemon
+    - kind: execute
+      labels:
+        - execute-edge-daemon
+      config-file: config/execute.conf
 
 sites:
   - kind: chameleon-edge
@@ -38,7 +39,7 @@ sites:
     rc_file: secrets/edge-app-cred-oac-edge-openrc.sh
     resources:
       machines:
-        - roles:
+        - labels:
             - execute-edge-daemon
           machine_name: raspberrypi4-64
           count: 1
@@ -54,7 +55,7 @@ sites:
     image: CC-Ubuntu18.04
     resources:
       machines:
-        - roles:
+        - labels:
             - central-manager-daemon
             - submit-daemon
             - execute-cloud-daemon
@@ -69,28 +70,28 @@ experiments:
     name: plankifier-experiment
     count: 1
     main: ./workflow.py
-    submit-node-roles:
+    submit-node-labels:
       - submit-daemon
     inputs:
-      - roles:
+      - labels:
           - execute-edge-daemon
         src: bin/train.py
         dst: /srv/plankifier/
-      - roles:
+      - labels:
           - execute-edge-daemon
         src: bin/predict.py
         dst: /srv/plankifier/
     setup:
-      - roles:
+      - labels:
           - submit
         script: |
           chmod +x workflow.py
-      - roles:
+      - labels:
           - execute-edge-daemon
         script: |
           chmod +x /srv/plankifier/train.py /srv/plankifier/predict.py
     outputs:
-      - roles:
+      - labels:
           - submit-daemon
         src: ~kiso/kiso-plankifier-experiment/output/count.txt
         dst: ./
