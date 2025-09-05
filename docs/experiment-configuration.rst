@@ -1,6 +1,29 @@
 Experiment Configuration
 ========================
 
+Concepts
+--------
+
+Sites
+~~~~~
+
+In this section, we define the resources to be provisioned on the different sites/testbeds for the experiment.
+
+Software
+~~~~~~~~
+
+In this section, we define the software to be installed on the provisioned resources. Currently, we support installing [Docker](https://www.docker.com/) and [Apptainer](https://apptainer.org/).
+
+Deployment
+~~~~~~~~~~
+
+In this section, we define the cluster to be deployed on the provisioned resources. Currently, we support deploying [HTCondor](https://htcondor.org/).
+
+Experiments
+~~~~~~~~~~~
+
+In this section, we define the experiments to be run on the provisioned resources.
+
 Example
 -------
 

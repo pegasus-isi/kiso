@@ -16,6 +16,7 @@
 #
 # -------------------------------------------------------------------------
 name: plankifier-experiment
+
 deployment:
   htcondor:
     - kind: central-manager
@@ -83,7 +84,7 @@ experiments:
         dst: /srv/plankifier/
     setup:
       - labels:
-          - submit
+          - submit-daemon
         script: |
           chmod +x workflow.py
       - labels:
