@@ -12,12 +12,12 @@ In this section, we define the resources to be provisioned on the different site
 Software
 ~~~~~~~~
 
-In this section, we define the software to be installed on the provisioned resources. Currently, we support installing [Docker](https://www.docker.com/) and [Apptainer](https://apptainer.org/).
+In this section, we define the software to be installed on the provisioned resources. Currently, we support installing `Docker <https://www.docker.com/>`_ and `Apptainer <https://apptainer.org/>`_.
 
 Deployment
 ~~~~~~~~~~
 
-In this section, we define the cluster to be deployed on the provisioned resources. Currently, we support deploying [HTCondor](https://htcondor.org/).
+In this section, we define the cluster to be deployed on the provisioned resources. Currently, we support deploying `HTCondor <https://htcondor.org/>`_.
 
 Experiments
 ~~~~~~~~~~~
