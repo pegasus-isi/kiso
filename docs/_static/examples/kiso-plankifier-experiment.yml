@@ -33,6 +33,11 @@ deployment:
         - execute-edge-daemon
       config-file: config/execute.conf
 
+software:
+  apptainer:
+    labels:
+      - execute-cloud-daemon
+
 sites:
   - kind: chameleon-edge
     walltime: "04:00:00"
