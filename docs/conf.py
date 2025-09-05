@@ -46,8 +46,8 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 # https://sphinx-book-theme.readthedocs.io/en/stable/reference.html
 
 html_theme = "sphinx_book_theme"
-html_logo = "_static/assets/images/favicon.svg"
-html_favicon = "_static/assets/images/favicon.svg"
+html_logo = "_static/assets/images/logo-kiso.png"
+html_favicon = "_static/assets/images/logo-kiso.png"
 html_title = "Kiso"
 html_static_path = ["_static"]
 html_theme_options = {
@@ -63,8 +63,8 @@ html_theme_options = {
     "show_toc_level": 2,
     # "announcement": "⚠️ Announcement",
     "logo": {
-        "image_light": "_static/assets/images/favicon.png",
-        "image_dark": "_static/assets/images/favicon.svg",
+        "image_light": "_static/assets/images/logo-kiso.png",
+        # "image_dark": "_static/assets/images/logo-kiso.png",
         "alt_text": "Kiso - Home",
         # "text": html_title,  # Uncomment to try text with logo
     },
