@@ -9,6 +9,8 @@
 ![Code Style](https://img.shields.io/badge/Code%20Style-black-blue)
 ![Contributors](https://img.shields.io/github/contributors-anon/pegasus-isi/kiso?color=green&label=Contributors)
 
+Kiso is an experiment management platform to enable the execution of experiments defined as Pegasus workflows on a variety of computing infrastructures.
+
 <!-- - [Introduction](docs/introduction.md) -->
 
 - [Getting Started](docs/getting-started.md)
