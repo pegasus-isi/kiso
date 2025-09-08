@@ -82,7 +82,9 @@ html_theme_options = {
         },
     ],
 }
-
+html_css_files = [
+    "assets/css/custom.css",
+]
 jsonschema_options = {
     "lift_title": True,
     "lift_description": True,

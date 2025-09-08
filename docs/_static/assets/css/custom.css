@@ -1,0 +1,7 @@
+/**
+ * Custom CSS to override the default CSS for the Sphinx Book theme.
+ */
+[data-theme="light"] {
+    /** Change teh background color to match the background color of the logo */
+    --pst-color-background: #f7f7f2 !important;
+}
