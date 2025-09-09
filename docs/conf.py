@@ -74,12 +74,12 @@ html_theme_options = {
             "url": repository_url,
             "icon": "fa-brands fa-github",
         },
-        {
-            "name": "PyPI",
-            "url": "https://pypi.org/project/kiso/",
-            "icon": "https://img.shields.io/pypi/dw/kiso",
-            "type": "url",
-        },
+        # {
+        #     "name": "PyPI",
+        #     "url": "https://pypi.org/project/kiso/",
+        #     "icon": "https://img.shields.io/pypi/dw/kiso",
+        #     "type": "url",
+        # },
     ],
 }
 html_css_files = [
