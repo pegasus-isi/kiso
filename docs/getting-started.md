@@ -67,7 +67,7 @@ $ kiso --help
 │ up           Create the resources needed to run the experiment.                                                     │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.0.0/ for more details.
+ Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a0/ for more details.
 
 $ kiso check --help
  _   __ _
@@ -75,7 +75,7 @@ $ kiso check --help
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
-\_| \_/|_||___/ \___/  v0.0.0
+\_| \_/|_||___/ \___/  v0.1.0a0
 
 
  Usage: kiso check [OPTIONS] [EXPERIMENT_CONFIG]
@@ -86,7 +86,7 @@ $ kiso check --help
 │ --help  -h    Show this message and exit.                                                                           │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.0.0/ for more details.
+ Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a0/ for more details.
 
 $ kiso up --help
  _   __ _
@@ -94,7 +94,7 @@ $ kiso up --help
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
-\_| \_/|_||___/ \___/  v0.0.0
+\_| \_/|_||___/ \___/  v0.1.0a0
 
 
  Usage: kiso up [OPTIONS] [EXPERIMENT_CONFIG]
@@ -107,7 +107,7 @@ $ kiso up --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at hhttps://kiso.readthedocs.io/en/v0.0.0/ for more details.
+ Check out our docs at hhttps://kiso.readthedocs.io/en/v0.1.0a0/ for more details.
 
 $ kiso run --help
  _   __ _
@@ -115,7 +115,7 @@ $ kiso run --help
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
-\_| \_/|_||___/ \___/  v0.0.0
+\_| \_/|_||___/ \___/  v0.1.0a0
 
 
  Usage: kiso run [OPTIONS] [EXPERIMENT_CONFIG]
@@ -128,7 +128,7 @@ $ kiso run --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.0.0/ for more details.
+ Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a0/ for more details.
 
 $ kiso down --help
  _   __ _
@@ -136,7 +136,7 @@ $ kiso down --help
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
-\_| \_/|_||___/ \___/  v0.0.0
+\_| \_/|_||___/ \___/  v0.1.0a0
 
 
  Usage: kiso down [OPTIONS] [EXPERIMENT_CONFIG]
@@ -148,5 +148,5 @@ $ kiso down --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.0.0/ for more details.
+ Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a0/ for more details.
 ```
