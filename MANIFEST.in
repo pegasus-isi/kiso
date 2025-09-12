@@ -1,6 +1,7 @@
 include COPYRIGHT.md
 include LICENSE.md
 include README.md
+include docs/_static/assets/images/logo-kiso.png
 recursive-include src *
 
 recursive-exclude tests *
