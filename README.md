@@ -2,7 +2,7 @@
     <img src="docs/_static/assets/images/logo-kiso.png" alt="Kiso" width="50%" />
 </p>
 
-![License](https://img.shields.io/pypi/l/kiso.svg?logo=apache&color=blue&label=Licence)
+![License](https://img.shields.io/pypi/l/kiso.svg?logo=apache&color=blue&label=License)
 ![Latest](https://img.shields.io/pypi/v/kiso.svg?label=Latest)
 ![Python Versions](https://img.shields.io/pypi/pyversions/kiso.svg?logo=python)
 ![PyPi Downloads](https://img.shields.io/pypi/dm/kiso?logo=pypi&color=green&label=PyPI%20Downloads)

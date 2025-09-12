@@ -1,0 +1,61 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "kiso-run",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/Volumes/data/workspace/pegasus/kiso-process-experiment",
+            "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
+            "console": "integratedTerminal",
+            "args": "--debug run"
+        },
+        {
+            "name": "force-kiso-run",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/Volumes/data/workspace/pegasus/kiso-process-experiment",
+            "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
+            "console": "integratedTerminal",
+            "args": "--debug run --force"
+        },
+        {
+            "name": "kiso-up",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/Volumes/data/workspace/pegasus/kiso-process-experiment",
+            "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
+            "console": "integratedTerminal",
+            "args": "--debug up"
+        },
+        {
+            "name": "kiso-check",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/Volumes/data/workspace/pegasus/kiso-process-experiment",
+            "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
+            "console": "integratedTerminal",
+            "args": "check"
+        },
+        {
+            "name": "Python Debugger: Kiso with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/Volumes/data/workspace/pegasus/kiso-process-experiment",
+            "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
+            "console": "integratedTerminal",
+            "args": "${command:pickArgs}"
+        },
+        {
+            "name": "Python Debugger: Profile Kiso with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/Users/mayani/.pyenv/versions/oac/bin/scalene",
+            "console": "integratedTerminal",
+            "args": "--cli --- /Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py ${command:pickArgs}"
+        }
+    ]
+}
