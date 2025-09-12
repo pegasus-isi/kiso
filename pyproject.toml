@@ -15,7 +15,7 @@ namespaces = true
 [project]
 
 name = "kiso"
-version = "0.1.0a0"
+version = "0.1.0a1"
 authors = [{ name = "Rajiv Mayani", email = "mayani@isi.edu" }]
 maintainers = [{ name = "Rajiv Mayani", email = "mayani@isi.edu" }]
 description = "Kiso experiment manager"
@@ -106,7 +106,7 @@ docs = [
 
 [tool.commitizen]
 
-version = "0.1.0a0"
+version = "0.1.0a1"
 name = "cz_conventional_commits"
 tag_format = "v$version"
 version_scheme = "pep440"
