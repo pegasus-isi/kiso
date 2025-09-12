@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="docs/_static/assets/images/logo-kiso.png" alt="Kiso" width="50%" />
+    <img width="50%" alt="logo-kiso" src="https://github.com/user-attachments/assets/15e0777c-6305-4783-9a65-cdfabfdd52dc" />
 </p>
 
 ![License](https://img.shields.io/pypi/l/kiso.svg?logo=apache&color=blue&label=License)
