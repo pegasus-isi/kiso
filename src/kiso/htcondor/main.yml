@@ -6,20 +6,20 @@
     - name: Installing HTCondor dependencies
       dnf:
         name:
-          - https://research.cs.wisc.edu/htcondor/repo/24.x/htcondor-release-current.el{{ansible_facts['distribution_major_version']|int}}.noarch.rpm
+          - https://htcss-downloads.chtc.wisc.edu/repo/24.x/htcondor-release-current.el{{ansible_facts['distribution_major_version']|int}}.noarch.rpm
         state: present
         disable_gpg_check: true
       when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
 
     - name: Add HTCondor GPG key
       apt_key:
-        url: https://research.cs.wisc.edu/htcondor/repo/keys/HTCondor-24.x-Key
+        url: https://htcss-downloads.chtc.wisc.edu/repo/keys/HTCondor-24.x-Key
         state: present
       when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
 
     - name: Install HTCondor repository
       apt_repository:
-        repo: "deb https://research.cs.wisc.edu/htcondor/repo/{{ansible_facts['distribution']|lower}}/24.x {{ansible_facts['distribution_release']|lower}} main"
+        repo: "deb http://htcss-downloads.chtc.wisc.edu/repo/{{ansible_facts['distribution']|lower}}/24.x {{ansible_facts['distribution_release']|lower}} main"
         filename: htcondor
         state: present
       when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
