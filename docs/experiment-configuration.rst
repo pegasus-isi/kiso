@@ -12,7 +12,7 @@ In this section, we define the resources to be provisioned on the different site
 Software
 ~~~~~~~~
 
-In this section, we define the software to be installed on the provisioned resources. Currently, we support installing `Docker <https://www.docker.com/>`_ and `Apptainer <https://apptainer.org/>`_.
+In this section, we define the software to be installed on the provisioned resources. Currently, we support installing `Docker <https://www.docker.com/>`_, `Apptainer <https://apptainer.org/>`_, and `Ollama <http://ollama.com/>`_.
 
 Deployment
 ~~~~~~~~~~
@@ -37,6 +37,8 @@ Schema
 .. jsonschema:: kiso.schema.SCHEMA
   :hide_key: /**/variables
 
+.. Supported testbeds
+
 .. jsonschema:: enoslib.infra.enos_vagrant.schema.SCHEMA
 
 .. jsonschema:: enoslib.infra.enos_chameleonkvm.schema.SCHEMA
@@ -45,8 +47,21 @@ Schema
 
 .. .. jsonschema:: enoslib.infra.enos_fabric.schema.SCHEMA
 
+.. Supported software
+
+.. jsonschema:: kiso.apptainer.__init__.SCHEMA
+
+.. jsonschema:: kiso.docker.__init__.SCHEMA
+
+.. jsonschema:: kiso.ollama.__init__.SCHEMA
+
+.. Supported deployments
+
+.. jsonschema:: kiso.htcondor.__init__.SCHEMA
+
+.. Supported experiment types
+
 .. jsonschema:: kiso.workflow.__init__.SCHEMA
   :hide_key: /**/variables
 
 .. jsonschema:: kiso.schema.COMMONS_SCHEMA
-  :hide_key: /**/variables

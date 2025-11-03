@@ -38,6 +38,8 @@ run_ansible = partial(en.run_ansible, on_error_continue=True)
 
 actions = partial(en.actions, on_error_continue=True)
 
+undefined = type("undefined", (), {})
+
 
 def resolve_labels(labels: Roles, label_names: list[str]) -> Roles:
     """Resolve and combine labels based on provided label names.
@@ -223,6 +225,42 @@ def get_runner(kind: str) -> EntryPoint:
         return runner.load()
     except ModuleNotFoundError as e:
         raise ValueError(f"No runner found for kind {kind}") from e
+
+
+def get_software(name: str) -> EntryPoint:
+    """Retrieve a specific software installer entry point by its name.
+
+    Searches for and returns an entry point from the "kiso.software" group matching the specified name.
+
+    :param name: The name of the software installer entry point to retrieve
+    :type name: str
+    :return: The matching software entry point
+    :rtype: EntryPoint
+    :raises ValueError: If no entry point with the given name is found
+    """  # noqa: E501
+    software = _get_single("kiso.software", name)
+    try:
+        return software.load()
+    except ModuleNotFoundError as e:
+        raise ValueError(f"No software found for kind {name}") from e
+
+
+def get_deployment(name: str) -> EntryPoint:
+    """Retrieve a specific software installer entry point by its name.
+
+    Searches for and returns an entry point from the "kiso.software" group matching the specified name.
+
+    :param name: The name of the software installer entry point to retrieve
+    :type name: str
+    :return: The matching software entry point
+    :rtype: EntryPoint
+    :raises ValueError: If no entry point with the given name is found
+    """  # noqa: E501
+    software = _get_single("kiso.deployment", name)
+    try:
+        return software.load()
+    except ModuleNotFoundError as e:
+        raise ValueError(f"No software found for kind {name}") from e
 
 
 def run_script(

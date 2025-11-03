@@ -4,13 +4,12 @@
 from __future__ import annotations
 
 import copy
-import itertools
 import json
 import logging
-import re
 import shutil
 import subprocess
 from collections import Counter, defaultdict
+from dataclasses import fields
 from functools import wraps
 from ipaddress import IPv4Interface, IPv6Interface, ip_address
 from pathlib import Path
@@ -26,7 +25,7 @@ from rich.console import Console
 
 import kiso.constants as const
 from kiso import display, edge, utils
-from kiso.configuration import Kiso
+from kiso.configuration import Deployment, Kiso, Software
 from kiso.errors import KisoError
 from kiso.log import get_process_pool_executor
 from kiso.schema import SCHEMA
@@ -35,7 +34,7 @@ from kiso.version import __version__
 if TYPE_CHECKING:
     from os import PathLike
 
-    from enoslib.api import CommandResult
+    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.infra.provider import Provider
 
     from kiso.configuration import ExperimentTypes
@@ -59,7 +58,6 @@ if hasattr(en, "CBM"):
     PROVIDER_MAP["chameleon"] = (en.CBMConf.from_dictionary, en.CBM)
 if hasattr(en, "ChameleonEdge"):
     log.debug("Chameleon Edge provider is available")
-    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
 
     PROVIDER_MAP["chameleon-edge"] = (
         en.ChameleonEdgeConf.from_dictionary,
@@ -67,6 +65,11 @@ if hasattr(en, "ChameleonEdge"):
     )
 if hasattr(en, "Fabric"):
     log.debug("FABRIC provider is available")
+    from enoslib.infra.enos_fabric.utils import (
+        source_credentials_from_rc_file as source_fabric_credentials_from_rc_file,
+    )
+    from fabrictestbed_extensions.fablib.fablib import FablibManager as fablib_manager
+
     PROVIDER_MAP["fabric"] = (en.FabricConf.from_dictionary, en.Fabric)
 
 
@@ -153,56 +156,18 @@ def check(experiment_config: Kiso, **kwargs: dict) -> None:
     """
     console.rule("[bold green]Check experiment configuration[/bold green]")
     log.debug("Check only one vagrant site is present in the experiment")
-    label_to_machines: dict[str, set] = _get_defined_machines(experiment_config)
+    label_to_machines: Roles = _get_defined_machines(experiment_config)
 
-    if experiment_config.software and experiment_config.software.docker:
-        log.debug("Check docker is not installed on Chameleon edge")
-        _check_docker_is_not_on_edge(experiment_config, label_to_machines)
-
-    if experiment_config.software and experiment_config.software.apptainer:
-        log.debug(
-            "Check labels referenced in apptainer section are defined in the sites "
-            "section"
-        )
-        _check_apptainer_labels(experiment_config, label_to_machines)
-
-    if experiment_config.deployment and experiment_config.deployment.htcondor:
-        log.debug(
-            "Check labels referenced in HTCondor section are defined in the sites "
-            "section"
-        )
-        _check_condor_labels(experiment_config, label_to_machines)
-
-        log.debug("Check there is only one central-manager")
-        _check_central_manager_cardinality(experiment_config, label_to_machines)
-
-        log.debug("Check execute node configurations doesn't overlap")
-        _check_exec_node_overlap(experiment_config, label_to_machines)
-
-        log.debug("Check submit nodes configurations doesn't overlap")
-        _check_submit_node_overlap(experiment_config, label_to_machines)
-
-        log.debug(
-            "Check submit-node-labels specified in the experiment are valid submit "
-            "nodes as per the HTCondor configuration"
-        )
-        _check_submit_labels_are_submit_nodes(experiment_config, label_to_machines)
-
-    log.debug(
-        "Check labels referenced in experiments section are defined in the sites "
-        "section"
-    )
-    _check_undefined_labels(experiment_config, label_to_machines)
-
-    log.debug("Check for missing files in inputs")
-    _check_missing_input_files(experiment_config)
+    _check_software(experiment_config.software, label_to_machines)
+    _check_deployed_software(experiment_config.deployment, label_to_machines)
+    _check_experiments(experiment_config, label_to_machines)
 
     log.debug("Check EnOSlib")
     en.MOTD = en.INFO = ""
     en.check(platform_filter=["Vagrant", "Fabric", "Chameleon", "ChameleonEdge"])
 
 
-def _get_defined_machines(experiment_config: Kiso) -> dict[str, set]:
+def _get_defined_machines(experiment_config: Kiso) -> Roles:
     """Get the defined machines from the experiment configuration.
 
     Extracts and counts labels defined in the sites section of the experiment
@@ -214,11 +179,11 @@ def _get_defined_machines(experiment_config: Kiso) -> dict[str, set]:
     :type experiment_config: Kiso
     :raises ValueError: If multiple Vagrant sites are detected
     :return: A counter of defined labels with their counts
-    :rtype: dict[str, set]
+    :rtype: Roles
     """
     vagrant_sites = 0
     def_labels: Counter = Counter()
-    label_to_machines: dict[str, set] = defaultdict(set)
+    label_to_machines: Roles = defaultdict(set)
 
     for site_index, site in enumerate(experiment_config.sites):
         if site["kind"] == "vagrant":
@@ -231,7 +196,9 @@ def _get_defined_machines(experiment_config: Kiso) -> dict[str, set]:
                 def_labels.update({label: machine.get("number", 1)})
 
             for index in range(machine.get("number", 1)):
-                machine_key = f"site-{site_index}-machine-{machine_index}-index-{index}"
+                machine_key = Host(
+                    f"site-{site_index}-machine-{machine_index}-index-{index}"
+                )
                 label_to_machines[site["kind"]].add(machine_key)
 
                 for label in machine["labels"]:
@@ -251,342 +218,87 @@ def _get_defined_machines(experiment_config: Kiso) -> dict[str, set]:
     return label_to_machines
 
 
-def _check_docker_is_not_on_edge(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check that Docker is not configured to run on Chameleon Edge devices.
-
-    Validates that no Docker labels are assigned to Chameleon Edge resources,
-    which is not supported. Raises a ValueError if such a configuration is detected.
-
-    :param experiment_config: Experiment configuration dictionary
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If Docker labels are found on Chameleon Edge devices
-    """
-    labels = experiment_config.software.docker
-    labels = set(labels.labels) if labels else []
-
-    if not labels:
+def _check_software(softwares: Software, label_to_machines: dict[str, set]) -> None:
+    """Check software configuration."""
+    if softwares is None:
         return
 
-    machines: set = set()
-    machines.update(_ for label in labels for _ in label_to_machines[label])
-
-    if not machines:
-        raise ValueError("No machines found to install Docker")
-
-    docker_edge_machines = machines.intersection(label_to_machines["chameleon-edge"])
-    if docker_edge_machines:
-        raise ValueError("Docker cannot be installed on Chameleon Edge devices")
-
-
-def _check_apptainer_labels(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check Apptainer labels in an experiment configuration.
-
-    Validates that all Apptainer labels are defined.
-
-    :param experiment_config: Dictionary containing Apptainer configuration for an
-    experiment
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If undefined labels are referenced or configuration files are
-    missing
-    """
-    labels = experiment_config.software.apptainer
-    labels = set(labels.labels) if labels else []
-
-    if not labels:
-        return
-
-    machines: set = set()
-    machines.update(_ for label in labels for _ in label_to_machines[label])
-
-    if not machines:
-        raise ValueError("No machines found to install Apptainer")
-
-
-def _check_condor_labels(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check HTCondor labels and configuration files in an experiment configuration.
-
-    Validates that all HTCondor labels are defined and all referenced configuration
-    files exist.
-
-    :param experiment_config: Dictionary containing HTCondor configuration for an
-    experiment
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If undefined labels are referenced or configuration files are
-    missing
-    """
-    unlabel_to_machines = defaultdict(set)
-    missing_config_files = []
-    for index, daemon_config in enumerate(experiment_config.deployment.htcondor or []):
-        kind = daemon_config.kind
-        labels = daemon_config.labels
-        config_file = daemon_config.config_file
-
-        if config_file and not Path(config_file).exists():
-            missing_config_files.append((index, kind, config_file))
+    for software in fields(Software):
+        config = getattr(softwares, software.name, None)
+        if config is None:
             continue
 
-        machines: set = set()
-        machines.update(_ for label in labels for _ in label_to_machines[label])
+        # Get the `name` of the software
+        name = software.name
 
-        if not machines:
-            unlabel_to_machines[index] = labels
-    else:
-        if unlabel_to_machines:
-            raise ValueError(
-                "No machines found to install HTCondor configuration section",
-                unlabel_to_machines,
-            )
+        # Locate the EntryPoint for the software `name` and load it
+        installer = utils.get_software(name)
 
-        if missing_config_files:
-            raise ValueError(
-                "Missing config files referenced in HTCondor section",
-                missing_config_files,
-            )
-
-
-def _check_central_manager_cardinality(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check the cardinality of HTCondor central manager nodes in an experiment configuration.
-
-    Validates that only one machine is assigned the central-manager label.
-
-    :param experiment_config: Dictionary containing HTCondor configuration for an
-    experiment
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If more than one machine is assigned the central-manager label
-    """  # noqa: E501
-    central_manager = [
-        daemon_config
-        for daemon_config in experiment_config.deployment.htcondor or []
-        if daemon_config.kind[0] == "c"
-    ]
-
-    if len(central_manager) > 1:
-        raise ValueError("Multiple central-manager configurations are not supported")
-
-    if central_manager:
-        for label in central_manager[0].labels:
-            if len(label_to_machines[label]) > 1:
-                raise ValueError("Multiple central-manager machines are not supported")
-
-
-def _check_exec_node_overlap(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check for overlapping labels in HTCondor execute nodes.
-
-    Validates that no two execute nodes in the experiment configuration
-    have overlapping label assignments, which could cause configuration conflicts.
-
-    :param experiment_config: Dictionary containing HTCondor node configuration
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If execute nodes have labels that intersect
-    """
-    _check_node_overlap(experiment_config, label_to_machines, "execute")
-
-
-def _check_submit_node_overlap(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check for overlapping labels in HTCondor submit nodes.
-
-    Validates that no two submit nodes in the experiment configuration
-    have overlapping label assignments, which could cause configuration conflicts.
-
-    :param experiment_config: Dictionary containing HTCondor node configuration
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If submit nodes have labels that intersect
-    """
-    _check_node_overlap(experiment_config, label_to_machines, "submit")
-
-
-def _check_node_overlap(
-    experiment_config: Kiso, label_to_machines: dict[str, set], kind: str
-) -> None:
-    """Check for overlapping labels in HTCondor nodes.
-
-    Validates that no two nodes in the experiment configuration
-    have overlapping label assignments, which could cause configuration conflicts.
-
-    :param experiment_config: Dictionary containing HTCondor node configuration
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels
-    :type label_to_machines: dict[str, set]
-    :param kind: Kind of node overlap to check
-    :type kind: str
-    :raises ValueError: If nodes have labels that intersect
-    """
-    condor_config = experiment_config.deployment.htcondor or []
-    for i, j in itertools.product(range(len(condor_config)), range(len(condor_config))):
-        kind_i = condor_config[i].kind
-        labels_i = set(condor_config[i].labels)
-
-        kind_j = condor_config[j].kind
-        labels_j = set(condor_config[j].labels)
-
-        if i == j or kind_i[0] != kind[0] or kind_j[0] != kind[0]:
-            continue
-
-        if labels_i.intersection(labels_j):
-            raise ValueError(
-                f"{kind.capitalize()} nodes <{i}> and <{j}> have overlapping labels"
-            )
-
-
-def _check_submit_labels_are_submit_nodes(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check for missing input files in experiment configurations.
-
-    Validates the existence of input files specified in experiment configurations.
-    Raises a ValueError with details of any missing input files and their associated
-    experiments.
-
-    :param experiment_config: Configuration dictionary containing experiment details
-    :type experiment_config: Kiso
-    :raises ValueError: If any specified input files do not exist
-    """
-    submit_node_labels = set()
-    submit_nodes = set()
-    for daemon_config in experiment_config.deployment.htcondor or []:
-        kind = daemon_config.kind
-        labels = set(daemon_config.labels)
-        if not (
-            kind[0] == "s"  # submit
-            or kind[0] == "p"  # personal
-        ):
-            continue
-
-        submit_node_labels.update(labels)
-        for label in labels:
-            submit_nodes.update(label_to_machines[label])
-
-    for experiment in experiment_config.experiments:
-        for label in experiment.submit_node_labels:
-            if label_to_machines[label].intersection(submit_nodes):
-                break
-        else:
-            raise ValueError(
-                f"Experiment <{experiment['name']}>'s submit-node-labels do not map to "
-                f"any submit node(s) {submit_node_labels}"
-            )
-
-
-def _check_undefined_labels(
-    experiment_config: Kiso, label_to_machines: dict[str, set]
-) -> None:
-    """Check for undefined labels in experiment configuration.
-
-    Validates that all labels referenced in experiment setup, input locations,
-    and result locations are defined in the experiment configuration.
-
-    :param experiment_config: Complete experiment configuration dictionary
-    :type experiment_config: Kiso
-    :param label_to_machines: Mapping of predefined labels in the configuration
-    :type label_to_machines: dict[str, set]
-    :raises ValueError: If any undefined labels are found in the experiment
-    configuration
-    """
-    unlabel_to_machines = defaultdict(set)
-    for experiment in experiment_config.experiments:
-        if experiment.kind != "pegasus":
-            continue
-
-        for index, setup in enumerate(experiment.setup or []):
-            unlabel_to_machines[experiment.name].update(
-                [
-                    (f"setup[{index}]", label)
-                    for label in setup.labels
-                    if label not in label_to_machines
-                ]
-            )
-
-        for index, location in enumerate(experiment.inputs or []):
-            unlabel_to_machines[experiment.name].update(
-                [
-                    (f"inputs[{index}]", label)
-                    for label in location.labels
-                    if label not in label_to_machines
-                ]
-            )
-
-        for index, location in enumerate(experiment.outputs or []):
-            unlabel_to_machines[experiment.name].update(
-                [
-                    (f"outputs[{index}]", label)
-                    for label in location.labels
-                    if label not in label_to_machines
-                ]
-            )
-        for index, setup in enumerate(experiment.post_scripts or []):
-            unlabel_to_machines[experiment.name].update(
-                [
-                    (f"post-scripts[{index}]", label)
-                    for label in setup.labels
-                    if label not in label_to_machines
-                ]
-            )
-
-        if not unlabel_to_machines[experiment.name]:
-            del unlabel_to_machines[experiment.name]
-    else:
-        if unlabel_to_machines:
-            raise ValueError(
-                "Undefined labels referenced in experiments section",
-                unlabel_to_machines,
-            )
-
-
-def _check_missing_input_files(experiment_config: Kiso) -> None:
-    """Check for missing input files in experiment configurations.
-
-    Validates the existence of input files specified in experiment configurations.
-    Raises a ValueError with details of any missing input files and their associated
-    experiments.
-
-    :param experiment_config: Configuration dictionary containing experiment details
-    :type experiment_config: Kiso
-    :raises ValueError: If any specified input files do not exist
-    """
-    missing_files = []
-    for experiment in experiment_config.experiments:
-        if experiment.kind != "pegasus":
-            continue
-
-        for location in experiment.inputs or []:
-            src = Path(location.src)
-            if not src.exists():
-                missing_files.append((experiment.name, src))
-
-    if missing_files:
-        raise ValueError(
-            "\n".join(
-                [
-                    f"Input file <{src}> does not exist for experiment <{exp}>"
-                    for exp, src in missing_files
-                ]
-            ),
-            missing_files,
+        # Instantiate the installer class. The installer class to use is defined in the
+        # installer's `INSTALLER` attribute
+        obj = installer.INSTALLER(
+            config,  # Software configuration
+            console=console,  # Console object to output experiment progress
+            log=logging.getLogger(f"kiso.software.{name}"),  # Logger object to use
         )
+        obj.check(label_to_machines)
+
+
+def _check_deployed_software(
+    deployments: Deployment, label_to_machines: dict[str, set]
+) -> None:
+    """Check software deployment configuration."""
+    if deployments is None:
+        return
+
+    for deployment in fields(Deployment):
+        config = getattr(deployments, deployment.name, None)
+        if config is None:
+            continue
+
+        # Get the `name` of the software
+        name = deployment.name
+
+        # Locate the EntryPoint for the software `name` and load it
+        installer = utils.get_deployment(name)
+
+        # Instantiate the installer class. The installer class to use is defined in the
+        # installer's `INSTALLER` attribute
+        obj = installer.INSTALLER(
+            config,  # Deployment configuration
+            console=console,  # Console object to output experiment progress
+            log=logging.getLogger(f"kiso.deployment.{name}"),  # Logger object to use
+        )
+        obj.check(label_to_machines)
+
+
+def _check_experiments(
+    experiment_config: Kiso, label_to_machines: dict[str, set]
+) -> None:
+    """Check software deployment configuration."""
+    experiments = experiment_config.experiments
+    if experiments is None:
+        return
+
+    variables = copy.deepcopy(experiment_config.variables, {})
+    for index, experiment in enumerate(experiments):
+        # Get the `kind` of experiment
+        kind = experiment.kind
+
+        # Locate the EntryPoint for the runner `kind` of experiment and load it
+        runner_cfg = utils.get_runner(kind)
+
+        # Instantiate the runner class. The runner class to use is defined in the
+        # runner's `RUNNER` attribute
+        runner = runner_cfg.RUNNER(
+            experiment,
+            index,
+            console=console,  # Console object to output experiment progress
+            log=logging.getLogger("kiso.experiment.pegasus"),  # Logger object to use
+            variables=variables,  # Variables defined globally for the experiment
+        )
+
+        runner.check(experiment_config, label_to_machines)
 
 
 @validate_config
@@ -621,9 +333,8 @@ def up(
 
     _init_sites(experiment_config, env, force)
     _install_commons(env)
-    _install_docker(experiment_config, env)
-    _install_apptainer(experiment_config, env)
-    _install_condor(experiment_config, env)
+    _install_software(experiment_config, env)
+    _install_deployed_software(experiment_config, env)
 
 
 def _init_sites(
@@ -958,9 +669,7 @@ def _associate_floating_ip(
         elif kind == "chameleon-edge":
             _associate_floating_ip_edge(node)
         elif kind == "fabric":
-            raise NotImplementedError(
-                "Assigning floating IP for FABRIC testbed hasn't been implemented yet"
-            )
+            _associate_floating_ip_fabric(node)
         elif kind == "vagrant":
             raise KisoError("Assigning public IPs to Vagrant VMs is not supported")
         else:
@@ -1088,6 +797,89 @@ def _associate_floating_ip_edge(node: ChameleonDevice) -> None:
     floating_ips = node.extra.get("floating-ips", [])
     floating_ips.append(ip)
     node.extra["floating-ips"] = floating_ips
+
+
+def _associate_floating_ip_fabric(node: Host) -> None:
+    """Associate a floating IP address with a Chameleon node.
+
+    Retrieves or creates a floating IP for a Chameleon node using the OpenStack CLI.
+    Handles cases where a node may already have a floating IP or requires a new one.
+    Logs debug information during the IP association process.
+
+    :param node: The Chameleon node to associate a floating IP with
+    :type node: Host
+    :raises ValueError: If the OpenStack CLI is not found or the server cannot be
+    located
+    """
+    with source_fabric_credentials_from_rc_file(node.extra["rc_file"]):
+        try:
+            fablib = fablib_manager()
+            fabric_slice = fablib.get_slice(name=node.extra["slice"])
+            fabric_node = fabric_slice.get_node(name=node.extra["name"])
+            stdout, _stderr = fabric_node.execute("cat /etc/floating-ip")
+            if len(stdout.strip()):
+                log.debug("Floating IP already associated with the device")
+                ip = stdout.strip()
+            else:
+                submit = False
+                network_name = f"{node.extra['name']}-public-network"
+                nic_name = "public-nic"
+                try:
+                    component = fabric_node.get_component(name=nic_name)
+                except Exception:
+                    log.debug(
+                        "Adding NIC_Basic component to FABRIC node <%s>",
+                        fabric_node.get_management_ip(),
+                    )
+                    component = fabric_node.add_component(
+                        model="NIC_Basic", name=nic_name
+                    )
+                    submit = True
+                interface = component.get_interfaces()[0]
+
+                if not fabric_slice.get_network(name=network_name):
+                    log.debug(
+                        "Adding IPv4Ext L3 Network to FABRIC node <%s>",
+                        fabric_node.get_management_ip(),
+                    )
+                    fabric_slice.add_l3network(
+                        name=network_name, interfaces=[interface], type="IPv4Ext"
+                    )
+                    submit = True
+                if submit:
+                    fabric_slice.submit()
+
+                fabric_slice = fablib.get_slice(name=node.extra["slice"])
+                network = fabric_slice.get_network(name=network_name)
+                ip = network.get_available_ips()
+                log.debug(
+                    "Available IPs for FABRIC node <%s>, are <%s>",
+                    fabric_node.get_management_ip(),
+                    ip,
+                )
+                network.make_ip_publicly_routable(ipv4=[str(ip[0])])
+                fabric_slice.submit()
+
+                fabric_slice = fablib.get_slice(name=node.extra["slice"])
+                network = fabric_slice.get_network(name=network_name)
+                fabric_node = fabric_slice.get_node(name=node.extra["name"])
+                interface = fabric_node.get_interface(network_name=network_name)
+                ip = network.get_public_ips()[0]
+                interface.ip_addr_add(addr=ip, subnet=network.get_subnet())
+                # _stdout, _stderr = fabric_node.execute(
+                #     f"sudo ip route add 0.0.0.0/0 via {network.get_gateway()}"
+                # )
+                fabric_node.execute(f"echo {ip} | sudo tee /etc/floating-ip")
+
+            log.debug("Floating IP associated with the device %s", ip)
+            floating_ips = node.extra.get("floating-ips", [])
+            floating_ips.append(ip)
+            node.extra["floating-ips"] = floating_ips
+
+        except Exception as e:
+            raise ValueError(
+                f"Error occurred assigning public IP to FABRIC node <{node.alias}>"
+            ) from e
 
 
 def _get_best_ip(
@@ -1300,474 +1092,58 @@ def _install_commons(env: Environment) -> None:
     display.commons(console, results)
 
 
-def _install_docker(experiment_config: Kiso, env: Environment) -> None:
-    """Install Docker on specified labels in an experiment configuration.
-
-    Installs Docker on virtual machines and containers based on the provided
-    configuration.
-    Supports optional version specification and uses Ansible for VM installations.
-
-    :param experiment_config: Configuration dictionary containing Docker installation
-    details
-    :type experiment_config: Kiso
-    :param env: Environment context for the installation
-    :type env: Environment
-    """
-    config = experiment_config.software.docker
-    if config is None:
+def _install_software(experiment_config: Kiso, env: Environment) -> None:
+    """Install software on specified labels in an experiment configuration."""
+    softwares = experiment_config.software
+    if softwares is None:
         return
 
-    log.debug("Install Docker")
-    console.rule("[bold green]Installing Docker[/bold green]")
+    for software in fields(Software):
+        config = getattr(softwares, software.name, None)
+        if config is None:
+            continue
 
-    labels = env["labels"]
-    _labels = utils.resolve_labels(labels, config.labels)
-    vms, containers = utils.split_labels(_labels, labels)
-    if vms:
-        results = utils.run_ansible(
-            [Path(__file__).parent / "docker/main.yml"], roles=vms
+        # Get the `name` of the software
+        name = software.name
+
+        # Locate the EntryPoint for the software `name` and load it
+        installer = utils.get_software(name)
+
+        # Instantiate the installer class. The installer class to use is defined in the
+        # installer's `INSTALLER` attribute
+        obj = installer.INSTALLER(
+            config,  # Software configuration
+            console=console,  # Console object to output experiment progress
+            log=logging.getLogger(f"kiso.software.{name}"),  # Logger object to use
         )
-
-    if containers:
-        raise RuntimeError(
-            "Docker cannot be installed on containers, because Chameleon Edge does "
-            "not allow setting privileged mode for containers"
-        )
-
-    display.docker(console, results)
+        obj(env)
 
 
-def _install_apptainer(experiment_config: Kiso, env: Environment) -> None:
-    """Install Apptainer on specified labels in an experiment configuration.
-
-    Installs Apptainer on virtual machines and containers based on the provided
-    configuration. Supports optional version specification and uses Ansible for VM
-    installations and a script for container installations.
-
-    :param experiment_config: Configuration dictionary containing Apptainer installation
-    details
-    :type experiment_config: Kiso
-    :param env: Environment context for the installation
-    :type env: Environment
-    """
-    config = experiment_config.software.apptainer
-    if config is None:
+def _install_deployed_software(experiment_config: Kiso, env: Environment) -> None:
+    """Install software for deployments on specified labels in an experiment configuration."""  # noqa: E501
+    deployments = experiment_config.deployment
+    if deployments is None:
         return
 
-    log.debug("Install Apptainer")
-    console.rule("[bold green]Installing Apptainer[/bold green]")
+    for deployment in fields(Deployment):
+        config = getattr(deployments, deployment.name, None)
+        if config is None:
+            continue
 
-    labels = env["labels"]
-    _labels = utils.resolve_labels(labels, config.labels)
-    vms, containers = utils.split_labels(_labels, labels)
-    results = []
+        # Get the `name` of the deployment
+        name = deployment.name
 
-    if vms:
-        results.extend(
-            utils.run_ansible([Path(__file__).parent / "apptainer/main.yml"], roles=vms)
+        # Locate the EntryPoint for the software `name` and load it
+        installer = utils.get_deployment(name)
+
+        # Instantiate the installer class. The installer class to use is defined in the
+        # installer's `INSTALLER` attribute
+        obj = installer.INSTALLER(
+            config,  # Deployment configuration
+            console=console,  # Console object to output experiment progress
+            log=logging.getLogger(f"kiso.deployment.{name}"),  # Logger object to use
         )
-
-    if containers:
-        for container in containers:
-            results.append(
-                utils.run_script(
-                    container,
-                    Path(__file__).parent / "apptainer/apptainer.sh",
-                    "--no-dry-run",
-                )
-            )
-
-    display.apptainer(console, results)
-
-
-def _install_condor(experiment_config: Kiso, env: Environment) -> None:
-    """Install HTCondor on machines based on experiment configuration and labels.
-
-    Configures and installs HTCondor daemons across different machines in an experiment,
-    handling central manager, personal, submit, and execute daemon types. Uses parallel
-    execution to install HTCondor on multiple machines simultaneously.
-
-    :param experiment_config: Configuration dictionary containing HTCondor deployment
-    details
-    :type experiment_config: Kiso
-    :param env: Environment configuration for the experiment
-    :type env: Environment
-    """
-    condor_config = experiment_config.deployment.htcondor
-    if condor_config is None:
-        return
-
-    log.debug("Install HTCondor")
-    console.rule("[bold green]Installing HTCondor[/bold green]")
-
-    labels = env["labels"]
-    _condor_hosts = [c for c in condor_config if c.kind[0] == "c"]
-    _condor_host = (
-        next(iter(utils.resolve_labels(labels, _condor_hosts[0].labels)))
-        if _condor_hosts
-        else None
-    )
-    condor_host_ip = _condor_host.extra["kiso_preferred_ip"] if _condor_host else None
-    extra_vars: dict = {
-        "condor_host": condor_host_ip,
-        "trust_domain": const.TRUST_DOMAIN,
-        "token_identity": f"condor_pool@{const.TRUST_DOMAIN}",
-        "pool_passwd_file": utils.get_pool_passwd_file(),
-    }
-
-    if condor_host_ip is not None:
-        log.debug("HTCondor Central Manager IP <%s>", condor_host_ip)
-
-    with get_process_pool_executor() as executor:
-        results = []
-        futures = []
-        machine_to_daemons = _get_label_daemon_machine_map(condor_config, labels)
-        for machine, daemons in machine_to_daemons.items():
-            log.debug(
-                "Install HTCondor Daemons <%s> on Machine <%s>",
-                daemons,
-                machine.address
-                if isinstance(machine, ChameleonDevice)
-                else machine.alias,
-            )
-            htcondor_config, config_files = _get_condor_config(
-                condor_config, daemons, condor_host_ip, machine, env
-            )
-
-            extra_vars = dict(extra_vars)
-            extra_vars["htcondor_daemons"] = daemons
-            extra_vars["htcondor_config"] = htcondor_config
-            extra_vars["config_files"] = config_files
-
-            if isinstance(machine, ChameleonDevice):
-                future = executor.submit(
-                    _install_condor_on_edge, machine, htcondor_config, extra_vars
-                )
-            else:
-                future = executor.submit(
-                    utils.run_ansible,
-                    [Path(__file__).parent / "htcondor/main.yml"],
-                    roles=machine,
-                    extra_vars=extra_vars,
-                )
-
-            # Wait for HTCondor Central Manager to be installed and started before
-            # installing in on any other machine
-            if "central-manager" in daemons:
-                result = future.result()
-                results.append(result[-1])
-            else:
-                futures.append(future)
-
-        # We need to wait for HTCondor to be installed on the remaining machines,
-        # because even though the ProcessPoolExecutor does not exit the context
-        # until all running futures have finished, the code gets stuck if we don't
-        # invoke result() on the futures
-        for future in futures:
-            result = future.result()
-            results.append(result[-1])
-
-        display.htcondor(console, results)
-
-
-def _get_label_daemon_machine_map(
-    condor_config: list, labels: Roles
-) -> dict[ChameleonDevice | Host, set]:
-    """Get a mapping of labels, daemons, and machines from the HTCondor configuration.
-
-    _extended_summary_
-
-    :param condor_config: _description_
-    :type condor_config: list
-    :param labels: _description_
-    :type labels: Roles
-    :return: _description_
-    :rtype: dict[ChameleonDevice | Host, set]
-    """
-    label_to_daemons: dict[str, set] = defaultdict(set)
-    machine_to_daemons: dict[ChameleonDevice | Host, set] = defaultdict(set)
-
-    for index, config in enumerate(condor_config):
-        kind = config.kind
-        _labels = config.labels
-        for label in _labels:
-            label_to_daemons[label].add((index, kind))
-
-    for label, machines in labels.items():
-        if label in label_to_daemons:
-            for machine in machines:
-                machine_to_daemons[machine].update(label_to_daemons[label])
-
-    # Sort on daemons so that the HTCondor central-manager is installed first
-    return dict(sorted(machine_to_daemons.items(), key=_cmp))
-
-
-def _cmp(item: tuple[str, set]) -> int:
-    """Cmp _summary_.
-
-    _extended_summary_
-
-    :param item: _description_
-    :type item: tuple[str, set]
-    :raises ValueError: _description_
-    :return: _description_
-    :rtype: int
-    """
-    rv = 10
-    for daemon in item[1]:
-        if daemon[1][0] == "c":  # central-manager
-            rv = min(rv, 0)
-            break
-        if daemon[1][0] == "p":  # personal
-            rv = min(rv, 1)
-        elif daemon[1][0] == "e":  # execute
-            rv = min(rv, 2)
-        elif daemon[1][0] == "s":  # submit
-            rv = min(rv, 3)
-        else:
-            raise ValueError(f"Daemon <{daemon[1]}> is not valid")
-
-    return rv
-
-
-def _get_condor_config(
-    condor_config: list,
-    daemons: set[tuple[int, str]],
-    condor_host_ip: str | None,
-    machine: Host | ChameleonDevice,
-    env: Environment,
-) -> tuple[list[str], dict[str, str]]:
-    """Get HTCondor configuration for a specific machine and set of daemons.
-
-    Generates HTCondor configuration based on the specified daemons, machine type,
-    and environment requirements. Handles configuration for different daemon labels
-    (personal, central manager, submit, execute) and special networking scenarios.
-
-    :param condor_config: Configuration dictionary for HTCondor
-    :type condor_config: list
-    :param daemons: Set of daemon types to configure
-    :type daemons: set[str]
-    :param condor_host_ip: IP address of the HTCondor host
-    :type condor_host_ip: str | None
-    :param machine: Machine (Host or ChameleonDevice) being configured
-    :type machine: Host | ChameleonDevice
-    :param env: Environment configuration
-    :type env: Environment
-    :return: A tuple containing HTCondor configuration lines and additional config files
-    :rtype: tuple[list[str], dict[str, str]]
-    """
-    is_public_ip_required = env["is_public_ip_required"]
-
-    htcondor_config = [
-        f"CONDOR_HOST = {condor_host_ip}",
-        f"TRUST_DOMAIN = {const.TRUST_DOMAIN}",
-    ]
-    config_files = {}
-    for index, daemon in daemons:
-        if daemon[0] == "p":  # personal
-            htcondor_config = [
-                "CONDOR_HOST = $(IP_ADDRESS)",
-                "use ROLE: CentralManager",
-                "use ROLE: Submit",
-                "use ROLE: Execute",
-            ]
-        else:
-            _daemon = re.sub(r"[-\d]", "", daemon.title())
-            htcondor_config.append(f"use ROLE: {_daemon}")
-
-            # Execute nodes without public IPs need these configuration
-            if _daemon[0] == "E":  # Execute
-                htcondor_config.append("USE_CCB = True")
-                htcondor_config.append("CCB_ADDRESS = $(CONDOR_HOST)")
-
-        if condor_config[index].config_file:
-            config_files[f"kiso-{daemon}-config-file"] = str(
-                Path(condor_config[index].config_file).resolve()
-            )
-
-    if (
-        is_public_ip_required is True
-        and machine.extra["kind"] == "chameleon-edge"
-        and (
-            machine.extra["is_central_manager"] is True
-            or machine.extra["is_submit"] is True
-        )
-    ):
-        # In a multi site setup, when the central manager and/or submit daemon
-        # run on Chameleon Edge containers, they would require
-        # a public IP. The public IP is acquired as a floating IP, so the IP is not
-        # visible in the output of the ifconfig command. For some reason, HTCondor
-        # tries to connect on the floating ip to a port, that is not 9618, and
-        # hence it can't register itself. To bypass this, we add TCP_FORWARDING_HOST
-        # (https://htcondor.readthedocs.io/en/latest/admin-manual/configuration-macros.html#TCP_FORWARDING_HOST)
-        htcondor_config.append(
-            f"TCP_FORWARDING_HOST = {machine.extra['kiso_preferred_ip']}"
-        )
-    else:
-        # Vagrant VMs with VirtualBox use NAT networking, and each VM is isolated
-        # from the other, so all VMs get the same IP address. So we add HTCondor's
-        # NETWORK_INTERFACE (https://htcondor.readthedocs.io/en/latest/admin-manual/configuration-macros.html#NETWORK_INTERFACE),
-        # configuration to the Vagrant VMs to ensure they can communicate
-        htcondor_config.append(
-            f"NETWORK_INTERFACE = {machine.extra['kiso_preferred_ip']}"
-        )
-
-    return htcondor_config, config_files
-
-
-def _install_condor_on_edge(  # noqa: C901
-    machine: ChameleonDevice, htcondor_config: list[str], extra_vars: dict
-) -> list[CommandResult]:
-    """Install and configure HTCondor on a Chameleon Edge machine.
-
-    This function performs the following tasks:
-    - Runs initialization, HTCondor, and Pegasus installation scripts
-    - Manages configuration files for HTCondor
-    - Sets up security credentials (pool password and token)
-    - Restarts the HTCondor service
-
-    :param machine: The Chameleon device to install HTCondor on
-    :type machine: ChameleonDevice
-    :param htcondor_config: List of HTCondor configuration settings
-    :type htcondor_config: list[str]
-    :param extra_vars: Additional configuration variables for HTCondor installation
-    :type extra_vars: dict
-    :return: _description_
-    :rtype: list[CommandResult]
-    """
-    results = []
-    results.append(
-        utils.run_script(
-            machine,
-            Path(__file__).parent / "htcondor/htcondor.sh",
-            "--no-dry-run",
-        )
-    )
-
-    results.append(
-        utils.run_script(
-            machine,
-            Path(__file__).parent / "htcondor/pegasus.sh",
-            "--no-dry-run",
-        )
-    )
-    if results[-1].rc != 0:
-        return results
-
-    config_root = edge._execute(machine, "condor_config_val CONFIG_ROOT")
-    results.append(config_root)
-    if results[-1].rc != 0:
-        return results
-    config_root = config_root.stdout
-    config_root = f"{config_root}/config.d"
-
-    config_files = extra_vars.get("config_files")
-    if config_files:
-        # User may change the experiment configuration and rerun the up command, so we
-        # remove old configuration files before configuring HTCondor
-        results.append(
-            edge._execute(machine, f"rm -rf  {config_root}/kiso-*-config-file")
-        )
-        if results[-1].rc != 0:
-            return results
-
-        for fname, config_file in config_files.items():
-            edge._upload_file(machine, config_file, f"{config_root}")
-            results.append(
-                edge._execute(
-                    machine,
-                    f"mv {config_root}/{Path(config_file).name} {config_root}/{fname}",
-                )
-            )
-            if results[-1].rc != 0:
-                return results
-        results.append(
-            edge._execute(
-                machine,
-                f"chown root:root {config_root}/* ; chmod 644 {config_root}/*",
-            )
-        )
-        if results[-1].rc != 0:
-            return results
-
-    for daemon in extra_vars.get("htcondor_daemons", set()):
-        if daemon == "personal":
-            return results
-
-    sec_password_directory = edge._execute(
-        machine, "condor_config_val SEC_PASSWORD_DIRECTORY"
-    )
-    results.append(sec_password_directory)
-    if results[-1].rc != 0:
-        return results
-    sec_password_directory = sec_password_directory.stdout
-
-    sec_token_system_directory = edge._execute(
-        machine, "condor_config_val SEC_TOKEN_SYSTEM_DIRECTORY"
-    )
-    results.append(sec_token_system_directory)
-    if results[-1].rc != 0:
-        return results
-    sec_token_system_directory = sec_token_system_directory.stdout
-
-    NL = "\n"
-    DOLLAR = "\\$"
-    results.append(
-        edge._execute(
-            machine,
-            f"""cat > "{config_root}/01-kiso" << EOF
-{NL.join(htcondor_config).replace("$", DOLLAR)}
-EOF
-""",
-        )
-    )
-    if results[-1].rc != 0:
-        return results
-
-    edge._upload_file(
-        machine, extra_vars["pool_passwd_file"], f"{sec_password_directory}/"
-    )
-    results.append(
-        edge._execute(
-            machine,
-            f"mv {sec_password_directory}/{Path(extra_vars['pool_passwd_file']).name} "
-            f"{sec_password_directory}/POOL",
-        )
-    )
-    if results[-1].rc != 0:
-        return results
-
-    results.append(
-        edge._execute(
-            machine,
-            f"chown root:root {sec_password_directory}/POOL ; "
-            f"chmod 600 {sec_password_directory}/POOL ; "
-            f"rm -f {config_root}/00-minicondor",
-        )
-    )
-    if results[-1].rc != 0:
-        return results
-
-    results.append(
-        edge._execute(
-            machine,
-            "condor_token_create -key POOL "
-            f"-identity {extra_vars['token_identity']} "
-            f"-file {sec_token_system_directory}/POOL.token",
-        )
-    )
-    if results[-1].rc != 0:
-        return results
-
-    # Restart HTCondor
-    # machine.execute(
-    #     "sh -c 'ps aux | grep condor | grep -v condor | awk \\'{print $2}\\' | "
-    #     "xargs kill -9'"
-    # )
-    # machine.execute("condor_master")
-    results.append(edge._execute(machine, "condor_restart"))
-
-    return results
+        obj(env)
 
 
 @validate_config
@@ -1883,18 +1259,19 @@ def _run_experiments(
     runner = runner_cfg.RUNNER(
         experiment,
         index,
-        env["wd"],  # Local experiment working directory
-        env["remote_wd"],  # Remote experiment working directory
-        env["resultdir"],  # Local results directory
-        env["labels"],  # Provisioned resources
-        env["experiments"][index],  # Store to maintain the state of the experiment
         console=console,  # Console object to output experiment progress
         log=logging.getLogger("kiso.experiment.pegasus"),  # Logger object to use
         variables=variables,  # Variables defined globally for the experiment
     )
 
     # Run the experiment
-    runner()
+    runner(
+        env["wd"],  # Local experiment working directory
+        env["remote_wd"],  # Remote experiment working directory
+        env["resultdir"],  # Local results directory
+        env["labels"],  # Provisioned resources
+        env["experiments"][index],  # Store to maintain the state of the experiment
+    )
 
 
 def _to_snake_case(key: str) -> str:
