@@ -115,7 +115,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
 .. note::
 
-    The `name` of the ENtryPoint used here will be the configuration key in the software section of the experiment configuration.
+    The `name` of the EntryPoint used here will be the configuration key in the software section of the experiment configuration.
 
     .. code-block:: yaml
 
@@ -133,7 +133,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 Example
 ~~~~~~~
 
-The builtin Apptainer software type is implemented using the above approach. You can see the code in `src/kiso/apptainer` directory of Kiso.
+The builtin Apptainer software type is implemented using the above approach. You can see the code in `src/kiso/apptainer <https://github.com/pegasus-isi/kiso/blob/main/src/kiso/apptainer/__init__.py>`_ directory of Kiso.
 
 Adding New Deployment Types
 ---------------------------
@@ -248,7 +248,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
 .. note::
 
-    The `name` of the ENtryPoint used here will be the configuration key in the deployment section of the experiment configuration.
+    The `name` of the EntryPoint used here will be the configuration key in the deployment section of the experiment configuration.
 
     .. code-block:: yaml
 
@@ -266,7 +266,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 Example
 ~~~~~~~
 
-The builtin HTCondor deployment type is implemented using the above approach. You can see the code in `src/kiso/htcondor` directory of Kiso.
+The builtin HTCondor deployment type is implemented using the above approach. You can see the code in `src/kiso/htcondor <https://github.com/pegasus-isi/kiso/blob/main/src/kiso/htcondor/__init__.py>`_ directory of Kiso.
 
 
 Adding New Experiment Types
@@ -409,4 +409,4 @@ Kiso then instantiate the class defined by the `RUNNER` attribute and then invok
 Example
 ~~~~~~~
 
-The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso/workflow` directory of Kiso.
+The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso/workflow <https://github.com/pegasus-isi/kiso/blob/main/src/kiso/workflow/__init__.py>`_ directory of Kiso.
