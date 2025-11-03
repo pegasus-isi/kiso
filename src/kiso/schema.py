@@ -56,58 +56,22 @@ SCHEMA: dict = {
             "items": {"$ref": "#/$defs/site"},
             "minItems": 1,
         },
-        "experiments": {
-            "description": "Define all the experiments to be executed",
-            "type": "array",
-            "items": {"$ref": "#/$defs/experiment"},
-            "minItems": 1,
-        },
         "software": {
             "description": "Software to be installed on the resources",
             "type": "object",
-            "properties": {
-                "docker": {
-                    "description": "Specify on which resources the Docker runtime "
-                    "should be installed",
-                    "type": "object",
-                    "properties": {
-                        "labels": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
-                        },
-                        "version": {"type": "string"},
-                    },
-                    "required": ["labels"],
-                    "additionalProperties": False,
-                },
-                "apptainer": {
-                    "description": "Specify on which resources the Apptainer runtime "
-                    "should be installed",
-                    "type": "object",
-                    "properties": {
-                        "labels": {
-                            "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
-                        },
-                        "version": {"type": "string"},
-                    },
-                    "required": ["labels"],
-                    "additionalProperties": False,
-                },
-            },
+            "additionalProperties": False,
         },
         "deployment": {
             "description": "Workload management system to be installed on the "
             "resources",
             "type": "object",
-            "properties": {
-                "htcondor": {
-                    "description": "Specify how and on which resources HTCondor "
-                    "should be installed",
-                    "type": "array",
-                    "items": {"$ref": "#/$defs/htcondor"},
-                    "minItems": 1,
-                }
-            },
             "additionalProperties": False,
+        },
+        "experiments": {
+            "description": "Define all the experiments to be executed",
+            "type": "array",
+            "items": {"$ref": "#/$defs/experiment"},
+            "minItems": 1,
         },
     },
     "required": ["name", "sites", "experiments"],
@@ -210,6 +174,7 @@ if hasattr(en, "Fabric"):
     FABRIC_SCHEMA["$$target"] = "py-obj:kiso.schema.FABRIC_SCHEMA"
     FABRIC_SCHEMA["properties"]["kind"] = {"const": "fabric"}
     FABRIC_SCHEMA["definitions"]["machine"]["properties"]["roles"] = _labels_schema
+    FABRIC_SCHEMA["definitions"]["network"]["properties"]["roles"] = _labels_schema
     SCHEMA["$defs"]["site"]["oneOf"].append(
         {
             "allOf": [
@@ -240,4 +205,46 @@ def _get_experiment_kinds() -> list[dict[str, str]]:
     return kind_schemas
 
 
+def _get_software_schemas() -> dict[str, dict]:
+    all_eps: dict | EntryPoints = entry_points()
+    if isinstance(all_eps, dict):
+        all_eps = all_eps.get("kiso.software", [])
+    else:
+        all_eps = all_eps.select(group="kiso.software")
+
+    # The set is required because entry_points() can return the same EntryPoint
+    # multiple times when a package is installed as an editable install
+    _kind_schemas = set()
+    kind_schemas = {}
+    for ep in all_eps:
+        if f"{ep.value}.SCHEMA" not in _kind_schemas:
+            ep.load().SCHEMA["$$target"] = f"py-obj:{ep.value}.SCHEMA"
+            kind_schemas[ep.name] = {"$ref": f"py-obj:{ep.value}.SCHEMA"}
+            _kind_schemas.add(f"{ep.value}.SCHEMA")
+
+    return kind_schemas
+
+
+def _get_deployment_schemas() -> dict[str, dict]:
+    all_eps: dict | EntryPoints = entry_points()
+    if isinstance(all_eps, dict):
+        all_eps = all_eps.get("kiso.deployment", [])
+    else:
+        all_eps = all_eps.select(group="kiso.deployment")
+
+    # The set is required because entry_points() can return the same EntryPoint
+    # multiple times when a package is installed as an editable install
+    _kind_schemas = set()
+    kind_schemas = {}
+    for ep in all_eps:
+        if f"{ep.value}.SCHEMA" not in _kind_schemas:
+            ep.load().SCHEMA["$$target"] = f"py-obj:{ep.value}.SCHEMA"
+            kind_schemas[ep.name] = {"$ref": f"py-obj:{ep.value}.SCHEMA"}
+            _kind_schemas.add(f"{ep.value}.SCHEMA")
+
+    return kind_schemas
+
+
 SCHEMA["$defs"]["experiment"]["oneOf"] = _get_experiment_kinds()
+SCHEMA["properties"]["software"]["properties"] = _get_software_schemas()
+SCHEMA["properties"]["deployment"]["properties"] = _get_deployment_schemas()

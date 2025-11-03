@@ -9,6 +9,7 @@ import re
 import shlex
 import tempfile
 import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
     if hasattr(en, "ChameleonEdge"):
         from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
-
+    from kiso.configuration import Kiso
     from kiso.workflow.configuration import Location, PegasusWorkflow, Script
 
 
@@ -48,11 +49,6 @@ class PegasusWMS:
         self,
         experiment: PegasusWorkflow,
         index: int,
-        wd: str,
-        remote_wd: str,
-        resultdir: str,
-        labels: Roles,
-        env: Environment,
         console: Console | None = None,
         log: logging.Logger | None = None,
         variables: dict[str, str | int | float] | None = None,
@@ -65,16 +61,6 @@ class PegasusWMS:
         :type experiment: PegasusWorkflow
         :param index: Experiment index
         :type index: int
-        :param wd: Experiment working directory
-        :type wd: str
-        :param remote_wd: Remote experiment working directory
-        :type remote_wd: str
-        :param resultdir: Results directory
-        :type resultdir: str
-        :param labels: All provisioned resources
-        :type labels: Roles
-        :param env: Environment context
-        :type env: Environment
         :param console: Rich console object to output experiment progress,
         defaults to None
         :type console: Console | None, optional
@@ -85,11 +71,6 @@ class PegasusWMS:
         """
         self.log = log or logging.getLogger("kiso.experiment.pegasus")
         self.index = index
-        self.wd = wd
-        self.remote_wd = remote_wd
-        self.resultdir = resultdir
-        self.labels = labels
-        self.env = env
         self.variables = copy.deepcopy(variables or {})
 
         # Experiment configuration
@@ -107,6 +88,191 @@ class PegasusWMS:
         self.poll_interval = experiment.poll_interval or const.POLL_INTERVAL
         self.timeout = experiment.timeout or const.WORKFLOW_TIMEOUT
 
+        # Console
+        self.console = console or Console()
+
+    def check(self, config: Kiso, label_to_machines: Roles) -> None:
+        """Check  summary_.
+
+        _extended_summary_
+
+        :param label_to_machines: _description_
+        :type label_to_machines: Roles
+        """
+        if config.deployment and config.deployment.htcondor:
+            self.log.debug(
+                "Check submit-node-labels specified in the experiment are valid submit "
+                "nodes as per the HTCondor configuration"
+            )
+            self._check_submit_labels_are_submit_nodes(config, label_to_machines)
+
+        self.log.debug(
+            "Check labels referenced in experiments section are defined in the sites "
+            "section"
+        )
+        self._check_undefined_labels(config, label_to_machines)
+
+        self.log.debug("Check for missing files in inputs")
+        self._check_missing_input_files(config)
+
+    def _check_submit_labels_are_submit_nodes(
+        self, experiment_config: Kiso, label_to_machines: dict[str, set]
+    ) -> None:
+        """Check for missing input files in experiment configurations.
+
+        Validates the existence of input files specified in experiment configurations.
+        Raises a ValueError with details of any missing input files and their associated
+        experiments.
+
+        :param experiment_config: Configuration dictionary containing experiment details
+        :type experiment_config: Kiso
+        :raises ValueError: If any specified input files do not exist
+        """
+        submit_node_labels = set()
+        submit_nodes = set()
+        for daemon_config in experiment_config.deployment.htcondor or []:
+            kind = daemon_config.kind
+            labels = set(daemon_config.labels)
+            if not (
+                kind[0] == "s"  # submit
+                or kind[0] == "p"  # personal
+            ):
+                continue
+
+            submit_node_labels.update(labels)
+            for label in labels:
+                submit_nodes.update(label_to_machines[label])
+
+        for experiment in experiment_config.experiments:
+            for label in experiment.submit_node_labels:
+                if label_to_machines[label].intersection(submit_nodes):
+                    break
+            else:
+                raise ValueError(
+                    f"Experiment <{experiment['name']}>'s submit-node-labels do not map"
+                    f"to any submit node(s) {submit_node_labels}"
+                )
+
+    def _check_undefined_labels(
+        self, experiment_config: Kiso, label_to_machines: dict[str, set]
+    ) -> None:
+        """Check for undefined labels in experiment configuration.
+
+        Validates that all labels referenced in experiment setup, input locations,
+        and result locations are defined in the experiment configuration.
+
+        :param experiment_config: Complete experiment configuration dictionary
+        :type experiment_config: Kiso
+        :param label_to_machines: Mapping of predefined labels in the configuration
+        :type label_to_machines: dict[str, set]
+        :raises ValueError: If any undefined labels are found in the experiment
+        configuration
+        """
+        unlabel_to_machines = defaultdict(set)
+        for experiment in experiment_config.experiments:
+            if experiment.kind != "pegasus":
+                continue
+
+            for index, setup in enumerate(experiment.setup or []):
+                unlabel_to_machines[experiment.name].update(
+                    [
+                        (f"setup[{index}]", label)
+                        for label in setup.labels
+                        if label not in label_to_machines
+                    ]
+                )
+
+            for index, location in enumerate(experiment.inputs or []):
+                unlabel_to_machines[experiment.name].update(
+                    [
+                        (f"inputs[{index}]", label)
+                        for label in location.labels
+                        if label not in label_to_machines
+                    ]
+                )
+
+            for index, location in enumerate(experiment.outputs or []):
+                unlabel_to_machines[experiment.name].update(
+                    [
+                        (f"outputs[{index}]", label)
+                        for label in location.labels
+                        if label not in label_to_machines
+                    ]
+                )
+            for index, setup in enumerate(experiment.post_scripts or []):
+                unlabel_to_machines[experiment.name].update(
+                    [
+                        (f"post-scripts[{index}]", label)
+                        for label in setup.labels
+                        if label not in label_to_machines
+                    ]
+                )
+
+            if not unlabel_to_machines[experiment.name]:
+                del unlabel_to_machines[experiment.name]
+        else:
+            if unlabel_to_machines:
+                raise ValueError(
+                    "Undefined labels referenced in experiments section",
+                    unlabel_to_machines,
+                )
+
+    def _check_missing_input_files(self, experiment_config: Kiso) -> None:
+        """Check for missing input files in experiment configurations.
+
+        Validates the existence of input files specified in experiment configurations.
+        Raises a ValueError with details of any missing input files and their associated
+        experiments.
+
+        :param experiment_config: Configuration dictionary containing experiment details
+        :type experiment_config: Kiso
+        :raises ValueError: If any specified input files do not exist
+        """
+        missing_files = []
+        for experiment in experiment_config.experiments:
+            if experiment.kind != "pegasus":
+                continue
+
+            for location in experiment.inputs or []:
+                src = Path(location.src)
+                if not src.exists():
+                    missing_files.append((experiment.name, src))
+
+        if missing_files:
+            raise ValueError(
+                "\n".join(
+                    [
+                        f"Input file <{src}> does not exist for experiment <{exp}>"
+                        for exp, src in missing_files
+                    ]
+                ),
+                missing_files,
+            )
+
+    def __call__(
+        self, wd: str, remote_wd: str, resultdir: str, labels: Roles, env: Environment
+    ) -> None:
+        """__call__ _summary_.
+
+        _extended_summary_
+
+        :param wd: Experiment working directory
+        :type wd: str
+        :param remote_wd: Remote experiment working directory
+        :type remote_wd: str
+        :param resultdir: Results directory
+        :type resultdir: str
+        :param labels: All provisioned resources
+        :type labels: Roles
+        :param env: Environment context
+        :type env: Environment
+        """
+        self.wd = wd
+        self.remote_wd = remote_wd
+        self.resultdir = resultdir
+        self.labels = labels
+        self.env = env
+
         # Resolve labels
         self._labels = utils.resolve_labels(labels, self.submit_node_labels)
         self.vms, self.containers = utils.split_labels(self._labels, labels)
@@ -118,17 +284,6 @@ class PegasusWMS:
             self.env[instance].setdefault("wait-workflow", {})
             self.env[instance].setdefault("fetch-submit-dir", {})
 
-        # Console
-        self.console = console or Console()
-
-    def __call__(self) -> None:
-        """__call__ _summary_.
-
-        _extended_summary_
-
-        :param instance: _description_
-        :type instance: int
-        """
         self._copy_inputs()
         self._run_setup_scripts()
 

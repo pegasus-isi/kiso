@@ -37,22 +37,6 @@ def commons(
     console.print(table)
 
 
-def docker(
-    console: Console,
-    results: list[CustomCommandResult],
-) -> None:
-    """Display status of installation of Docker."""
-    _render(console, results)
-
-
-def apptainer(
-    console: Console,
-    results: list[CommandResult],
-) -> None:
-    """Display status of installation of Apptainer."""
-    _render(console, results)
-
-
 def htcondor(
     console: Console, results: list[CommandResult | CustomCommandResult]
 ) -> None:

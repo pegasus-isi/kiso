@@ -1,0 +1,83 @@
+- name: Install Ollama
+  hosts: all
+  become: true
+
+  vars:
+    OLLAMA_ENV_FILE: /etc/ollama/environment
+    OLLAMA_SERVICE_FILE: /etc/systemd/system/ollama.service
+    config:
+      OLLAMA_HOST: "0.0.0.0"
+
+  tasks:
+    - name: Disable SELinux
+      shell: setenforce 0
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      dnf:
+        name:
+          - findutils
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version']|int > 7
+
+    - name: Installing dependencies
+      apt:
+        name:
+          - findutils
+        state: present
+      when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
+
+    - name: Installing Ollama
+      shell: curl -fsSL https://ollama.com/install.sh | sh
+
+    - name: Create /etc/ollama
+      file:
+        path: /etc/ollama
+        state: directory
+        mode: '0755'
+        owner: ollama
+        group: ollama
+
+    - name: Add Ollama Environment Variables
+      copy:
+        content: |
+          {%for item in config|dict2items%}
+          {{item.key}}={{item.value|quote}}
+          {%endfor%}
+        dest: "{{OLLAMA_ENV_FILE}}"
+      when: |
+        config is defined and
+        config
+
+    - name: Check if Ollama needs to be configured to listen on all interfaces
+      command: "grep EnvironmentFile {{OLLAMA_SERVICE_FILE}}"
+      register: env_file_in_systemd_unit
+      ignore_errors: true
+
+    - name: Configure Ollama to listen on all interfaces
+      command: "sed --in-place 's@\\[Service\\]@[Service]\\nEnvironmentFile={{OLLAMA_ENV_FILE}}@' {{OLLAMA_SERVICE_FILE}}"
+      when: env_file_in_systemd_unit.rc != 0
+
+    - name: Ensure systemd reloads daemon configuration
+      systemd:
+        daemon_reload: true
+      when: env_file_in_systemd_unit.rc != 0
+
+    - name: Ensure systemd reloads daemon configuration
+      service:
+        name: ollama
+        enabled: yes
+        state: restarted
+      when: env_file_in_systemd_unit.rc != 0
+
+    - name: Pull Ollama models
+      command: "ollama pull {{item}}"
+      loop: "{{models}}"
+      when: |
+        models is defined and
+        models

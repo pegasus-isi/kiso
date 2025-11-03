@@ -10,14 +10,19 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import enoslib as en
 from enoslib.api import CommandResult
-from zunclient.common.apiclient.exceptions import GatewayTimeout
 
 from kiso import constants as const
 from kiso import utils
 
 if TYPE_CHECKING:
     from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
+
+if hasattr(en, "ChameleonEdge"):
+    from zunclient.common.apiclient.exceptions import GatewayTimeout
+else:
+    GatewayTimeout = utils.undefined
 
 log = logging.getLogger(__name__)
 

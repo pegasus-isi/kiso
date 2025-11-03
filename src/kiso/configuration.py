@@ -21,41 +21,6 @@ class Site:
     kind: str
 
 
-@dataclass
-class HTCondor:
-    """HTCondor configuration."""
-
-    #:
-    central_manager: Optional[HTCondorDaemon] = None
-
-
-@dataclass
-class HTCondorDaemon:
-    """HTCondor daemon configuration."""
-
-    #:
-    labels: list[str]
-
-    #:
-    config_file: Optional[str] = None
-
-
-@dataclass
-class Docker:
-    """Docker configuration."""
-
-    #:
-    labels: list[str]
-
-
-@dataclass
-class Apptainer:
-    """Apptainer configuration."""
-
-    #:
-    labels: list[str]
-
-
 def _get_experiment_kinds() -> _SpecialForm:
     kinds = _get_kinds("kiso.experiment")
     return Union[tuple(kind[1] for kind in kinds)]

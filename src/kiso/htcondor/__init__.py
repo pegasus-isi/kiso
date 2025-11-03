@@ -1,27 +1,19 @@
 """HTCondor software installation."""
 
-# ruff: noqa: UP045
-from __future__ import annotations
+from .configuration import HTCondorDaemon
+from .installer import HTCondorInstaller
+from .schema import SCHEMA
 
-from dataclasses import dataclass
-from typing import Optional
-
-__all__ = ("DATACLASS",)
-
-
-@dataclass
-class HTCondorDaemon:
-    """HTCondor daemon configuration."""
-
-    #:
-    kind: str
-
-    #:
-    labels: list[str]
-
-    #:
-    config_file: Optional[str] = None
+__all__ = (
+    "SCHEMA",
+    "DATACLASS",
+    "INSTALLER",
+)
 
 
-#: Main class to represent Docker configuration as a dataclass
+#: Main class to represent HTCondor deployment configuration as a dataclass
 DATACLASS = list[HTCondorDaemon]
+
+
+#: Main class to install HTCondor
+INSTALLER = HTCondorInstaller
