@@ -1,3 +1,9 @@
+## v0.1.0a2 (2025-11-03)
+
+### Feat
+
+- add support for extending software, deployment and add ability to run checks on experiments
+
 ## v0.1.0a1 (2025-09-12)
 
 ## v0.1.0a0 (2025-09-10)
