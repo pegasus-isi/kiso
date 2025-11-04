@@ -1024,7 +1024,9 @@ def _get_condor_daemon_labels(
     daemons
     :rtype: tuple[set[str], set[str], set[str], set[str]]
     """
-    condor_cluster = experiment_config.deployment.htcondor
+    condor_cluster = (
+        experiment_config.deployment and experiment_config.deployment.htcondor
+    )
     central_manager_labels = set()
     submit_labels = set()
     execute_labels = set()
@@ -1158,11 +1160,7 @@ def run(
 
     Executes a series of experiments by performing the following steps:
     - Copies experiment directory to remote labels
-    - Copies input files for each experiment
-    - Runs setup scripts
-    - Executes experiment workflows
-    - Runs post-scripts
-    - Copies output files
+    - Executes experiment
 
     :param experiment_config: Configuration dictionary containing experiment details
     :type experiment_config: Kiso

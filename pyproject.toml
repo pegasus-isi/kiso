@@ -75,6 +75,7 @@ htcondor = "kiso.htcondor.__init__"
 [project.entry-points."kiso.experiment"]
 
 pegasus = "kiso.workflow.__init__"
+shell = "kiso.shell.__init__"
 
 [project.optional-dependencies]
 
