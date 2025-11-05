@@ -37,6 +37,9 @@ else:
 class HTCondorInstaller:
     """HTCondor software deployment."""
 
+    #:
+    HAS_SOFTWARE_KEY: str = "has_htcondor"
+
     def __init__(
         self,
         config: list[HTCondorDaemon],
@@ -253,6 +256,10 @@ class HTCondorInstaller:
                         extra_vars=extra_vars,
                     )
 
+                # To each node we add a flag to identify if HTCondor is installed on
+                # the node
+                machine.extra[self.HAS_SOFTWARE_KEY] = True
+
                 # Wait for HTCondor Central Manager to be installed and started before
                 # installing in on any other machine
                 if "central-manager" in daemons:
@@ -269,7 +276,7 @@ class HTCondorInstaller:
                 result = future.result()
                 results.append(result[-1])
 
-            display.htcondor(self.console, results)
+            display._render(self.console, results)
 
     def _get_label_daemon_machine_map(
         self, condor_config: list, labels: Roles

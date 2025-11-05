@@ -23,7 +23,12 @@ def commons(
 
     status: dict[str, str] = {}
     for result in results:
-        if result.host not in status or status[result.host] != const.STATUS_FAILED:
+        status.setdefault(result.host, result.status)
+        if (
+            status[result.host] != const.STATUS_FAILED
+            and result.payload.get("skip_reason", "").lower()
+            != "conditional result was false"
+        ):
             status[result.host] = result.status
 
     table = Table(show_header=True)
@@ -37,13 +42,6 @@ def commons(
     console.print(table)
 
 
-def htcondor(
-    console: Console, results: list[CommandResult | CustomCommandResult]
-) -> None:
-    """Display status of installation of HTCondor."""
-    _render(console, results)
-
-
 def _render(
     console: Console, results: list[CommandResult | CustomCommandResult]
 ) -> None:
@@ -53,7 +51,12 @@ def _render(
 
     status: dict[str, str] = {}
     for result in results:
-        if result.host not in status or status[result.host] != const.STATUS_FAILED:
+        status.setdefault(result.host, result.status)
+        if (
+            status[result.host] != const.STATUS_FAILED
+            and result.payload.get("skip_reason", "").lower()
+            != "conditional result was false"
+        ):
             status[result.host] = result.status
 
     table = Table(show_header=True)

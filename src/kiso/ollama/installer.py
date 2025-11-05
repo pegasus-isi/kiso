@@ -27,6 +27,9 @@ if hasattr(en, "ChameleonEdge"):
 class OllamaInstaller:
     """Ollama software installation."""
 
+    #:
+    HAS_SOFTWARE_KEY: str = "has_ollama"
+
     def __init__(
         self,
         config: list[Ollama],
@@ -116,6 +119,10 @@ class OllamaInstaller:
                         extra_vars=extra_vars,
                     )
                 )
+                for node in vms:
+                    # To each node we add a flag to identify if Ollama is installed on
+                    # the node
+                    node.extra[self.HAS_SOFTWARE_KEY] = True
 
             if containers:
                 for container in containers:
@@ -126,5 +133,8 @@ class OllamaInstaller:
                             "--no-dry-run",
                         )
                     )
+                    # To each node we add a flag to identify if Ollama is installed on
+                    # the node
+                    container.extra[self.HAS_SOFTWARE_KEY] = True
 
         display._render(self.console, results)

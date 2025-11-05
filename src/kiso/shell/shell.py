@@ -326,7 +326,7 @@ class ShellRunner:
                         use_ssh_args=True,
                         task_name=f"Fetch output file {instance}",
                     )
-                results.extend(p.results[-1])
+                results.extend(p.results)
             if containers:
                 for container in containers:
                     results.append(edge.download(container, src, dst))

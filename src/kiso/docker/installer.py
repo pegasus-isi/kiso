@@ -26,6 +26,9 @@ if hasattr(en, "ChameleonEdge"):
 class DockerInstaller:
     """Docker software installation."""
 
+    #:
+    HAS_SOFTWARE_KEY: str = "has_docker"
+
     def __init__(
         self,
         config: Docker,
@@ -106,6 +109,10 @@ class DockerInstaller:
         vms, containers = utils.split_labels(_labels, labels)
         if vms:
             results = utils.run_ansible([Path(__file__).parent / "main.yml"], roles=vms)
+            for node in vms:
+                # To each node we add a flag to identify if Docker is installed on
+                # the node
+                node.extra[self.HAS_SOFTWARE_KEY] = True
 
         if containers:
             raise RuntimeError(

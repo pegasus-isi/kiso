@@ -34,28 +34,8 @@ def _transfers(
     if not results:
         return
 
-    status: dict[str, tuple] = {}
-    for _results in results:
-        for result in _results[-1]:
-            if result.host not in status or status[result.host][-1] == const.STATUS_OK:
-                status[result.host] = (_results[0], result.status)
-        else:
-            if not _results[-1]:
-                status[f"*{_results[0]}"] = (_results[0], const.STATUS_SKIPPED)
-
-    table = Table(show_header=True)
-    table.add_column(col_name, style="bold")
-    table.add_column("Host", style="bold")
-    table.add_column("Status")
-
-    for host, ok in status.items():
-        color = const.STATUS_COLOR_MAP[ok[1]]
-        table.add_row(
-            f"{ok[0] + 1}",
-            "*" if host[0] == "*" else host,
-            f"[bold {color}]{ok[1]}[/bold {color}]",
-        )
-
+    status: dict[tuple[int, str], str] = _group_results(results)
+    table = _generate_table(status=status, col_name=col_name)
     console.print(table)
 
 
@@ -66,26 +46,43 @@ def _scripts(
     if not results:
         return
 
-    status: dict[str, tuple] = {}
+    status: dict[tuple[int, str], str] = _group_results(results)
+    table = _generate_table(status=status, col_name=col_name)
+    console.print(table)
+
+
+def _group_results(
+    results: list[CommandResult | CustomCommandResult],
+) -> dict[tuple[int, str], str]:
+    status: dict[tuple[int, str], str] = {}
     for _results in results:
         for result in _results[-1]:
-            if result.host not in status or status[result.host][-1] == const.STATUS_OK:
-                status[result.host] = (_results[0], result.status)
+            status.setdefault((_results[0], result.host), result.status)
+            if (
+                status[(_results[0], result.host)] != const.STATUS_FAILED
+                and result.payload.get("skip_reason", "").lower()
+                != "conditional result was false"
+            ):
+                status[(_results[0], result.host)] = result.status
         else:
             if not _results[-1]:
-                status[f"*{_results[0]}"] = (_results[0], const.STATUS_SKIPPED)
+                status[(_results[0], f"*{_results[0]}")] = const.STATUS_SKIPPED
 
+    return status
+
+
+def _generate_table(status: dict[tuple[int, str], str], col_name: str) -> Table:
     table = Table(show_header=True)
     table.add_column(col_name, style="bold")
     table.add_column("Host", style="bold")
     table.add_column("Status")
 
-    for host, ok in status.items():
-        color = const.STATUS_COLOR_MAP[ok[1]]
+    for (index, host), ok in status.items():
+        color = const.STATUS_COLOR_MAP[ok]
         table.add_row(
-            f"{ok[0] + 1}",
+            f"{index + 1}",
             "*" if host[0] == "*" else host,
-            f"[bold {color}]{ok[1]}[/bold {color}]",
+            f"[bold {color}]{ok}[/bold {color}]",
         )
 
-    console.print(table)
+    return table

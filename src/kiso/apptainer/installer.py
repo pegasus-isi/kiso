@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 class ApptainerInstaller:
     """Apptainer software installation."""
 
+    #:
+    HAS_SOFTWARE_KEY: str = "has_apptainer"
+
     def __init__(
         self,
         config: Apptainer,
@@ -101,6 +104,10 @@ class ApptainerInstaller:
             results.extend(
                 utils.run_ansible([Path(__file__).parent / "main.yml"], roles=vms)
             )
+            for node in vms:
+                # To each node we add a flag to identify if Apptainer is installed on
+                # the node
+                node.extra[self.HAS_SOFTWARE_KEY] = True
 
         if containers:
             for container in containers:
@@ -111,5 +118,8 @@ class ApptainerInstaller:
                         "--no-dry-run",
                     )
                 )
+                # To each node we add a flag to identify if Apptainer is installed on
+                # the node
+                container.extra[self.HAS_SOFTWARE_KEY] = True
 
         display._render(self.console, results)

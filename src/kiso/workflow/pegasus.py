@@ -360,7 +360,7 @@ class PegasusWMS:
                         mode="preserve",
                         task_name=f"Copy input file {instance}",
                     )
-                    results.extend(p.results[-1])
+                results.extend(p.results)
             if containers:
                 for container in containers:
                     results.append(
@@ -534,7 +534,7 @@ class PegasusWMS:
                     )
                     p.shell(f"{executable} {dst}", chdir=self.remote_wd)
                     p.shell(f"rm -rf {dst}", chdir=self.remote_wd)
-                results.extend(p.results[-1])
+                results.extend(p.results)
             if containers:
                 for container in containers:
                     results.append(
@@ -621,7 +621,7 @@ class PegasusWMS:
                         use_ssh_args=True,
                         task_name=f"Fetch output file {instance}",
                     )
-                results.extend(p.results[-1])
+                results.extend(p.results)
             if containers:
                 for container in containers:
                     results.append(edge.download(container, src, dst))

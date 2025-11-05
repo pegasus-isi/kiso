@@ -550,21 +550,12 @@ def _extend_labels(experiment_config: Kiso, labels: Roles) -> dict[str, set]:
     central_manager_labels, submit_labels, execute_labels, personal_labels = (
         _get_condor_daemon_labels(experiment_config)
     )
-    docker_labels = set()
-    if experiment_config.software.docker:
-        docker_labels = experiment_config.software.docker.labels
-
-    apptainer_labels = set()
-    if experiment_config.software.apptainer:
-        apptainer_labels = experiment_config.software.apptainer.labels
 
     for label, nodes in labels.items():
         is_central_manager = label in central_manager_labels
         is_submit = label in submit_labels
         is_execute = label in execute_labels
         is_personal = label in personal_labels
-        is_docker = label in docker_labels
-        is_apptainer = label in apptainer_labels
         for index, node in enumerate(nodes, 1):
             # EnOSlib resources.machines.number can be greater than 1, so we add the
             # host with a new unique label of the form kiso.<label>.<index>
@@ -580,15 +571,6 @@ def _extend_labels(experiment_config: Kiso, labels: Roles) -> dict[str, set]:
             node.extra["is_execute"] = node.extra.get("is_execute", False) or is_execute
             node.extra["is_personal"] = (
                 node.extra.get("is_personal", False) or is_personal
-            )
-
-            # To each node we add a flag to identify if Docker is installed on the node
-            node.extra["is_docker"] = node.extra.get("is_docker", False) or is_docker
-
-            # To each node we add a flag to identify if Apptainer is installed on
-            # the node
-            node.extra["is_apptainer"] = (
-                node.extra.get("is_apptainer", False) or is_apptainer
             )
 
             site = [node.extra["site"]]
