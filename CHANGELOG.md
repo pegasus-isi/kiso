@@ -1,3 +1,9 @@
+## v0.1.0a4 (2025-11-05)
+
+### Fix
+
+- use index and hostname as key in status dict to correctly render tables
+
 ## v0.1.0a3 (2025-11-03)
 
 ### Feat
