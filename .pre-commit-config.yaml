@@ -5,7 +5,7 @@ repos:
         stages:
           - pre-push
     repo: https://github.com/commitizen-tools/commitizen
-    rev: 98bba31fe6c9214cd49767e41802fa099d0c47a4  # frozen: v4.9.0
+    rev: cc981fcb065527b6de0033b0cbf0432e69781901  # frozen: v4.9.1
 
   # - hooks:
   #     - id: uv-lock
@@ -18,14 +18,14 @@ repos:
           - types-PyYAML
           - types-paramiko
     repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 30f435a17e4833cfc546d0c2bff4ec75d815f739  # frozen: v1.18.1
+    rev: 9f70dc58c23dfcca1b97af99eaeee3140a807c7e  # frozen: v1.18.2
 
   - hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
     repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 13a6bda8ea7612b3aec844ded16569d424b9a1ab  # frozen: v0.13.0
+    rev: aad66557af3b56ba6d4d69cd1b6cba87cef50cbb  # frozen: v0.14.3
 
   - hooks:
       - id: mdformat
@@ -34,7 +34,7 @@ repos:
           - mdformat-ruff
           - ruff
     repo: https://github.com/executablebooks/mdformat
-    rev: ff29be1a1ba8029d9375882aa2c812b62112a593  # frozen: 0.7.22
+    rev: 2d496dbc18e31b83a1596685347ffe0b6041daf0  # frozen: 1.0.0
 
   # - hooks:
   #   - id: shellcheck
