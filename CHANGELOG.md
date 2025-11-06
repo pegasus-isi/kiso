@@ -1,3 +1,9 @@
+## v0.1.0a5 (2025-11-05)
+
+### Perf
+
+- use rsync command instead of ansible's copy module to speed up copying of the experiment dir
+
 ## v0.1.0a4 (2025-11-05)
 
 ### Fix
