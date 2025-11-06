@@ -1197,12 +1197,12 @@ def _copy_experiment_dir(env: Environment) -> None:
         src = Path(env["wd"])
         dst = Path(env["remote_wd"]).parent
         if vms:
-            with utils.actions(roles=vms, run_as=const.KISO_USER, strategy="free") as p:
-                p.copy(
-                    src=str(src),
-                    dest=str(dst),
-                    mode="preserve",
-                    task_name="Copy experiment dir",
+            with utils.actions(roles=vms, strategy="free") as p:
+                p.shell(
+                    "rsync -auzv -e 'ssh {{ansible_ssh_common_args}} "
+                    "-p {{ansible_port}} -i {{ansible_ssh_private_key_file}}' "
+                    f"{src} kiso@{{{{ansible_host}}}}:{dst}",
+                    delegate_to="localhost",
                 )
         if containers:
             for container in containers:
