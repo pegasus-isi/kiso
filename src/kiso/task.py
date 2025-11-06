@@ -1200,7 +1200,9 @@ def _copy_experiment_dir(env: Environment) -> None:
             with utils.actions(roles=vms, strategy="free") as p:
                 p.shell(
                     "rsync -auzv -e 'ssh {{ansible_ssh_common_args}} "
-                    "-p {{ansible_port}} -i {{ansible_ssh_private_key_file}}' "
+                    "{% if ansible_port is defined %}-p {{ansible_port}} {% endif %}"
+                    "{% if ansible_ssh_private_key_file is defined %}-i "
+                    "{{ansible_ssh_private_key_file}}'{% endif %}"
                     f"{src} kiso@{{{{ansible_host}}}}:{dst}",
                     delegate_to="localhost",
                 )
