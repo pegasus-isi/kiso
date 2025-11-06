@@ -1,8 +1,8 @@
 """Kiso Shell experiment runner plugin."""
 
 from kiso.shell.configuration import ShellConfiguration
+from kiso.shell.runner import ShellRunner
 from kiso.shell.schema import SCHEMA
-from kiso.shell.shell import ShellRunner
 
 __all__ = (
     "SCHEMA",

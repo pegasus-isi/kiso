@@ -1,7 +1,7 @@
 """Kiso Pegasus workflow runner plugin."""
 
 from kiso.workflow.configuration import PegasusWorkflow
-from kiso.workflow.pegasus import PegasusWMS
+from kiso.workflow.runner import PegasusWMS
 from kiso.workflow.schema import SCHEMA
 
 __all__ = (
