@@ -5,20 +5,12 @@
 from __future__ import annotations
 
 import contextlib
-from dataclasses import dataclass, field, make_dataclass
+from dataclasses import field, make_dataclass
 from importlib.metadata import entry_points
 from typing import Any, Optional, Union, _SpecialForm
 
 with contextlib.suppress(ImportError):
     from importlib.metadata import EntryPoints
-
-
-@dataclass
-class Site:
-    """Site configuration."""
-
-    #:
-    kind: str
 
 
 def _get_experiment_kinds() -> _SpecialForm:
