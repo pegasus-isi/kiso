@@ -379,6 +379,11 @@ def _init_sites(
             labels.extend(_labels)
             networks.extend(_networks)
 
+    providers = en.Providers(providers)
+    env["providers"] = providers
+    env["labels"] = labels
+    env["networks"] = networks
+
     daemon_to_site = _extend_labels(experiment_config, labels)
     is_public_ip_required = _is_public_ip_required(daemon_to_site)
     env["is_public_ip_required"] = is_public_ip_required
@@ -394,11 +399,6 @@ def _init_sites(
             and (node.extra["is_submit"] or node.extra["is_central_manager"]),
         )
         node.extra["kiso_preferred_ip"] = ip
-
-    providers = en.Providers(providers)
-    env["providers"] = providers
-    env["labels"] = labels
-    env["networks"] = networks
 
     return providers, labels, networks
 
