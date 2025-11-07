@@ -124,6 +124,18 @@ get_distribution() {
     fi
 }
 
+update_etc_hosts() {
+    if [[ $HOSTS ]]; then
+        $sh_c "cat > /tmp/_hosts <<EOT
+${HOSTS}
+EOT"
+        $sh_c "sed -e '/# Kiso: Start/,/# Kiso: End/d' /etc/hosts > /tmp/hosts.new"
+        $sh_c "cat /tmp/_hosts >> /tmp/hosts.new"
+        $sh_c "vi -c ':1,\$d'  -c 'a|`cat /tmp/hosts.new`' -c ':wq' /etc/hosts"
+        $sh_c "rm -f /tmp/_hosts /tmp/hosts.new"
+    fi
+}
+
 do_install() {
     # Figure out the distribution and version we are running on.
     # This will set $ID and $VERSION_ID.
@@ -181,6 +193,9 @@ EOF
         $sh_c "${repo_cmd} sudo findutils" # openssh-server
     fi
 
+    export PATH=${PATH}:/usr/sbin
+    echo $PATH
+
     echo
     echo "# Create a group"
     if ! getent group "kiso" >/dev/null; then
@@ -223,6 +238,11 @@ EOF"
     # fi
 
     echo
+    echo "# Update /etc/hosts"
+    if ! command_exists vi; then
+        $sh_c "${repo_cmd} vim"
+    fi
+    update_etc_hosts
 }
 
 # Set global defaults
@@ -252,6 +272,10 @@ while [ $# -gt 0 ]; do
             ;;
         --dist)
             DIST=1
+            ;;
+        --hosts)
+            HOSTS=$2
+            shift
             ;;
         --help|-h)
             usage

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import logging
 import shutil
@@ -849,7 +850,10 @@ def _associate_floating_ip_fabric(node: Host) -> None:
                 ip = network.get_public_ips()[0]
                 interface.ip_addr_add(addr=ip, subnet=network.get_subnet())
                 # _stdout, _stderr = fabric_node.execute(
-                #     f"sudo ip route add 0.0.0.0/0 via {network.get_gateway()}"
+                #     "sudo setup-netplan-multihomed.sh "
+                #     f"-I {interface.get_physical_os_interface_name()} "
+                #     f"-A {ip}/28 "
+                #     f"-G {network.get_gateway()}"
                 # )
                 fabric_node.execute(f"echo {ip} | sudo tee /etc/floating-ip")
 
@@ -1054,12 +1058,15 @@ def _install_commons(env: Environment) -> None:
     # labels & labels["<key>"] doesn't work.
     vms, containers = utils.split_labels(labels.all(), labels)
     results = []
+    etc_hosts_content = _generate_etc_hosts(env)
+    log.debug("/etc/hosts content <%s>", etc_hosts_content)
 
     if vms:
         results.extend(
             utils.run_ansible(
                 [Path(__file__).parent / "commons/main.yml"],
                 roles=vms,
+                extra_vars={"etc_hosts_content": etc_hosts_content},
             )
         )
 
@@ -1069,11 +1076,33 @@ def _install_commons(env: Environment) -> None:
                 utils.run_script(
                     container,
                     Path(__file__).parent / "commons/init.sh",
+                    "--hosts",
+                    etc_hosts_content,
                     "--no-dry-run",
                 )
             )
 
     display.commons(console, results)
+
+
+def _generate_etc_hosts(env: Environment) -> str:
+    """Generate /etc/hosts file for the experiment."""
+    labels = env["labels"]
+    content = io.StringIO()
+
+    host_to_labels: dict[str, set[str]] = defaultdict(set)
+    for label, machines in labels.items():
+        if len(machines) == 1:
+            host_to_labels[
+                machines[0].extra.get("kiso_preferred_ip", machines[0].address)
+            ].add(label)
+
+    content.write("# Kiso: Start\n")
+    for address, labels in host_to_labels.items():
+        content.write(f"{address} {' '.join(labels)}\n")
+    content.write("# Kiso: End\n")
+
+    return content.getvalue()
 
 
 def _install_software(experiment_config: Kiso, env: Environment) -> None:

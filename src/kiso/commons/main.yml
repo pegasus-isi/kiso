@@ -87,3 +87,19 @@
         owner: kiso
         group: kiso
         mode: 0700
+
+    # Update /etc/hosts
+
+    - name: Create a temporary hosts file
+      copy:
+        content: "{{etc_hosts_content}}"
+        dest: /etc/_hosts
+      become: true
+
+    - name: Remove Kiso block from the exiting hosts file
+      shell: "sed -i -e '/# Kiso: Start/,/# Kiso: End/d' /etc/hosts"
+      become: true
+
+    - name: Add Kiso hosts block to the hosts file
+      shell: "cat /etc/_hosts >> /etc/hosts && rm -f /etc/_hosts"
+      become: true
