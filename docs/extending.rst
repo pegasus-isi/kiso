@@ -91,7 +91,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
             [project.entry-points."kiso.software"]
 
-            my-software = "my.software.module"
+            mysoftware = "my.software.module"
 
     .. tab:: setup.cfg
 
@@ -99,7 +99,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
             [options.entry_points]
 
-            my-software = my.software.module
+            mysoftware = my.software.module
 
     .. tab:: setup.py
 
@@ -108,7 +108,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
             setup(
                 entry_points = {
                     "kiso.software": [
-                        "my-software = my.software.module",
+                        "mysoftware = my.software.module",
                     ]
                 }
             )
@@ -123,7 +123,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
             ...
 
         software:
-            my-software:
+            mysoftware:
                 version: 5.1.0
                 ...
 
@@ -224,7 +224,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
             [project.entry-points."kiso.deployment"]
 
-            my-deployment = "my.deployment.module"
+            mydeployment = "my.deployment.module"
 
     .. tab:: setup.cfg
 
@@ -232,7 +232,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
 
             [options.entry_points]
 
-            my-deployment = my.deployment.module
+            mydeployment = my.deployment.module
 
     .. tab:: setup.py
 
@@ -241,7 +241,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
             setup(
                 entry_points = {
                     "kiso.deployment": [
-                        "my-deployment = my.deployment.module",
+                        "mydeployment = my.deployment.module",
                     ]
                 }
             )
@@ -256,7 +256,7 @@ Kiso then instantiate the class defined by the `INSTALLER` attribute and then in
             ...
 
         deployment:
-            my-deployment:
+            mydeployment:
                 version: 5.1.0
                 ...
 
