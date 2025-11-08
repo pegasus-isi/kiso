@@ -439,7 +439,6 @@ def _init_site(
             container = container["container"]
             exposed_ports = set(container.get("exposed_ports", []))
             exposed_ports.add(str(const.HTCONDOR_PORT))
-            # exposed_ports.add(str(const.SSHD_PORT))
             container["exposed_ports"] = list(exposed_ports)
 
     conf = PROVIDER_MAP[kind][0](site)
@@ -464,13 +463,15 @@ def _init_site(
         if kind == "chameleon-edge":
             attr = "extra"
             setattr(node, attr, {})
-        elif kind == "chameleon":
+        elif kind == "chameleon" or kind == "fabric":
             # Used to copy this file to Chameleon VMs, so we cna use the Openstack
             # client to get a floating IP
             node.extra["rc_file"] = str(Path(conf.rc_file).resolve())
 
         node.extra["kind"] = kind
-        node.extra["site"] = region_name
+        node.extra.setdefault("site", region_name)
+        if kind == "fabric":
+            _labels[f"fabric.{node.extra['site']}"] += [node]
 
     if kind != "chameleon-edge":
         _labels = en.sync_info(_labels, _networks)
@@ -948,6 +949,30 @@ def _get_best_ip(
     # )
     # Chameleon Edge Host
     # Fabric Host
+    # 1 for Management, 1 for add_fabnet, and 1 for loopback
+    # net_devices={
+    #   NetDevice(
+    #     name="lo",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("127.0.0.1/8")),
+    #         IPAddress(network=None, ip=IPv6Interface("::1/128")),
+    #     },
+    #   ),
+    #   NetDevice(
+    #     name="eth0",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("10.20.4.136/23")),
+    #         IPAddress(network=None, ip=IPv6Interface("fe80::f816:3eff:fecd:a657/64")),
+    #     },
+    #   ),
+    #   NetDevice(
+    #     name="eth1",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("10.134.142.2/24")),
+    #         IPAddress(network=None, ip=IPv6Interface("fe80::8117:f69:a883:76c5/64")),
+    #     },
+    #   ),
+    # }
     if isinstance(machine, Host):
         for net_device in machine.net_devices:
             for address in net_device.addresses:
