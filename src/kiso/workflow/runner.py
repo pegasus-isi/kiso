@@ -144,6 +144,9 @@ class PegasusWMS:
                 submit_nodes.update(label_to_machines[label])
 
         for experiment in experiment_config.experiments:
+            if experiment.kind != "pegasus":
+                continue
+
             for label in experiment.submit_node_labels:
                 if label_to_machines[label].intersection(submit_nodes):
                     break
