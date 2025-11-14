@@ -1353,25 +1353,22 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
         )
         return
 
+    vagrant_dir = Path(env["wd"]) / ".vagrant"
+    vagrant_file = Path(env["wd"]) / "Vagrantfile"
     providers = env["providers"]
     del env["providers"]
 
     for provider in providers.providers:
-        if isinstance(provider, en.Vagrant):
-            vagrant_dir = Path(env["wd"]) / ".vagrant"
-            if vagrant_dir.exists():
-                ssh_add = shutil.which("ssh-add")
-                if ssh_add:
-                    for key in vagrant_dir.glob("**/private_key"):
-                        result = subprocess.run([ssh_add, "-d", str(key)])  # noqa: S603
-                        if result.returncode != 0:
-                            log.debug(
-                                "Failed to remove SSH key <%s> from ssh-agent", key
-                            )
-                shutil.rmtree(vagrant_dir)
-
-            vagrant_file = Path(env["wd"]) / "Vagrantfile"
-            if vagrant_file.exists():
-                vagrant_file.unlink()
+        if isinstance(provider, en.Vagrant) and vagrant_dir.exists():
+            ssh_add = shutil.which("ssh-add")
+            if ssh_add:
+                for key in vagrant_dir.glob("**/private_key"):
+                    result = subprocess.run([ssh_add, "-d", str(key)])  # noqa: S603
+                    if result.returncode != 0:
+                        log.debug("Failed to remove SSH key <%s> from ssh-agent", key)
 
     providers.destroy()
+    if vagrant_dir.exists():
+        shutil.rmtree(vagrant_dir)
+    if vagrant_file.exists():
+        vagrant_file.unlink()
