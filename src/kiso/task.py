@@ -1354,7 +1354,6 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
         return
 
     providers = env["providers"]
-    providers.destroy()
     del env["providers"]
 
     for provider in providers.providers:
@@ -1374,3 +1373,5 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
             vagrant_file = Path(env["wd"]) / "Vagrantfile"
             if vagrant_file.exists():
                 vagrant_file.unlink()
+
+    providers.destroy()
