@@ -175,7 +175,7 @@ class ShellRunner:
 
         self.log.debug("Run scripts for <%s:%d>", name, self.index)
         self.console.rule(
-            f"[bold green]Experiment: {self.name} {self.index}[/bold green]"
+            f"[bold green]Experiment {self.index + 1}: {self.name}[/bold green]"
         )
 
         self.env.setdefault("run-script", {})
