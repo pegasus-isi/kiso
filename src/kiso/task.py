@@ -114,13 +114,50 @@ def validate_config(func: Callable[..., T]) -> Callable[..., T]:
                 raise ValidationError("JSON Schema Validation Error", errors)
 
             # Convert the JSON configuration to a :py:class:`dataclasses.dataclass`
-            config = from_dict(Kiso, config, Config(convert_key=_to_snake_case))
+            kiso_config = from_dict(Kiso, config, Config(convert_key=_to_snake_case))
+
+            console.rule("[bold green]Check experiment configuration[/bold green]")
+            log.debug("Check only one vagrant site is present in the experiment")
+            label_to_machines: Roles = _get_defined_machines(kiso_config)
+
+            _check_software(kiso_config.software, label_to_machines)
+            _check_deployed_software(kiso_config.deployment, label_to_machines)
+            _check_experiments(kiso_config, label_to_machines)
         except ValidationError:
             log.exception("Invalid Kiso experiment config <%s>", experiment_config)
             raise
 
         log.debug("Kiso experiment configuration is valid")
-        return func(config, *args, wd=wd, **kwargs)
+        return func(kiso_config, *args, wd=wd, **kwargs)
+
+    return wrapper
+
+
+def check_provisioned(func: Callable[..., T]) -> Callable[..., T]:
+    """Decorator to check that the resources were provisioned.
+
+    :param func: The function to be decorated, which will receive the experiment
+    configuration
+    :type func: Callable[..., T]
+    :return: A wrapped function that validates the configuration before executing the
+    original function
+    :rtype: Callable[..., T]
+    """
+
+    @wraps(func)
+    def wrapper(experiment_config: Kiso, *args: Any, **kwargs: Any) -> T:  # noqa: ANN401
+        is_provisioned = False
+        env = kwargs.get("env")
+        if env and env.get("providers"):
+            is_provisioned = True
+
+        if is_provisioned is False:
+            raise KisoError(
+                "No providers found, resources were not provisioned. "
+                "Suggestion: Run `kiso up` first."
+            )
+
+        return func(experiment_config, *args, **kwargs)
 
     return wrapper
 
@@ -166,14 +203,6 @@ def check(experiment_config: Kiso, **kwargs: dict) -> None:
     :param kwargs: Additional keyword arguments
     :type kwargs: dict
     """
-    console.rule("[bold green]Check experiment configuration[/bold green]")
-    log.debug("Check only one vagrant site is present in the experiment")
-    label_to_machines: Roles = _get_defined_machines(experiment_config)
-
-    _check_software(experiment_config.software, label_to_machines)
-    _check_deployed_software(experiment_config.deployment, label_to_machines)
-    _check_experiments(experiment_config, label_to_machines)
-
     log.debug("Check EnOSlib")
     en.MOTD = en.INFO = ""
     en.check(platform_filter=["Vagrant", "Fabric", "Chameleon", "ChameleonEdge"])
@@ -1197,6 +1226,7 @@ def _install_deployed_software(experiment_config: Kiso, env: Environment) -> Non
 
 @validate_config
 @enostask()
+@check_provisioned
 def run(
     experiment_config: Kiso,
     force: bool = False,
@@ -1327,6 +1357,7 @@ def _to_snake_case(key: str) -> str:
 
 @validate_config
 @enostask()
+@check_provisioned
 def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:
     """Destroy the resources provisioned for the experiments.
 
