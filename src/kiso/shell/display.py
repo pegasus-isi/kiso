@@ -60,7 +60,9 @@ def _scripts(
         status = _results[-1].status
         color = const.STATUS_COLOR_MAP[status]
 
-        console.rule(f"[bold {color}]Script {index + 1} on {host}[/bold {color}]")
+        console.rule(
+            f"[bold {color}]Script {index + 1} on {host}[/bold {color}]", style=color
+        )
 
         cp = _results[0]
         log.debug("Copying script %s to %s, %s", index + 1, host, cp.status)
