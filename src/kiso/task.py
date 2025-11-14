@@ -21,7 +21,8 @@ import yaml
 from dacite import Config, from_dict
 from enoslib.objects import DefaultNetwork, Host, Networks, Roles
 from enoslib.task import Environment, enostask
-from jsonschema_pyref import ValidationError, validate
+from jsonschema.validators import validator_for
+from jsonschema_pyref import RefResolver, ValidationError
 from rich.console import Console
 
 import kiso.constants as const
@@ -101,7 +102,17 @@ def validate_config(func: Callable[..., T]) -> Callable[..., T]:
                 config = yaml.safe_load(_experiment_config)
 
         try:
-            validate(_replace_labels_key_with_roles_key(config), SCHEMA)
+            validator_cls = validator_for(SCHEMA)
+            validator = validator_cls(SCHEMA, resolver=RefResolver.from_schema(SCHEMA))
+            errors = []
+            for error in validator.iter_errors(
+                _replace_labels_key_with_roles_key(config)
+            ):
+                log.error(error)
+                errors.append(error)
+            if errors:
+                raise ValidationError("JSON Schema Validation Error", errors)
+
             # Convert the JSON configuration to a :py:class:`dataclasses.dataclass`
             config = from_dict(Kiso, config, Config(convert_key=_to_snake_case))
         except ValidationError:
