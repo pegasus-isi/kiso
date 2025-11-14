@@ -1,3 +1,25 @@
+## v0.1.0a6 (2025-11-13)
+
+### Feat
+
+- modify the shell runner's output displayed for scripts to show the standard output and error
+- generate a /etc/hosts file that maps the machine labels to it IP preferred by Kiso
+- cleanup vagrant when running the kiso down command
+
+### Fix
+
+- add a space between -i <private-key> and src in the rsync command
+- only check experiments of kind pegasus and not of all kinds
+- show all jsonschema errors during schema check instead of just the best match
+- ssh opts to the rsync commands based on what ansible vars are set
+
+### Refactor
+
+- add a label/role fabric.<site> to group FABRIC provisioned nodes by the FABRIC site
+- move saving of state before determining IP address
+- rename pegasus/shell.py to runner.py
+- remove unused site object
+
 ## v0.1.0a5 (2025-11-05)
 
 ### Perf

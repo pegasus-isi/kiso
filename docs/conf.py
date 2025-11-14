@@ -13,7 +13,7 @@ from datetime import datetime
 project = "Kiso"
 copyright = str(datetime.now().year)
 author = "Rajiv Mayani"
-release = "0.1.0a5"
+release = "0.1.0a6"
 repository_url = "https://github.com/pegasus-isi/kiso"
 
 # -- General configuration ---------------------------------------------------
