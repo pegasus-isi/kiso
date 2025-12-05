@@ -47,7 +47,6 @@ dependencies = [
     "jsonschema-pyref",
     "PyYAML",
     "dacite",
-    "paramiko",
 ]
 
 [project.urls]
@@ -88,7 +87,7 @@ fabric = ["enoslib[fabric]"]
 
 dev = ["ruff", "tox"]
 pre-commit = ["pre-commit"]
-typing = ["mypy", "types-PyYAML", "types-paramiko"]
+typing = ["mypy", "types-PyYAML"]
 gha-update = ["gha-update ; python_full_version >= '3.12'"]
 tests = [
     "pytest",
