@@ -1,3 +1,20 @@
+## v0.1.0a7 (2025-12-08)
+
+### Feat
+
+- add support for FABRIC testbed
+
+### Fix
+
+- in kiso down, for vagrant, first remove the private_key from ssh agent, then call destroy, and then remove .vagrant dir and Vagrantfile
+- move providers.destroy at the end, otherwise Vagrant remove the ssh key and it can't be removed from tthe ssh-agent
+- for console.rule show the rule using the color based on the result of the action
+
+### Refactor
+
+- remove paramiko dependency in kiso and as it is no longer needed
+- decorator improvements
+
 ## v0.1.0a6 (2025-11-13)
 
 ### Feat

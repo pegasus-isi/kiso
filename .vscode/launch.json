@@ -48,14 +48,6 @@
             "program": "/Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py",
             "console": "integratedTerminal",
             "args": "${command:pickArgs}"
-        },
-        {
-            "name": "Python Debugger: Profile Kiso with Arguments",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/Users/mayani/.pyenv/versions/oac/bin/scalene",
-            "console": "integratedTerminal",
-            "args": "--cli --- /Volumes/data/workspace/pegasus/kiso/src/kiso/__main__.py ${command:pickArgs}"
         }
     ]
 }
