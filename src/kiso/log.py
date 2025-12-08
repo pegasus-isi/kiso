@@ -31,14 +31,19 @@ def init_logging(level: int = logging.INFO, **kwargs: Any) -> None:  # noqa: ANN
     en.init_logging(level=level, **kwargs)
     en.set_config(ansible_stdout="noop")
 
-    #  Create a logging filter to only include logs from kiso.* and enoslib.infra.*
+    #  Create a logging filter to only include logs from kiso.*, enoslib.infra.*,
+    # and fablib.*
     class _Filter(logging.Filter):
         """Filter to exclude log records from specific modules."""
 
         def filter(self, record: logging.LogRecord) -> bool:
             """Filter out log records from specific modules."""
             name = record.name
-            return name.startswith("kiso") or name.startswith("enoslib.infra")
+            return (
+                name.startswith("kiso")
+                or name.startswith("enoslib.infra")
+                or name.startswith("fablib")
+            )
 
     for handler in logging.getLogger().handlers:
         handler.addFilter(_Filter())

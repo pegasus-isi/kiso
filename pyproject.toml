@@ -41,7 +41,8 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "enoslib>=10.1.0",
+    #"enoslib>=10.1.0",
+    "enoslib @ git+https://gitlab.inria.fr/discovery/enoslib.git@dev/issue-237",
     "rich-click",
     "jsonschema<3.3",
     "jsonschema-pyref",

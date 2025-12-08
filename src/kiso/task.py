@@ -50,6 +50,8 @@ log = logging.getLogger("kiso")
 
 console = Console()
 
+has_fabric = False
+
 if hasattr(en, "Vagrant"):
     log.debug("Vagrant provider is available")
     PROVIDER_MAP["vagrant"] = (en.VagrantConf.from_dictionary, en.Vagrant)
@@ -67,12 +69,16 @@ if hasattr(en, "ChameleonEdge"):
     )
 if hasattr(en, "Fabric"):
     log.debug("FABRIC provider is available")
+    from enoslib.infra.enos_fabric.configuration import (
+        Fabnetv6NetworkConfiguration,
+    )
     from enoslib.infra.enos_fabric.utils import (
         source_credentials_from_rc_file as source_fabric_credentials_from_rc_file,
     )
     from fabrictestbed_extensions.fablib.fablib import FablibManager as fablib_manager
 
     PROVIDER_MAP["fabric"] = (en.FabricConf.from_dictionary, en.Fabric)
+    has_fabric = True
 
 
 def validate_config(func: Callable[..., T]) -> Callable[..., T]:
@@ -693,7 +699,8 @@ def _associate_floating_ip(
         elif kind == "chameleon-edge":
             _associate_floating_ip_edge(node)
         elif kind == "fabric":
-            _associate_floating_ip_fabric(node)
+            ...
+            # _associate_floating_ip_fabric(node)
         elif kind == "vagrant":
             raise KisoError("Assigning public IPs to Vagrant VMs is not supported")
         else:
@@ -837,7 +844,7 @@ def _associate_floating_ip_fabric(node: Host) -> None:
     """
     with source_fabric_credentials_from_rc_file(node.extra["rc_file"]):
         try:
-            fablib = fablib_manager()
+            fablib = fablib_manager(log_propagate=True)
             fabric_slice = fablib.get_slice(name=node.extra["slice"])
             fabric_node = fabric_slice.get_node(name=node.extra["name"])
             stdout, _stderr = fabric_node.execute("cat /etc/floating-ip")
@@ -962,28 +969,12 @@ def _get_best_ip(
     #             ip=IPv6Interface('fe80::3680:dff:feed:50f4/64'))}
     #         ),
     #   NetDevice(
-    #     name='eno8403',
-    #     addresses=set()
-    #   ),
-    #   NetDevice(
     #     name='lo',
     #     addresses={
     #         IPAddress(network=None, ip=IPv4Interface('127.0.0.1/8')),
     #         IPAddress(network=None, ip=IPv6Interface('::1/128'))}),
     #   NetDevice(
     #     name='eno8303',
-    #     addresses=set()
-    #   ),
-    #   NetDevice(
-    #     name='eno12399',
-    #     addresses=set()
-    #   ),
-    #   NetDevice(
-    #     name='eno12429',
-    #     addresses=set()
-    #   ),
-    #   NetDevice(
-    #     name='eno12409',
     #     addresses=set()
     #   )
     # )
@@ -1028,7 +1019,22 @@ def _get_best_ip(
                     ):
                         continue
 
-                    priority = 1 if ip.is_private else 0
+                    # FABRIC uses the same IPRange (2602:FCFB::/36) for both IPv6
+                    # and IPv6External networks, so we check if the IPv6 address
+                    # assigned by FABRIC is public or private.
+                    is_private = ip.is_private or (
+                        has_fabric
+                        and isinstance(
+                            address.network.config, Fabnetv6NetworkConfiguration
+                        )
+                    )
+                    # Prioritize public over private IPs and prioritize IPv4 over IPv6
+                    priority = (
+                        (2 if is_private else 0)
+                        if isinstance(address.ip, IPv4Interface)
+                        else (3 if is_private else 1)
+                    )
+
                     addresses.append((address.ip.ip, priority))
     else:
         address = ip_address(machine.address)
@@ -1044,8 +1050,11 @@ def _get_best_ip(
         addresses.append((ip, priority))
 
     addresses = sorted(addresses, key=lambda v: v[1])
+    log.debug("Addresses <%s>", addresses)
     preferred_ip, priority = addresses[0]
-    if is_public_ip_required is True and priority == 1:
+    log.debug("Preferred IP <%s> with priority <%d>", preferred_ip, priority)
+
+    if is_public_ip_required is True and priority > 1:
         # TODO(mayani): We should not use gateway IP as it could be the same for
         # multiple VMs. Here we should just raise an error
         preferred_ip = machine.extra.get("gateway")
