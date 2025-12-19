@@ -13,6 +13,9 @@ from enoslib.objects import Roles
 from enoslib.task import Environment
 from rich.console import Console
 
+from .configuration import ShellConfiguration
+from .schema import SCHEMA
+
 import kiso.constants as const
 from kiso import edge, utils
 from kiso.shell import display
@@ -26,7 +29,13 @@ if TYPE_CHECKING:
     if hasattr(en, "ChameleonEdge"):
         pass
     from kiso.configuration import Kiso
-    from kiso.shell.configuration import Location, Script, ShellConfiguration
+    from kiso.objects import Location, Script
+
+
+console = Console()
+
+
+log = logging.getLogger("kiso.experiment.shell")
 
 
 class ShellRunner:
@@ -36,14 +45,18 @@ class ShellRunner:
     """
 
     #:
+    schema: dict = SCHEMA
+
+    #:
+    config_type: type = ShellConfiguration
+
+    #:
     kind: str = "shell"
 
     def __init__(
         self,
         experiment: ShellConfiguration,
         index: int,
-        console: Console | None = None,
-        log: logging.Logger | None = None,
         variables: dict[str, str | int | float] | None = None,
     ) -> None:
         """__init__ _summary_.
@@ -54,15 +67,9 @@ class ShellRunner:
         :type experiment: PegasusWorkflow
         :param index: Experiment index
         :type index: int
-        :param console: Rich console object to output experiment progress,
-        defaults to None
-        :type console: Console | None, optional
-        :param log: Logger to use, defaults to None
-        :type log: logging.Logger | None, optional
         :param variables: Globally defined variables, defaults to None
         :type variables: dict[str, str  |  int  |  float] | None, optional
         """
-        self.log = log or logging.getLogger("kiso.experiment.pegasus")
         self.index = index
         self.variables = copy.deepcopy(variables or {})
 
@@ -73,9 +80,6 @@ class ShellRunner:
         self.outputs = experiment.outputs or []
         self.poll_interval = const.POLL_INTERVAL
         self.timeout = const.WORKFLOW_TIMEOUT
-
-        # Console
-        self.console = console or Console()
 
     def check(self, config: Kiso, label_to_machines: Roles) -> None:
         """Check  summary_.
@@ -173,8 +177,8 @@ class ShellRunner:
         if not scripts:
             return
 
-        self.log.debug("Run scripts for <%s:%d>", name, self.index)
-        self.console.rule(
+        log.debug("Run scripts for <%s:%d>", name, self.index)
+        console.rule(
             f"[bold green]Experiment {self.index + 1}: {self.name}[/bold green]"
         )
 
@@ -184,7 +188,7 @@ class ShellRunner:
             result = self._run_script(instance, script)
             results.append((instance, script, result))
 
-        display.scripts(self.console, results)
+        display.scripts(console, results)
 
     def _run_script(
         self, instance: int, setup_script: Script
@@ -264,10 +268,8 @@ class ShellRunner:
         if not outputs:
             return
 
-        self.log.debug("Copy outputs to the destination for <%s:%d>", name, self.index)
-        self.console.print(
-            rf"\[{name}-{self.index}] Copying outputs to the destination"
-        )
+        log.debug("Copy outputs to the destination for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}-{self.index}] Copying outputs to the destination")
 
         self.env.setdefault("fetch-output", {})
         results = []
@@ -275,7 +277,7 @@ class ShellRunner:
             result = self._fetch_output(_index, location)
             results.append((_index, location, result))
 
-        display.outputs(self.console, results)
+        display.outputs(console, results)
 
     def _fetch_output(
         self, instance: int, output: Location
@@ -307,9 +309,7 @@ class ShellRunner:
 
         dst = Path(output.dst)
         if not dst.exists():
-            self.log.debug(
-                "Destination directory <%s> does not exist, creating it", dst
-            )
+            log.debug("Destination directory <%s> does not exist, creating it", dst)
             dst.mkdir(parents=True)
 
         kiso_state_key = "fetch-output"

@@ -6,8 +6,10 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import enoslib as en
 from rich.console import Console
+
+from .configuration import Docker
+from .schema import SCHEMA
 
 from kiso import display, utils
 
@@ -15,48 +17,41 @@ if TYPE_CHECKING:
     from enoslib.objects import Roles
     from enoslib.task import Environment
 
-    from .configuration import Docker
 
 log = logging.getLogger("kiso.software.docker")
 
-if hasattr(en, "ChameleonEdge"):
-    log.debug("Chameleon Edge provider is available")
+
+console = Console()
 
 
 class DockerInstaller:
     """Docker software installation."""
 
     #:
+    schema: dict = SCHEMA
+
+    #:
+    config_type: type = Docker
+
+    #:
     HAS_SOFTWARE_KEY: str = "has_docker"
 
-    def __init__(
-        self,
-        config: Docker,
-        console: Console | None = None,
-        log: logging.Logger | None = None,
-    ) -> None:
+    def __init__(self, config: Docker) -> None:
         """__init__ _summary_.
 
         _extended_summary_
 
         :param config: Docker configuration
         :type config: Docker
-        :param console: Rich console object to output installation progress,
-        defaults to None
-        :type console: Console | None, optional
-        :param log: Logger to use, defaults to None
-        :type log: logging.Logger | None, optional
         """
         self.config = config
-        self.log = log or logging.getLogger("kiso.software.docker")
-        self.console = console or Console()
 
     def check(self, label_to_machines: Roles) -> None:
         """Check if the HTCondor configuration is valid."""
         if self.config is None:
             return
 
-        self.log.debug("Check docker is not installed on Chameleon edge")
+        log.debug("Check docker is not installed on Chameleon edge")
         self._check_docker_is_not_on_edge(label_to_machines)
 
     def _check_docker_is_not_on_edge(self, label_to_machines: Roles) -> None:
@@ -101,8 +96,8 @@ class DockerInstaller:
         if self.config is None:
             return
 
-        self.log.debug("Install Docker")
-        self.console.rule("[bold green]Installing Docker[/bold green]")
+        log.debug("Install Docker")
+        console.rule("[bold green]Installing Docker[/bold green]")
 
         labels = env["labels"]
         _labels = utils.resolve_labels(labels, self.config.labels)
@@ -120,4 +115,4 @@ class DockerInstaller:
                 "not allow setting privileged mode for containers"
             )
 
-        display._render(self.console, results)
+        display._render(console, results)

@@ -6,8 +6,10 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import enoslib as en
 from rich.console import Console
+
+from .configuration import Ollama
+from .schema import SCHEMA
 
 from kiso import display, utils
 
@@ -15,17 +17,21 @@ if TYPE_CHECKING:
     from enoslib.objects import Roles
     from enoslib.task import Environment
 
-    from .configuration import Ollama
-
 
 log = logging.getLogger("kiso.software.ollama")
 
-if hasattr(en, "ChameleonEdge"):
-    log.debug("Chameleon Edge provider is available")
+
+console = Console()
 
 
 class OllamaInstaller:
     """Ollama software installation."""
+
+    #:
+    schema: dict = SCHEMA
+
+    #:
+    config_type: type = list[Ollama]
 
     #:
     HAS_SOFTWARE_KEY: str = "has_ollama"
@@ -33,8 +39,6 @@ class OllamaInstaller:
     def __init__(
         self,
         config: list[Ollama],
-        console: Console | None = None,
-        log: logging.Logger | None = None,
     ) -> None:
         """__init__ _summary_.
 
@@ -42,19 +46,12 @@ class OllamaInstaller:
 
         :param config: Ollama configuration
         :type config: Ollama
-        :param console: Rich console object to output installation progress,
-        defaults to None
-        :type console: Console | None, optional
-        :param log: Logger to use, defaults to None
-        :type log: logging.Logger | None, optional
         """
         self.config = config
-        self.log = log or logging.getLogger("kiso.software.ollama")
-        self.console = console or Console()
 
     def check(self, label_to_machines: Roles) -> None:
         """Check if the Ollama configuration is valid."""
-        self.log.debug(
+        log.debug(
             "Check labels referenced in ollama section are defined in the sites section"
         )
         self._check_ollama_labels(label_to_machines)
@@ -98,8 +95,8 @@ class OllamaInstaller:
         if self.config is None:
             return
 
-        self.log.debug("Install Ollama")
-        self.console.rule("[bold green]Installing Ollama[/bold green]")
+        log.debug("Install Ollama")
+        console.rule("[bold green]Installing Ollama[/bold green]")
         results = []
         labels = env["labels"]
         for section in self.config:
@@ -137,4 +134,4 @@ class OllamaInstaller:
                     # the node
                     container.extra[self.HAS_SOFTWARE_KEY] = True
 
-        display._render(self.console, results)
+        display._render(console, results)

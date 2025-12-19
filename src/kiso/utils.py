@@ -212,7 +212,7 @@ def get_runner(kind: str) -> EntryPoint:
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given kind is found
     """  # noqa: E501
-    runner = _get_single("kiso.experiment", kind)
+    runner = _get_single(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP, kind)
     try:
         return runner.load()
     except ModuleNotFoundError as e:
@@ -230,7 +230,7 @@ def get_software(name: str) -> EntryPoint:
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given name is found
     """  # noqa: E501
-    software = _get_single("kiso.software", name)
+    software = _get_single(const.KISO_SOFTWARE_ENTRY_POINT_GROUP, name)
     try:
         return software.load()
     except ModuleNotFoundError as e:
@@ -240,7 +240,7 @@ def get_software(name: str) -> EntryPoint:
 def get_deployment(name: str) -> EntryPoint:
     """Retrieve a specific software installer entry point by its name.
 
-    Searches for and returns an entry point from the "kiso.software" group matching the specified name.
+    Searches for and returns an entry point from the "kiso.deployment" group matching the specified name.
 
     :param name: The name of the software installer entry point to retrieve
     :type name: str
@@ -248,7 +248,7 @@ def get_deployment(name: str) -> EntryPoint:
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given name is found
     """  # noqa: E501
-    software = _get_single("kiso.deployment", name)
+    software = _get_single(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP, name)
     try:
         return software.load()
     except ModuleNotFoundError as e:

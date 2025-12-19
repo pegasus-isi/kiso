@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import enoslib as en
 
+from kiso import constants as const
+
 if TYPE_CHECKING:
     from importlib.metadata import EntryPoints
 
@@ -40,8 +42,45 @@ COMMONS_SCHEMA: dict = {
             },
             "additionalProperties": False,
         },
+        "script": {
+            "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/script",
+            "title": "Shell Script Schema",
+            "type": "object",
+            "properties": {
+                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
+                "executable": {
+                    "description": "The executable (shebang) to be used to "
+                    "run the script",
+                    "type": "string",
+                    "default": "/bin/bash",
+                },
+                "script": {
+                    "description": "The script to be executed",
+                    "type": "string",
+                },
+            },
+            "required": ["labels", "script"],
+            "additionalProperties": False,
+        },
+        "location": {
+            "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/location",
+            "title": "File Upload/Download Location Schema",
+            "type": "object",
+            "properties": {
+                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
+                "src": {"description": "The src file to be copied", "type": "string"},
+                "dst": {
+                    "description": "The dst where the src should be copied too. This "
+                    "must be a directory",
+                    "type": "string",
+                },
+            },
+            "required": ["labels", "src", "dst"],
+            "additionalProperties": False,
+        },
     },
 }
+
 
 SCHEMA: dict = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -188,19 +227,20 @@ if hasattr(en, "Fabric"):
 def _get_experiment_kinds() -> list[dict[str, str]]:
     all_eps: dict | EntryPoints = entry_points()
     if isinstance(all_eps, dict):
-        all_eps = all_eps.get("kiso.experiment", [])
+        all_eps = all_eps.get(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP, [])
     else:
-        all_eps = all_eps.select(group="kiso.experiment")
+        all_eps = all_eps.select(group=const.KISO_EXPERIMENT_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
     _kind_schemas = set()
     kind_schemas = []
     for ep in all_eps:
-        if f"{ep.value}.SCHEMA" not in _kind_schemas:
-            ep.load().SCHEMA["$$target"] = f"py-obj:{ep.value}.SCHEMA"
-            kind_schemas.append({"$ref": f"py-obj:{ep.value}.SCHEMA"})
-            _kind_schemas.add(f"{ep.value}.SCHEMA")
+        value = ep.value.replace(":", ".")
+        if f"{value}.schema" not in _kind_schemas:
+            ep.load().schema["$$target"] = f"py-obj:{value}.schema"
+            kind_schemas.append({"$ref": f"py-obj:{value}.schema"})
+            _kind_schemas.add(f"{value}.schema")
 
     return kind_schemas
 
@@ -208,19 +248,20 @@ def _get_experiment_kinds() -> list[dict[str, str]]:
 def _get_software_schemas() -> dict[str, dict]:
     all_eps: dict | EntryPoints = entry_points()
     if isinstance(all_eps, dict):
-        all_eps = all_eps.get("kiso.software", [])
+        all_eps = all_eps.get(const.KISO_SOFTWARE_ENTRY_POINT_GROUP, [])
     else:
-        all_eps = all_eps.select(group="kiso.software")
+        all_eps = all_eps.select(group=const.KISO_SOFTWARE_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
     _kind_schemas = set()
     kind_schemas = {}
     for ep in all_eps:
-        if f"{ep.value}.SCHEMA" not in _kind_schemas:
-            ep.load().SCHEMA["$$target"] = f"py-obj:{ep.value}.SCHEMA"
-            kind_schemas[ep.name] = {"$ref": f"py-obj:{ep.value}.SCHEMA"}
-            _kind_schemas.add(f"{ep.value}.SCHEMA")
+        value = ep.value.replace(":", ".")
+        if f"{value}.schema" not in _kind_schemas:
+            ep.load().schema["$$target"] = f"py-obj:{value}.schema"
+            kind_schemas[ep.name] = {"$ref": f"py-obj:{value}.schema"}
+            _kind_schemas.add(f"{value}.schema")
 
     return kind_schemas
 
@@ -228,19 +269,20 @@ def _get_software_schemas() -> dict[str, dict]:
 def _get_deployment_schemas() -> dict[str, dict]:
     all_eps: dict | EntryPoints = entry_points()
     if isinstance(all_eps, dict):
-        all_eps = all_eps.get("kiso.deployment", [])
+        all_eps = all_eps.get(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP, [])
     else:
-        all_eps = all_eps.select(group="kiso.deployment")
+        all_eps = all_eps.select(group=const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
     _kind_schemas = set()
     kind_schemas = {}
     for ep in all_eps:
-        if f"{ep.value}.SCHEMA" not in _kind_schemas:
-            ep.load().SCHEMA["$$target"] = f"py-obj:{ep.value}.SCHEMA"
-            kind_schemas[ep.name] = {"$ref": f"py-obj:{ep.value}.SCHEMA"}
-            _kind_schemas.add(f"{ep.value}.SCHEMA")
+        value = ep.value.replace(":", ".")
+        if f"{value}.schema" not in _kind_schemas:
+            ep.load().schema["$$target"] = f"py-obj:{value}.schema"
+            kind_schemas[ep.name] = {"$ref": f"py-obj:{value}.schema"}
+            _kind_schemas.add(f"{value}.schema")
 
     return kind_schemas
 

@@ -19,12 +19,15 @@ from enoslib.objects import Host, Roles
 from enoslib.task import Environment
 from rich.console import Console
 
+from .configuration import PegasusConfiguration
+from .schema import SCHEMA
+
 import kiso.constants as const
 from kiso import edge, utils
 from kiso.errors import KisoTimeoutError, KisoValueError
+from kiso.pegasus import display
+from kiso.pegasus.display import PegasusWorkflowProgress
 from kiso.utils import experiment_state
-from kiso.workflow import display
-from kiso.workflow.display import PegasusWorkflowProgress
 
 if TYPE_CHECKING:
     from enoslib.api import CommandResult, CustomCommandResult
@@ -32,25 +35,36 @@ if TYPE_CHECKING:
 
     if hasattr(en, "ChameleonEdge"):
         from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
+
     from kiso.configuration import Kiso
-    from kiso.workflow.configuration import Location, PegasusWorkflow, Script
+    from kiso.objects import Location, Script
 
 
-class PegasusWMS:
+log = logging.getLogger("kiso.experiment.pegasus")
+
+
+console = Console()
+
+
+class PegasusRunner:
     """_summary_.
 
     _extended_summary_
     """
 
     #:
+    schema: dict = SCHEMA
+
+    #:
+    config_type: type = PegasusConfiguration
+
+    #:
     kind: str = "pegasus"
 
     def __init__(
         self,
-        experiment: PegasusWorkflow,
+        experiment: PegasusConfiguration,
         index: int,
-        console: Console | None = None,
-        log: logging.Logger | None = None,
         variables: dict[str, str | int | float] | None = None,
     ) -> None:
         """__init__ _summary_.
@@ -69,7 +83,6 @@ class PegasusWMS:
         :param variables: Globally defined variables, defaults to None
         :type variables: dict[str, str  |  int  |  float] | None, optional
         """
-        self.log = log or logging.getLogger("kiso.experiment.pegasus")
         self.index = index
         self.variables = copy.deepcopy(variables or {})
 
@@ -88,9 +101,6 @@ class PegasusWMS:
         self.poll_interval = experiment.poll_interval or const.POLL_INTERVAL
         self.timeout = experiment.timeout or const.WORKFLOW_TIMEOUT
 
-        # Console
-        self.console = console or Console()
-
     def check(self, config: Kiso, label_to_machines: Roles) -> None:
         """Check  summary_.
 
@@ -100,19 +110,19 @@ class PegasusWMS:
         :type label_to_machines: Roles
         """
         if config.deployment and config.deployment.htcondor:
-            self.log.debug(
-                "Check submit-node-labels specified in the experiment are valid submit "
+            log.debug(
+                "Check submit_node_labels specified in the experiment are valid submit "
                 "nodes as per the HTCondor configuration"
             )
             self._check_submit_labels_are_submit_nodes(config, label_to_machines)
 
-        self.log.debug(
+        log.debug(
             "Check labels referenced in experiments section are defined in the sites "
             "section"
         )
         self._check_undefined_labels(config, label_to_machines)
 
-        self.log.debug("Check for missing files in inputs")
+        log.debug("Check for missing files in inputs")
         self._check_missing_input_files(config)
 
     def _check_submit_labels_are_submit_nodes(
@@ -152,7 +162,7 @@ class PegasusWMS:
                     break
             else:
                 raise ValueError(
-                    f"Experiment <{experiment['name']}>'s submit-node-labels do not map"
+                    f"Experiment <{experiment['name']}>'s submit_node_labels do not map"
                     f"to any submit node(s) {submit_node_labels}"
                 )
 
@@ -205,7 +215,7 @@ class PegasusWMS:
             for index, setup in enumerate(experiment.post_scripts or []):
                 unlabel_to_machines[experiment.name].update(
                     [
-                        (f"post-scripts[{index}]", label)
+                        (f"post_scripts[{index}]", label)
                         for label in setup.labels
                         if label not in label_to_machines
                     ]
@@ -308,8 +318,8 @@ class PegasusWMS:
         if not inputs:
             return
 
-        self.log.debug("Copy inputs to the destination for <%s:%d>", name, self.index)
-        self.console.print(rf"\[{name}] Copying inputs to the destination")
+        log.debug("Copy inputs to the destination for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}] Copying inputs to the destination")
 
         self.env.setdefault("copy-input", {})
         results = []
@@ -317,7 +327,7 @@ class PegasusWMS:
             result = self._copy_input(instance, location)
             results.append((instance, location, result))
 
-        display.inputs(self.console, results)
+        display.inputs(console, results)
 
     def _copy_input(
         self, instance: int, input: Location
@@ -348,7 +358,7 @@ class PegasusWMS:
                 return results
 
             if not src.exists():
-                self.log.debug("Input file <%s> does not exist, skipping copy", src)
+                log.debug("Input file <%s> does not exist, skipping copy", src)
                 return results
             if vms:
                 with utils.actions(
@@ -384,8 +394,8 @@ class PegasusWMS:
         if not setup_scripts:
             return
 
-        self.log.debug("Run setup scripts for <%s:%d>", name, self.index)
-        self.console.print(rf"\[{name}] Running setup scripts")
+        log.debug("Run setup scripts for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}] Running setup scripts")
 
         self.env.setdefault("run-setup-script", {})
         results = []
@@ -393,7 +403,7 @@ class PegasusWMS:
             result = self._run_setup_script(instance, setup_script)
             results.append((instance, setup_script, result))
 
-        display.setup_scripts(self.console, results)
+        display.setup_scripts(console, results)
 
     def _run_setup_script(
         self, instance: int, setup_script: Script
@@ -465,7 +475,7 @@ class PegasusWMS:
     def _run_post_scripts(self) -> None:
         """Run post-execution scripts for an experiment.
 
-        Executes post-scripts defined in the experiment configuration across specified
+        Executes post_scripts defined in the experiment configuration across specified
         labels, supporting both virtual machines and containers. Handles script
         copying, execution, and tracking of script run status.
         """
@@ -474,8 +484,8 @@ class PegasusWMS:
         if not post_scripts:
             return
 
-        self.log.debug("Run post scripts for <%s:%d>", name, self.index)
-        self.console.print(rf"\[{name}] Running post scripts")
+        log.debug("Run post scripts for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}] Running post scripts")
 
         self.env.setdefault("run-post-script", {})
         results = []
@@ -483,14 +493,14 @@ class PegasusWMS:
             result = self._run_post_script(instance, post_script)
             results.append((instance, post_script, result))
 
-        display.post_scripts(self.console, results)
+        display.post_scripts(console, results)
 
     def _run_post_script(
         self, instance: int, post_script: Script
     ) -> list[CommandResult | CustomCommandResult]:
         """Run post-execution scripts for an experiment.
 
-        Executes post-scripts defined in the experiment configuration across specified
+        Executes post_scripts defined in the experiment configuration across specified
         labels, supporting both virtual machines and containers. Handles script
         copying, execution, and tracking of script run status.
 
@@ -562,10 +572,8 @@ class PegasusWMS:
         if not outputs:
             return
 
-        self.log.debug("Copy outputs to the destination for <%s:%d>", name, self.index)
-        self.console.print(
-            rf"\[{name}-{self.index}] Copying outputs to the destination"
-        )
+        log.debug("Copy outputs to the destination for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}-{self.index}] Copying outputs to the destination")
 
         self.env.setdefault("fetch-output", {})
         results = []
@@ -573,7 +581,7 @@ class PegasusWMS:
             result = self._fetch_output(_index, location)
             results.append((_index, location, result))
 
-        display.outputs(self.console, results)
+        display.outputs(console, results)
 
     def _fetch_output(
         self, instance: int, output: Location
@@ -605,9 +613,7 @@ class PegasusWMS:
 
         dst = Path(output.dst)
         if not dst.exists():
-            self.log.debug(
-                "Destination directory <%s> does not exist, creating it", dst
-            )
+            log.debug("Destination directory <%s> does not exist, creating it", dst)
             dst.mkdir(parents=True)
 
         kiso_state_key = "fetch-output"
@@ -639,21 +645,21 @@ class PegasusWMS:
         :param instance: The specific instance number of the experiment
         :type instance: int
         """
-        self.console.rule(
+        console.rule(
             "[bold green]Experiment: "
             f"{self.name} {instance + 1}/{self.count}[/bold green]"
         )
         try:
             results = self._generate_workflow(instance)
             display.generate_workflow(
-                self.console, (instance, [results] if results is not None else [])
+                console, (instance, [results] if results is not None else [])
             )
 
             self._wait_for_workflow(instance)
         except KisoValueError as e:
             results = e.args[1]
             display.generate_workflow(
-                self.console, (instance, [results] if results is not None else [])
+                console, (instance, [results] if results is not None else [])
             )
 
         self._fetch_submit_dir(instance)
@@ -680,8 +686,8 @@ class PegasusWMS:
         containers = self.containers
         bash = "/bin/bash"
 
-        self.log.debug("Generate workflow for <%s:%d:%d>", name, index, instance)
-        self.console.print(rf"\[{name}-{instance + 1}] Generating workflow")
+        log.debug("Generate workflow for <%s:%d:%d>", name, index, instance)
+        console.print(rf"\[{name}-{instance + 1}] Generating workflow")
 
         kiso_state_key = "workflow-generate"
         with (
@@ -707,7 +713,7 @@ class PegasusWMS:
                         task_name="Copy main script",
                     )
                     p.shell(
-                        f"{bash} {dst} {' '.join([shlex.quote(_) for _ in args])}",
+                        f"{bash} {dst} {' '.join([shlex.quote(str(_)) for _ in args])}",
                         chdir=str(dst.parent),
                         task_name="Generate workflow",
                     )
@@ -803,7 +809,7 @@ class PegasusWMS:
         output1 = f"""{result.stdout}
     {result.stderr}
     """
-        self.log.debug(
+        log.debug(
             "Generate workflow, status <%s> stdout <%s> stderr <%s>",
             result.rc,
             result.stdout,
@@ -887,10 +893,8 @@ class PegasusWMS:
         poll_interval = self.poll_interval
         timeout = self.timeout
 
-        self.log.debug(
-            "Wait for workflow to finish for <%s:%d:%d>", name, index, instance
-        )
-        self.console.print(rf"\[{name}-{instance + 1}] Waiting for workflow to finish")
+        log.debug("Wait for workflow to finish for <%s:%d:%d>", name, index, instance)
+        console.print(rf"\[{name}-{instance + 1}] Waiting for workflow to finish")
 
         kiso_state_key = "wait-workflow"
         with experiment_state(self.env, instance, kiso_state_key) as state:
@@ -906,25 +910,21 @@ class PegasusWMS:
                     timeout=timeout,
                 )
             except KisoTimeoutError:
-                self.console.print(
+                console.print(
                     f"Workflow did not finish within the timeout <{timeout}> seconds"
                 )
                 raise
             finally:
-                self.log.debug(
+                log.debug(
                     "Compute Pegasus statistics for workflow <%s:%d:%d>",
                     name,
                     index,
                     instance,
                 )
-                self.console.print(
-                    rf"\[{name}-{instance + 1}] Computing Pegasus statistics"
-                )
+                console.print(rf"\[{name}-{instance + 1}] Computing Pegasus statistics")
                 self.pegasus_statistics(vms[0] if vms else containers[0], submit_dir)
 
-                self.console.print(
-                    rf"\[{name}-{instance + 1}] Running Pegasus analyzer"
-                )
+                console.print(rf"\[{name}-{instance + 1}] Running Pegasus analyzer")
                 self.pegasus_analyzer(vms[0] if vms else containers[0], submit_dir)
 
     def _wait_for_workflow_2(
@@ -996,9 +996,7 @@ class PegasusWMS:
                 time.sleep(poll_interval)
             else:
                 # Workflow ran for too long
-                self.log.debug(
-                    "Workflow did not finish within the timeout <%d>", timeout
-                )
+                log.debug("Workflow did not finish within the timeout <%d>", timeout)
                 # Stop the workflow
                 self.pegasus_remove(machine, submit_dir)
                 raise KisoTimeoutError(
@@ -1197,13 +1195,13 @@ class PegasusWMS:
         name = self.name
         vms = self.vms
         containers = self.containers
-        self.log.debug(
+        log.debug(
             "Starting to copy submit dir to the destination for <%s:%d:%d>",
             name,
             index,
             instance,
         )
-        self.console.print(
+        console.print(
             rf"\[{name}-{instance + 1}] Copying submit dir to the destination"
         )
         kiso_state_key = "fetch-submit-dir"

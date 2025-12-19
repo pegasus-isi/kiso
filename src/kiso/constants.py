@@ -50,8 +50,14 @@ STATUS_FAILED: str = "FAILED"
 #: Task timeout status.
 STATUS_TIMEOUT: str = "TIMEOUT"
 
+#: Entry point group for software installers.
+KISO_SOFTWARE_ENTRY_POINT_GROUP: str = "kiso.software"
+
+#: Entry point group for deployment installers.
+KISO_DEPLOYMENT_ENTRY_POINT_GROUP: str = "kiso.deployment"
+
 #: Entry point group for workflow runners.
-KISO_RUNNER_ENTRY_POINT_GROUP: str = "kiso.experiment"
+KISO_EXPERIMENT_ENTRY_POINT_GROUP: str = "kiso.experiment"
 
 #: Map status code to console color.
 STATUS_COLOR_MAP: dict[str, str] = {

@@ -10,6 +10,10 @@ SCHEMA: dict = {
             "description": "A suitable name for the experiment",
             "type": "string",
         },
+        "description": {
+            "description": "A description name for the experiment",
+            "type": "string",
+        },
         "variables": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/variables"},
         "count": {
             "type": "integer",
@@ -26,8 +30,8 @@ SCHEMA: dict = {
             "type": "array",
             "items": {"type": "string"},
         },
-        "poll-interval": {
-            "description": "Checks the status of the experiment every poll-interval "
+        "poll_interval": {
+            "description": "Checks the status of the experiment every poll_interval "
             "seconds",
             "type": "integer",
             "default": 60,
@@ -49,10 +53,10 @@ SCHEMA: dict = {
             "type": "array",
             "items": {"$ref": "#/$defs/setup"},
         },
-        "submit-node-labels": {
+        "submit_node_labels": {
             "$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"
         },
-        "post-scripts": {
+        "post_scripts": {
             "description": "Define all scripts to be executed after the experiment",
             "type": "array",
             "items": {"$ref": "#/$defs/setup"},
@@ -64,42 +68,10 @@ SCHEMA: dict = {
             "items": {"$ref": "#/$defs/location"},
         },
     },
-    "required": ["kind", "name", "main", "submit-node-labels"],
+    "required": ["kind", "name", "main", "submit_node_labels"],
     "additionalProperties": False,
     "$defs": {
-        "setup": {
-            "title": "Script Setup Schema",
-            "type": "object",
-            "properties": {
-                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
-                "executable": {
-                    "description": "The executable (shebang) to be used to run the "
-                    "script",
-                    "type": "string",
-                    "default": "/bin/bash",
-                },
-                "script": {
-                    "description": "The script to be executed",
-                    "type": "string",
-                },
-            },
-            "required": ["labels", "script"],
-            "additionalProperties": False,
-        },
-        "location": {
-            "title": "File Upload/Download Schema",
-            "type": "object",
-            "properties": {
-                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
-                "src": {"description": "The src file to be copied", "type": "string"},
-                "dst": {
-                    "description": "The dst where the src should be copied too. This "
-                    "must be a directory",
-                    "type": "string",
-                },
-            },
-            "required": ["labels", "src", "dst"],
-            "additionalProperties": False,
-        },
+        "setup": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/script"},
+        "location": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/location"},
     },
 }

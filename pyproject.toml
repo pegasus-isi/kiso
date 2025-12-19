@@ -41,8 +41,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    #"enoslib>=10.1.0",
-    "enoslib @ git+https://gitlab.inria.fr/discovery/enoslib.git@dev/issue-237",
+    "enoslib>=10.4.0",
     "rich-click",
     "jsonschema<3.3",
     "jsonschema-pyref",
@@ -64,22 +63,22 @@ kiso = "kiso.__main__:kiso"
 
 [project.entry-points."kiso.software"]
 
-apptainer = "kiso.apptainer.__init__"
-docker = "kiso.docker.__init__"
-ollama = "kiso.ollama.__init__"
+apptainer = "kiso.apptainer.installer:ApptainerInstaller"
+docker = "kiso.docker.installer:DockerInstaller"
+ollama = "kiso.ollama.installer:OllamaInstaller"
 
 [project.entry-points."kiso.deployment"]
 
-htcondor = "kiso.htcondor.__init__"
+htcondor = "kiso.htcondor.installer:HTCondorInstaller"
 
 [project.entry-points."kiso.experiment"]
 
-pegasus = "kiso.workflow.__init__"
-shell = "kiso.shell.__init__"
+pegasus = "kiso.pegasus.runner:PegasusRunner"
+shell = "kiso.shell.runner:ShellRunner"
 
 [project.optional-dependencies]
 
-all = ["kiso[vagrant]", "kiso[chameleon]"] #, "kiso[fabric]"]
+all = ["kiso[vagrant]", "kiso[chameleon]", "kiso[fabric]"]
 vagrant = ["enoslib[vagrant]"]
 chameleon = ["enoslib[chameleon]"]
 fabric = ["enoslib[fabric]"]

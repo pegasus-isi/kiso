@@ -9,22 +9,24 @@ from dataclasses import field, make_dataclass
 from importlib.metadata import entry_points
 from typing import Any, Optional, Union, _SpecialForm
 
+from kiso import constants as const
+
 with contextlib.suppress(ImportError):
     from importlib.metadata import EntryPoints
 
 
 def _get_experiment_kinds() -> _SpecialForm:
-    kinds = _get_kinds("kiso.experiment")
+    kinds = _get_kinds(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP)
     return Union[tuple(kind[1] for kind in kinds)]
 
 
 def _get_software_type() -> type:
-    kinds = _get_kinds("kiso.software")
+    kinds = _get_kinds(const.KISO_SOFTWARE_ENTRY_POINT_GROUP)
     return make_dataclass("Software", [(kind[0], Optional[kind[1]]) for kind in kinds])
 
 
 def _get_deployment_type() -> type:
-    kinds = _get_kinds("kiso.deployment")
+    kinds = _get_kinds(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP)
     return make_dataclass(
         "Deployment", [(kind[0], Optional[kind[1]]) for kind in kinds]
     )
@@ -39,7 +41,7 @@ def _get_kinds(kind: str) -> set:
 
     kinds = set()
     for ep in all_eps:
-        kinds.add((ep.name, ep.load().DATACLASS))
+        kinds.add((ep.name, ep.load().config_type))
 
     return kinds
 

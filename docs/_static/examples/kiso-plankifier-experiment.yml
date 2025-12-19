@@ -76,7 +76,7 @@ experiments:
     name: plankifier-experiment
     count: 1
     main: ./workflow.py
-    submit-node-labels:
+    submit_node_labels:
       - submit-daemon
     inputs:
       - labels:

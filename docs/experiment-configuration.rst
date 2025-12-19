@@ -45,23 +45,26 @@ Schema
 
 .. jsonschema:: enoslib.infra.enos_chameleonedge.schema.SCHEMA
 
-.. .. jsonschema:: enoslib.infra.enos_fabric.schema.SCHEMA
+.. jsonschema:: enoslib.infra.enos_fabric.schema.SCHEMA
 
 .. Supported software
 
-.. jsonschema:: kiso.apptainer.__init__.SCHEMA
+.. jsonschema:: kiso.apptainer.schema.SCHEMA
 
-.. jsonschema:: kiso.docker.__init__.SCHEMA
+.. jsonschema:: kiso.docker.schema.SCHEMA
 
-.. jsonschema:: kiso.ollama.__init__.SCHEMA
+.. jsonschema:: kiso.ollama.schema.SCHEMA
 
 .. Supported deployments
 
-.. jsonschema:: kiso.htcondor.__init__.SCHEMA
+.. jsonschema:: kiso.htcondor.schema.SCHEMA
 
 .. Supported experiment types
 
-.. jsonschema:: kiso.workflow.__init__.SCHEMA
-  :hide_key: /**/variables
+.. jsonschema:: kiso.shell.schema.SCHEMA
+  :hide_key: /**/variables, /**/script, /**/location
+
+.. jsonschema:: kiso.pegasus.schema.SCHEMA
+  :hide_key: /**/variables, /**/script, /**/location
 
 .. jsonschema:: kiso.schema.COMMONS_SCHEMA

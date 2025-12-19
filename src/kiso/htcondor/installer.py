@@ -14,6 +14,7 @@ from enoslib.objects import Roles
 from rich.console import Console
 
 from .configuration import HTCondorDaemon
+from .schema import SCHEMA
 
 import kiso.constants as const
 from kiso import display, edge, utils
@@ -24,9 +25,12 @@ if TYPE_CHECKING:
     from enoslib.objects import Host, Roles
     from enoslib.task import Environment
 
-    from . import HTCondorDaemon
 
 log = logging.getLogger("kiso.deployment.htcondor")
+
+
+console = Console()
+
 
 if hasattr(en, "ChameleonEdge"):
     from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
@@ -38,29 +42,23 @@ class HTCondorInstaller:
     """HTCondor software deployment."""
 
     #:
+    schema: dict = SCHEMA
+
+    #:
+    config_type: type = list[HTCondorDaemon]
+
+    #:
     HAS_SOFTWARE_KEY: str = "has_htcondor"
 
-    def __init__(
-        self,
-        config: list[HTCondorDaemon],
-        console: Console | None = None,
-        log: logging.Logger | None = None,
-    ) -> None:
+    def __init__(self, config: list[HTCondorDaemon]) -> None:
         """__init__ _summary_.
 
         _extended_summary_
 
         :param config: HTCondor configuration
         :type config: list[HTCondorDaemon]
-        :param console: Rich console object to output installation progress,
-        defaults to None
-        :type console: Console | None, optional
-        :param log: Logger to use, defaults to None
-        :type log: logging.Logger | None, optional
         """
         self.config = config
-        self.log = log or logging.getLogger("kiso.deployment.htcondor")
-        self.console = console or Console()
 
     def check(self, label_to_machines: Roles) -> None:
         """Check if the HTCondor configuration is valid."""
@@ -197,8 +195,8 @@ class HTCondorInstaller:
         if self.config is None:
             return
 
-        self.log.debug("Install HTCondor")
-        self.console.rule("[bold green]Installing HTCondor[/bold green]")
+        log.debug("Install HTCondor")
+        console.rule("[bold green]Installing HTCondor[/bold green]")
 
         labels = env["labels"]
         _condor_hosts = [c for c in self.config if c.kind[0] == "c"]
@@ -276,7 +274,7 @@ class HTCondorInstaller:
                 result = future.result()
                 results.append(result[-1])
 
-            display._render(self.console, results)
+            display._render(console, results)
 
     def _get_label_daemon_machine_map(
         self, condor_config: list, labels: Roles
@@ -524,9 +522,9 @@ class HTCondorInstaller:
             edge._execute(
                 machine,
                 f"""cat > "{config_root}/01-kiso" << EOF
-    {NL.join(htcondor_config).replace("$", DOLLAR)}
-    EOF
-    """,
+{NL.join(htcondor_config).replace("$", DOLLAR)}
+EOF
+""",
             )
         )
         if results[-1].rc != 0:

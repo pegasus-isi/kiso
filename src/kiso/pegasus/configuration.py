@@ -7,10 +7,11 @@ from dataclasses import dataclass, field
 from typing import Optional, Union
 
 from kiso import constants as const
+from kiso.objects import Location, Script  # noqa: TC001
 
 
 @dataclass
-class PegasusWorkflow:
+class PegasusConfiguration:
     """Experiment configuration."""
 
     #:
@@ -27,6 +28,9 @@ class PegasusWorkflow:
 
     #:
     variables: dict[str, Union[str, int, float]] = field(default_factory=dict)
+
+    #:
+    description: Optional[str] = None
 
     #:
     args: Optional[list[Union[str, int, float]]] = None
@@ -51,31 +55,3 @@ class PegasusWorkflow:
 
     #:
     timeout: int = const.WORKFLOW_TIMEOUT
-
-
-@dataclass
-class Script:
-    """Script configuration."""
-
-    #:
-    labels: list[str]
-
-    #:
-    script: str
-
-    #:
-    executable: str = "/bin/bash"
-
-
-@dataclass
-class Location:
-    """Location configuration."""
-
-    #:
-    labels: list[str]
-
-    #:
-    src: str
-
-    #:
-    dst: str

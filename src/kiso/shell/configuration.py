@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from kiso.objects import Location, Script  # noqa: TC001
+
 
 @dataclass
 class ShellConfiguration:
@@ -18,38 +20,10 @@ class ShellConfiguration:
     name: str
 
     #:
-    description: str
-
-    #:
     scripts: list[Script]
 
     #:
+    description: Optional[str] = None
+
+    #:
     outputs: Optional[list[Location]] = None
-
-
-@dataclass
-class Script:
-    """Script configuration."""
-
-    #:
-    labels: list[str]
-
-    #:
-    script: str
-
-    #:
-    executable: str = "/bin/bash"
-
-
-@dataclass
-class Location:
-    """Location configuration."""
-
-    #:
-    labels: list[str]
-
-    #:
-    src: str
-
-    #:
-    dst: str

@@ -5,20 +5,19 @@ from __future__ import annotations
 
 import copy
 import io
-import json
 import logging
 import shutil
 import subprocess
 from collections import Counter, defaultdict
 from dataclasses import fields
 from functools import wraps
-from ipaddress import IPv4Interface, IPv6Interface, ip_address
+from ipaddress import IPv4Address, IPv4Interface, IPv6Address, IPv6Interface, ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import enoslib as en
 import yaml
-from dacite import Config, from_dict
+from dacite import from_dict
 from enoslib.objects import DefaultNetwork, Host, Networks, Roles
 from enoslib.task import Environment, enostask
 from jsonschema.validators import validator_for
@@ -29,6 +28,7 @@ import kiso.constants as const
 from kiso import display, edge, utils
 from kiso.configuration import Deployment, Kiso, Software
 from kiso.errors import KisoError
+from kiso.ip import associate_floating_ip
 from kiso.log import get_process_pool_executor
 from kiso.schema import SCHEMA
 from kiso.version import __version__
@@ -57,7 +57,6 @@ if hasattr(en, "Vagrant"):
     PROVIDER_MAP["vagrant"] = (en.VagrantConf.from_dictionary, en.Vagrant)
 if hasattr(en, "CBM"):
     log.debug("Chameleon Bare Metal provider is available")
-    from enoslib.infra.enos_openstack.utils import source_credentials_from_rc_file
 
     PROVIDER_MAP["chameleon"] = (en.CBMConf.from_dictionary, en.CBM)
 if hasattr(en, "ChameleonEdge"):
@@ -69,13 +68,7 @@ if hasattr(en, "ChameleonEdge"):
     )
 if hasattr(en, "Fabric"):
     log.debug("FABRIC provider is available")
-    from enoslib.infra.enos_fabric.configuration import (
-        Fabnetv6NetworkConfiguration,
-    )
-    from enoslib.infra.enos_fabric.utils import (
-        source_credentials_from_rc_file as source_fabric_credentials_from_rc_file,
-    )
-    from fabrictestbed_extensions.fablib.fablib import FablibManager as fablib_manager
+    from enoslib.infra.enos_fabric.configuration import Fabnetv6NetworkConfiguration
 
     PROVIDER_MAP["fabric"] = (en.FabricConf.from_dictionary, en.Fabric)
     has_fabric = True
@@ -120,7 +113,7 @@ def validate_config(func: Callable[..., T]) -> Callable[..., T]:
                 raise ValidationError("JSON Schema Validation Error", errors)
 
             # Convert the JSON configuration to a :py:class:`dataclasses.dataclass`
-            kiso_config = from_dict(Kiso, config, Config(convert_key=_to_snake_case))
+            kiso_config = from_dict(Kiso, config)
 
             console.rule("[bold green]Check experiment configuration[/bold green]")
             log.debug("Check only one vagrant site is present in the experiment")
@@ -279,14 +272,11 @@ def _check_software(softwares: Software, label_to_machines: dict[str, set]) -> N
         name = software.name
 
         # Locate the EntryPoint for the software `name` and load it
-        installer = utils.get_software(name)
+        cls = utils.get_software(name)
 
-        # Instantiate the installer class. The installer class to use is defined in the
-        # installer's `INSTALLER` attribute
-        obj = installer.INSTALLER(
-            config,  # Software configuration
-            console=console,  # Console object to output experiment progress
-            log=logging.getLogger(f"kiso.software.{name}"),  # Logger object to use
+        # Instantiate the installer class.
+        obj = cls(
+            config  # Software configuration
         )
         obj.check(label_to_machines)
 
@@ -307,14 +297,11 @@ def _check_deployed_software(
         name = deployment.name
 
         # Locate the EntryPoint for the software `name` and load it
-        installer = utils.get_deployment(name)
+        cls = utils.get_deployment(name)
 
-        # Instantiate the installer class. The installer class to use is defined in the
-        # installer's `INSTALLER` attribute
-        obj = installer.INSTALLER(
-            config,  # Deployment configuration
-            console=console,  # Console object to output experiment progress
-            log=logging.getLogger(f"kiso.deployment.{name}"),  # Logger object to use
+        # Instantiate the installer class.
+        obj = cls(
+            config  # Deployment configuration
         )
         obj.check(label_to_machines)
 
@@ -333,15 +320,12 @@ def _check_experiments(
         kind = experiment.kind
 
         # Locate the EntryPoint for the runner `kind` of experiment and load it
-        runner_cfg = utils.get_runner(kind)
+        cls = utils.get_runner(kind)
 
-        # Instantiate the runner class. The runner class to use is defined in the
-        # runner's `RUNNER` attribute
-        runner = runner_cfg.RUNNER(
+        # Instantiate the runner class.
+        runner = cls(
             experiment,
             index,
-            console=console,  # Console object to output experiment progress
-            log=logging.getLogger("kiso.experiment.pegasus"),  # Logger object to use
             variables=variables,  # Variables defined globally for the experiment
         )
 
@@ -432,20 +416,37 @@ def _init_sites(
     env["networks"] = networks
 
     daemon_to_site = _extend_labels(experiment_config, labels)
-    is_public_ip_required = _is_public_ip_required(daemon_to_site)
-    env["is_public_ip_required"] = is_public_ip_required
 
-    for node in labels.all():
-        # TODO(mayani): Remove the floating ip assignment code after it has been
-        # implemented into the EnOSlib ChameleonEdge provider
-        _associate_floating_ip(node, is_public_ip_required)
+    # TODO(mayani): Kiso should not have to detect and associate public IPs with nodes
+    # Kiso should not be aware if a software or deployment requires public IPs, it
+    # should be handled by the installer of the software or deployment or throw an
+    # error requiring the user to provision IPs during provisioning
+    if experiment_config.deployment and experiment_config.deployment.htcondor:
+        is_public_ip_required = _is_public_ip_required(daemon_to_site)
+        env["is_public_ip_required"] = is_public_ip_required
 
-        ip = _get_best_ip(
-            node,
-            is_public_ip_required
-            and (node.extra["is_submit"] or node.extra["is_central_manager"]),
-        )
-        node.extra["kiso_preferred_ip"] = ip
+        for node in labels.all():
+            preferred_ip, priority = None, 1000
+            addresses = _get_ips(node)
+            if addresses:
+                # Priority is,
+                # 0 for a public IPv4 address
+                # 1 for a public IPv6 address
+                # 2 for a private IPv4 address
+                # 3 for a private IPv6 address
+                preferred_ip, priority = addresses[0]
+                log.debug(
+                    "Preferred IP <%s> with priority <%d>", preferred_ip, priority
+                )
+
+            if (
+                is_public_ip_required
+                and priority > 1
+                and (node.extra["is_central_manager"] or node.extra["is_submit"])
+            ):
+                preferred_ip = associate_floating_ip(node)
+
+            node.extra["kiso_preferred_ip"] = str(preferred_ip)
 
     return providers, labels, networks
 
@@ -671,255 +672,10 @@ def _is_public_ip_required(daemon_to_site: dict[str, set]) -> bool:
     return is_public_ip_required
 
 
-def _associate_floating_ip(
-    node: Host | ChameleonDevice, is_public_ip_required: bool = False
-) -> None:
-    """Associate a floating IP address to a node based on specific conditions.
-
-    Determines whether to assign a floating IP to a node depending on its label and
-    type. Supports different cloud providers and testbed types with specific IP
-    assignment strategies.
-
-    :param node: The node to potentially assign a floating IP to
-    :type node: Host | ChameleonDevice
-    :param is_public_ip_required: Flag indicating if a public IP is needed, defaults
-    to False
-    :type is_public_ip_required: bool, optional
-    :raises NotImplementedError: If floating IP assignment is not supported for a
-    specific testbed
-    :raises KisoError: If assigning a public IP is unsupported
-    :raises ValueError: If an unsupported site type is encountered
-    """
-    if is_public_ip_required and (
-        node.extra["is_central_manager"] or node.extra["is_submit"]
-    ):
-        kind = node.extra["kind"]
-        if kind == "chameleon":
-            _associate_floating_ip_chameleon(node)
-        elif kind == "chameleon-edge":
-            _associate_floating_ip_edge(node)
-        elif kind == "fabric":
-            ...
-            # _associate_floating_ip_fabric(node)
-        elif kind == "vagrant":
-            raise KisoError("Assigning public IPs to Vagrant VMs is not supported")
-        else:
-            raise ValueError(f"Unknown site type {kind}", kind)
-
-
-def _associate_floating_ip_chameleon(node: Host) -> None:
-    """Associate a floating IP address with a Chameleon node.
-
-    Retrieves or creates a floating IP for a Chameleon node using the OpenStack CLI.
-    Handles cases where a node may already have a floating IP or requires a new one.
-    Logs debug information during the IP association process.
-
-    :param node: The Chameleon node to associate a floating IP with
-    :type node: Host
-    :raises ValueError: If the OpenStack CLI is not found or the server cannot be
-    located
-    """
-    with source_credentials_from_rc_file(node.extra["rc_file"]):
-        ip = None
-        cli = shutil.which("openstack")
-        if cli is None:
-            raise ValueError("Could not locate the openstack client")
-
-        try:
-            cli = str(cli)
-
-            log.debug("Get the Chameleon node's id")
-            # Get the node information so we can extract the server id
-            server = subprocess.run(  # noqa: S603
-                [cli, "server", "show", node.alias, "-f", "json"],
-                capture_output=True,
-                check=True,
-            )
-            _server = json.loads(server.stdout.decode("utf-8"))
-
-            log.debug("Check if the node already has a floating IP")
-            # Determine if the node has a floating IP
-            for _, addresses in _server["addresses"].items():
-                for address in addresses:
-                    if not ip_address(address).is_private:
-                        ip = address
-
-            if ip is None:
-                log.debug("Check for any unused floating ips")
-                # Check for any unused floating ip
-                all_floating_ips = subprocess.run(  # noqa: S603
-                    [cli, "floating", "ip", "list", "-f", "json"],
-                    capture_output=True,
-                    check=True,
-                )
-                _floating_ips = json.loads(all_floating_ips.stdout.decode("utf-8"))
-                for floating_ip in _floating_ips:
-                    # If an unused floating ip is available, use it
-                    if (
-                        floating_ip["Fixed IP Address"] is None
-                        and floating_ip["Port"] is None
-                    ):
-                        _floating_ip = {"name": floating_ip["Floating IP Address"]}
-                else:
-                    log.debug("Request a new floating ip")
-                    # Request a new floating ip
-                    floating_ip = subprocess.run(  # noqa: S603
-                        [cli, "floating", "ip", "create", "public", "-f", "json"],
-                        capture_output=True,
-                        check=True,
-                    )
-                    _floating_ip = json.loads(floating_ip.stdout.decode("utf-8"))
-
-                log.debug("Associate the floating ip with the node")
-                # Associate the floating ip with the node
-                _associate_floating_ip = subprocess.run(  # noqa: S603
-                    [
-                        cli,
-                        "server",
-                        "add",
-                        "floating",
-                        "ip",
-                        _server["id"],
-                        _floating_ip["name"],
-                    ],
-                    capture_output=True,
-                    check=True,
-                )
-                ip = _floating_ip["name"]
-                log.debug(
-                    "Floating IP <%s> associated with the node <%s>, status <%d>",
-                    ip,
-                    node.alias,
-                    _associate_floating_ip,
-                )
-
-                floating_ips = node.extra.get("floating-ips", [])
-                floating_ips.append(ip)
-                node.extra["floating-ips"] = floating_ips
-                log.debug("Floating IPs <%s>", floating_ips)
-        except Exception as e:
-            raise ValueError(f"Server <{node.alias}> not found") from e
-
-
-def _associate_floating_ip_edge(node: ChameleonDevice) -> None:
-    """Associate a floating IP address with a Chameleon Edge device.
-
-    Attempts to retrieve an existing floating IP from /etc/floating-ip. If no IP is
-    found, a new floating IP is associated with the device and saved to
-    /etc/floating-ip.
-
-    :param node: The Chameleon device to associate a floating IP with
-    :type node: ChameleonDevice
-    :raises: Potential exceptions from associate_floating_ip() method
-    """
-    # TODO(mayani): Handle error raised when user exceeds the floating IP usage
-    # TODO(mayani): Handle error raised when IP can't be assigned as all are used up
-    # Chameleon Edge API does not have a method to get the associated floating
-    # IP, if one was already associated with the container
-    status = edge._execute(node, "cat /etc/floating-ip")
-    if status.rc == 0:
-        log.debug("Floating IP already associated with the device")
-        ip = status.stdout.strip()
-    else:
-        ip = node.associate_floating_ip()
-        edge._execute(node, f"echo {ip} > /etc/floating-ip")
-
-    log.debug("Floating IP associated with the device %s", ip)
-    floating_ips = node.extra.get("floating-ips", [])
-    floating_ips.append(ip)
-    node.extra["floating-ips"] = floating_ips
-
-
-def _associate_floating_ip_fabric(node: Host) -> None:
-    """Associate a floating IP address with a Chameleon node.
-
-    Retrieves or creates a floating IP for a Chameleon node using the OpenStack CLI.
-    Handles cases where a node may already have a floating IP or requires a new one.
-    Logs debug information during the IP association process.
-
-    :param node: The Chameleon node to associate a floating IP with
-    :type node: Host
-    :raises ValueError: If the OpenStack CLI is not found or the server cannot be
-    located
-    """
-    with source_fabric_credentials_from_rc_file(node.extra["rc_file"]):
-        try:
-            fablib = fablib_manager(log_propagate=True)
-            fabric_slice = fablib.get_slice(name=node.extra["slice"])
-            fabric_node = fabric_slice.get_node(name=node.extra["name"])
-            stdout, _stderr = fabric_node.execute("cat /etc/floating-ip")
-            if len(stdout.strip()):
-                log.debug("Floating IP already associated with the device")
-                ip = stdout.strip()
-            else:
-                submit = False
-                network_name = f"{node.extra['name']}-public-network"
-                nic_name = "public-nic"
-                try:
-                    component = fabric_node.get_component(name=nic_name)
-                except Exception:
-                    log.debug(
-                        "Adding NIC_Basic component to FABRIC node <%s>",
-                        fabric_node.get_management_ip(),
-                    )
-                    component = fabric_node.add_component(
-                        model="NIC_Basic", name=nic_name
-                    )
-                    submit = True
-                interface = component.get_interfaces()[0]
-
-                if not fabric_slice.get_network(name=network_name):
-                    log.debug(
-                        "Adding IPv4Ext L3 Network to FABRIC node <%s>",
-                        fabric_node.get_management_ip(),
-                    )
-                    fabric_slice.add_l3network(
-                        name=network_name, interfaces=[interface], type="IPv4Ext"
-                    )
-                    submit = True
-                if submit:
-                    fabric_slice.submit()
-
-                fabric_slice = fablib.get_slice(name=node.extra["slice"])
-                network = fabric_slice.get_network(name=network_name)
-                ip = network.get_available_ips()
-                log.debug(
-                    "Available IPs for FABRIC node <%s>, are <%s>",
-                    fabric_node.get_management_ip(),
-                    ip,
-                )
-                network.make_ip_publicly_routable(ipv4=[str(ip[0])])
-                fabric_slice.submit()
-
-                fabric_slice = fablib.get_slice(name=node.extra["slice"])
-                network = fabric_slice.get_network(name=network_name)
-                fabric_node = fabric_slice.get_node(name=node.extra["name"])
-                interface = fabric_node.get_interface(network_name=network_name)
-                ip = network.get_public_ips()[0]
-                interface.ip_addr_add(addr=ip, subnet=network.get_subnet())
-                # _stdout, _stderr = fabric_node.execute(
-                #     "sudo setup-netplan-multihomed.sh "
-                #     f"-I {interface.get_physical_os_interface_name()} "
-                #     f"-A {ip}/28 "
-                #     f"-G {network.get_gateway()}"
-                # )
-                fabric_node.execute(f"echo {ip} | sudo tee /etc/floating-ip")
-
-            log.debug("Floating IP associated with the device %s", ip)
-            floating_ips = node.extra.get("floating-ips", [])
-            floating_ips.append(ip)
-            node.extra["floating-ips"] = floating_ips
-
-        except Exception as e:
-            raise ValueError(
-                f"Error occurred assigning public IP to FABRIC node <{node.alias}>"
-            ) from e
-
-
-def _get_best_ip(
+def _get_ips(
     machine: Host | ChameleonDevice, is_public_ip_required: bool = False
-) -> str:
-    """Get the best IP address for a given machine.
+) -> list[tuple[IPv4Address | IPv6Address, int]]:
+    """Get the IP addresses for a given machine.
 
     Selects an IP address based on priority, filtering out multicast, reserved,
     loopback, and link-local addresses. Supports both Host and ChameleonDevice
@@ -929,8 +685,10 @@ def _get_best_ip(
     :type machine: Host | ChameleonDevice
     :param is_public_ip_required: Whether a public IP is required, defaults to False
     :type is_public_ip_required: bool, optional
-    :return: The selected IP address as a string
-    :rtype: str
+    :return: List of tuples of an IP address and it's priority.
+        Priority is 0 for a public IPv4 address, 1 for a public IPv6 address,
+        2 for a private IPv4 address, and 3 for a private IPv6 address.
+    :rtype: list[tuple[IPv4Address | IPv6Address, int]]
     :raises ValueError: If a public IP is required but not available
     """
     addresses = []
@@ -1046,11 +804,18 @@ def _get_best_ip(
         if ip.is_multicast or ip.is_reserved or ip.is_loopback or ip.is_link_local:
             continue
 
-        priority = 1 if ip.is_private else 0
+        # Prioritize public over private IPs and prioritize IPv4 over IPv6
+        priority = (
+            (2 if is_private else 0)
+            if isinstance(address.ip, IPv4Address)
+            else (3 if is_private else 1)
+        )
         addresses.append((ip, priority))
 
     addresses = sorted(addresses, key=lambda v: v[1])
     log.debug("Addresses <%s>", addresses)
+
+    return addresses
     preferred_ip, priority = addresses[0]
     log.debug("Preferred IP <%s> with priority <%d>", preferred_ip, priority)
 
@@ -1194,14 +959,11 @@ def _install_software(experiment_config: Kiso, env: Environment) -> None:
         name = software.name
 
         # Locate the EntryPoint for the software `name` and load it
-        installer = utils.get_software(name)
+        cls = utils.get_software(name)
 
-        # Instantiate the installer class. The installer class to use is defined in the
-        # installer's `INSTALLER` attribute
-        obj = installer.INSTALLER(
-            config,  # Software configuration
-            console=console,  # Console object to output experiment progress
-            log=logging.getLogger(f"kiso.software.{name}"),  # Logger object to use
+        # Instantiate the installer class.
+        obj = cls(
+            config  # Software configuration
         )
         obj(env)
 
@@ -1221,14 +983,11 @@ def _install_deployed_software(experiment_config: Kiso, env: Environment) -> Non
         name = deployment.name
 
         # Locate the EntryPoint for the software `name` and load it
-        installer = utils.get_deployment(name)
+        cls = utils.get_deployment(name)
 
-        # Instantiate the installer class. The installer class to use is defined in the
-        # installer's `INSTALLER` attribute
-        obj = installer.INSTALLER(
-            config,  # Deployment configuration
-            console=console,  # Console object to output experiment progress
-            log=logging.getLogger(f"kiso.deployment.{name}"),  # Logger object to use
+        # Instantiate the installer class.
+        obj = cls(
+            config  # Deployment configuration
         )
         obj(env)
 
@@ -1338,15 +1097,13 @@ def _run_experiments(
     kind = experiment.kind
 
     # Locate the EntryPoint for the runner `kind` of experiment and load it
-    runner_cfg = utils.get_runner(kind)
+    cls = utils.get_runner(kind)
 
     # Instantiate the runner class. The runner class to use is defined in the
     # runner's `RUNNER` attribute
-    runner = runner_cfg.RUNNER(
+    runner = cls(
         experiment,
         index,
-        console=console,  # Console object to output experiment progress
-        log=logging.getLogger("kiso.experiment.pegasus"),  # Logger object to use
         variables=variables,  # Variables defined globally for the experiment
     )
 
@@ -1358,10 +1115,6 @@ def _run_experiments(
         env["labels"],  # Provisioned resources
         env["experiments"][index],  # Store to maintain the state of the experiment
     )
-
-
-def _to_snake_case(key: str) -> str:
-    return "-".join(key.split("_"))
 
 
 @validate_config

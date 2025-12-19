@@ -26,42 +26,10 @@ SCHEMA: dict = {
             "items": {"$ref": "#/$defs/location"},
         },
     },
-    "required": ["kind", "name", "description", "scripts"],
+    "required": ["kind", "name", "scripts"],
     "additionalProperties": False,
     "$defs": {
-        "script": {
-            "title": "Shell Script Schema",
-            "type": "object",
-            "properties": {
-                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
-                "executable": {
-                    "description": "The executable (shebang) to be used to run the "
-                    "script",
-                    "type": "string",
-                    "default": "/bin/bash",
-                },
-                "script": {
-                    "description": "The script to be executed",
-                    "type": "string",
-                },
-            },
-            "required": ["labels", "script"],
-            "additionalProperties": False,
-        },
-        "location": {
-            "title": "File Upload/Download Location Schema",
-            "type": "object",
-            "properties": {
-                "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
-                "src": {"description": "The src file to be copied", "type": "string"},
-                "dst": {
-                    "description": "The dst where the src should be copied too. This "
-                    "must be a directory",
-                    "type": "string",
-                },
-            },
-            "required": ["labels", "src", "dst"],
-            "additionalProperties": False,
-        },
+        "script": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/script"},
+        "location": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/location"},
     },
 }
