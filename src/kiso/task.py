@@ -1060,14 +1060,21 @@ def _copy_experiment_dir(env: Environment) -> None:
         src = Path(env["wd"])
         dst = Path(env["remote_wd"]).parent
         if vms:
-            with utils.actions(roles=vms, strategy="free") as p:
-                p.shell(
-                    "rsync -auzv -e 'ssh {{ansible_ssh_common_args}} "
-                    "{% if ansible_port is defined %}-p {{ansible_port}} {% endif %}"
-                    "{% if ansible_ssh_private_key_file is defined %}-i "
-                    "{{ansible_ssh_private_key_file}}' {% endif %}"
-                    f"{src} kiso@{{{{ansible_host}}}}:{dst}",
-                    delegate_to="localhost",
+            with utils.actions(roles=vms, strategy="free", run_as=const.KISO_USER) as p:
+                # TODO(mayani): rsync with ProxyCommand to an IPv6 bastion fails
+                # p.shell(
+                #     "rsync -auzv -e 'ssh {{ansible_ssh_common_args}} "
+                #     "{% if ansible_port is defined %}-p {{ansible_port}} {% endif %}"
+                #     "{% if ansible_ssh_private_key_file is defined %}-i "
+                #     "{{ansible_ssh_private_key_file}}' {% endif %}"
+                #     f"{src} kiso@{{{{ansible_host}}}}:{dst}",
+                #     delegate_to="localhost",
+                # )
+                p.copy(
+                    src=str(src),
+                    dest=f"{dst}/",
+                    # mode="preserve",
+                    task_name="Copy experiment dir",
                 )
         if containers:
             for container in containers:
