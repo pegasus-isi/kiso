@@ -8,6 +8,7 @@ import io
 import logging
 import shutil
 import subprocess
+import tempfile
 from collections import Counter, defaultdict
 from dataclasses import fields
 from functools import wraps
@@ -1060,32 +1061,36 @@ def _copy_experiment_dir(env: Environment) -> None:
         src = Path(env["wd"])
         dst = Path(env["remote_wd"]).parent
         if vms:
-            # macOS's rsync does not work as expected when the host
-            # has an IPv6 address and a gateway host is used in between. So we split
-            # the VMs into IPv4 and IPv6 and run the rsync command on the IPv4 VMs
-            # and run the copy command on the IPv6 VMs.
-            v4_vms, v6_vms = _split_by_ip_version(vms)
-            if v4_vms:
-                with utils.actions(roles=v4_vms, strategy="free") as p:
-                    p.shell(
-                        "rsync -auzv -e 'ssh {{ansible_ssh_common_args}} "
-                        "{% if ansible_port is defined %}-p {{ansible_port}} "
-                        "{% endif %}{% if ansible_ssh_private_key_file is defined %}-i "
-                        "{{ansible_ssh_private_key_file}}' {% endif %}"
-                        f"{src} kiso@{{{{ansible_host}}}}:{dst}",
-                        delegate_to="localhost",
-                        task_name="Copy experiment dir",
-                    )
-            if v6_vms:
-                with utils.actions(
-                    roles=v6_vms, strategy="free", run_as=const.KISO_USER
-                ) as p:
-                    p.copy(
-                        src=str(src),
-                        dest=f"{dst}/",
-                        # mode="preserve",
-                        task_name="Copy experiment dir",
-                    )
+            with utils.actions(roles=vms, strategy="free") as p:
+                # macOS's rsync does not work as expected when the host
+                # has an IPv6 address and a gateway host is used in between. So we
+                # create a temp SSH config file with the Host and HostName directives
+                # and use it to run rsync
+                tmpfile = tempfile.NamedTemporaryFile(delete=False)  # noqa: SIM115
+                p.copy(
+                    dest=f"{tmpfile.name}-{{{{ansible_host}}}}",
+                    content="""
+Host pegasusvm
+    HostName {{ansible_host}}
+""",
+                    delegate_to="localhost",
+                )
+                p.shell(
+                    f"rsync -auzv -e 'ssh -F {tmpfile.name}-{{{{ansible_host}}}} "
+                    "{{ansible_ssh_common_args}} "
+                    "{% if ansible_port is defined %}-p {{ansible_port}} "
+                    "{% endif %}{% if ansible_ssh_private_key_file is defined %}-i "
+                    "{{ansible_ssh_private_key_file}}' {% endif %}"
+                    f"{src} kiso@pegasusvm:{dst}",
+                    delegate_to="localhost",
+                    task_name="Copy experiment dir",
+                )
+                p.file(
+                    path=f"{tmpfile.name}-{{{{ansible_host}}}}",
+                    state="absent",
+                    delegate_to="localhost",
+                )
+                tmpfile.close()
         if containers:
             for container in containers:
                 edge.upload(container, src, dst, user=const.KISO_USER)
@@ -1094,25 +1099,6 @@ def _copy_experiment_dir(env: Environment) -> None:
         raise
     else:
         kiso_state["copy-experiment-directory"] = const.STATUS_OK
-
-
-def _split_by_ip_version(vms: Roles) -> tuple[list[Host], list[Host]]:
-    """Split a set of VMs into two lists, one with IPv4 VMs and one with IPv6 VMs.
-
-    :param vms: Set of VMs to split
-    :type vms: Roles
-    :return: A tuple containing the hosts IPv4 and IPv6 VMs
-    :rtype: tuple[list[Host], list[Host]]
-    """
-    v4_vms = []
-    v6_vms = []
-    for vm in vms:
-        if ip_address(vm.address).version == 4:
-            v4_vms.append(vm)
-        else:
-            v6_vms.append(vm)
-
-    return v4_vms, v6_vms
 
 
 def _run_experiments(
