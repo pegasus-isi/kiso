@@ -136,7 +136,7 @@ SCHEMA: dict = {
                     "enum": ["central-manager", "execute", "submit", "personal"],
                 },
                 "labels": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels"},
-                "config-file": {"type": "string"},
+                "config_file": {"type": "string"},
             },
             "required": ["kind", "labels"],
             "additionalProperties": False,
