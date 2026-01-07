@@ -1080,7 +1080,7 @@ Host pegasusvm
                     "{{ansible_ssh_common_args}} "
                     "{% if ansible_port is defined %}-p {{ansible_port}} "
                     "{% endif %}{% if ansible_ssh_private_key_file is defined %}-i "
-                    "{{ansible_ssh_private_key_file}}' {% endif %}"
+                    "{{ansible_ssh_private_key_file}}{% endif %}' "
                     f"{src} kiso@pegasusvm:{dst}",
                     delegate_to="localhost",
                     task_name="Copy experiment dir",
