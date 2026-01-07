@@ -76,6 +76,12 @@
       command: "condor_config_val CONFIG_ROOT"
       register: CONFIG_ROOT
 
+    - name: Create HTCondor Configuration Directory
+      file:
+        path: "{{CONFIG_ROOT.stdout}}"
+        state: directory
+        mode: 0755
+
     - name: Delete old HTCondor config files
       command: "rm -f {{CONFIG_ROOT.stdout}}/config.d/kiso-*-config-file"
 
@@ -98,6 +104,12 @@
       command: "condor_config_val SEC_PASSWORD_DIRECTORY"
       register: SEC_PASSWORD_DIRECTORY
 
+    - name: Create HTCondor Password Directory
+      file:
+        path: "{{SEC_PASSWORD_DIRECTORY.stdout}}"
+        state: directory
+        mode: 0700
+
     - name: Add HTCondor Pool Password
       copy:
         src: "{{pool_passwd_file}}"
@@ -109,6 +121,12 @@
     - name: Get HTCondor SEC_TOKEN_SYSTEM_DIRECTORY
       command: "condor_config_val SEC_TOKEN_SYSTEM_DIRECTORY"
       register: SEC_TOKEN_SYSTEM_DIRECTORY
+
+    - name: Create HTCondor Token Directory
+      file:
+        path: "{{SEC_TOKEN_SYSTEM_DIRECTORY.stdout}}"
+        state: directory
+        mode: 0700
 
     - name: Create HTCondor Pool Token
       command: "condor_token_create -key POOL -identity {{token_identity}} -file {{SEC_TOKEN_SYSTEM_DIRECTORY.stdout}}/POOL.token"
