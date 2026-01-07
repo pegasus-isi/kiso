@@ -1,3 +1,19 @@
+## v0.1.0a8 (2026-01-07)
+
+### Feat
+
+- multiple changes
+
+### Fix
+
+- use copy instead of manually running rsync as it fails with an IPv6 address
+- install acl as a common requirement
+
+### Perf
+
+- use rsync to copy the experiment dir to nodes and undo splitting for nodes into ipv4 and ipv4 address nodes
+- use copy for nodes with ipv6 vms and rsync for ipv4 vms to copy the experiment dir to the node
+
 ## v0.1.0a7 (2025-12-08)
 
 ### Feat

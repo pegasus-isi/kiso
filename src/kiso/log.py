@@ -41,7 +41,7 @@ def init_logging(level: int = logging.INFO, **kwargs: Any) -> None:  # noqa: ANN
             name = record.name
             return (
                 name.startswith("kiso")
-                or name.startswith("enoslib.infra")
+                or name.startswith("enoslib")
                 or name.startswith("fablib")
             )
 
