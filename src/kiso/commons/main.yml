@@ -49,7 +49,7 @@
           - acl
         update_cache: yes
         state: present
-      retries: 3
+      retries: 5
       delay: 5
       when: ansible_facts['distribution'] in ('Debian', 'Ubuntu')
 
