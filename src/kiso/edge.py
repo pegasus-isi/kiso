@@ -585,7 +585,7 @@ def _ch_perms_remotely(
     return None
 
 
-def _mkdir_remotely(container: ChameleonDevice, *dst: Path) -> CommandResult:
+def _mkdir_remotely(container: ChameleonDevice, dst: Path) -> CommandResult:
     """Create a directory on a Chameleon device.
 
     This function creates a directory on a Chameleon device using the ChameleonEdge
