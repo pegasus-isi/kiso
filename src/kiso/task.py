@@ -512,7 +512,7 @@ def _init_site(
             attr = "extra"
             setattr(node, attr, {})
         elif kind == "chameleon" or kind == "fabric":
-            # Used to copy this file to Chameleon VMs, so we cna use the Openstack
+            # Used to copy this file to Chameleon VMs, so we can use the Openstack
             # client to get a floating IP
             node.extra["rc_file"] = str(Path(conf.rc_file).resolve())
 
@@ -623,7 +623,7 @@ def _extend_labels(experiment_config: Kiso, labels: Roles) -> dict[str, set]:
                 node.extra.get("is_personal", False) or is_personal
             )
 
-            site = [node.extra["site"]]
+            site = ["fabric" if node.extra["kind"] == "fabric" else node.extra["site"]]
             if is_execute:
                 daemon_to_site["execute"].update(site)
             if is_submit:
