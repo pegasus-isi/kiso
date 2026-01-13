@@ -3,6 +3,7 @@
 # ruff: noqa: ARG001
 from __future__ import annotations
 
+import contextlib
 import copy
 import io
 import logging
@@ -1142,7 +1143,7 @@ def _run_experiments(
 @validate_config
 @enostask()
 @check_provisioned
-def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:
+def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:  # noqa: C901
     """Destroy the resources provisioned for the experiments.
 
     This function is responsible for tearing down and cleaning up resources
@@ -1181,6 +1182,12 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
                     result = subprocess.run([ssh_add, "-d", str(key)])  # noqa: S603
                     if result.returncode != 0:
                         log.debug("Failed to remove SSH key <%s> from ssh-agent", key)
+        elif isinstance(provider, en.ChameleonEdge):
+            import chi
+
+            for container in env["labels"]["chameleon-edge"]:
+                with contextlib.suppress(BaseException):
+                    chi.container.destroy_container(container.uuid)
 
     providers.destroy()
     if vagrant_dir.exists():
