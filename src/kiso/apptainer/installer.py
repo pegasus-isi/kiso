@@ -117,6 +117,7 @@ class ApptainerInstaller:
                         container,
                         Path(__file__).parent / "apptainer.sh",
                         "--no-dry-run",
+                        timeout=-1,
                     )
                 )
                 # To each node we add a flag to identify if Apptainer is installed on

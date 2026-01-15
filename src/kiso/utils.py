@@ -261,6 +261,7 @@ def run_script(
     *args: str,
     workdir: str | None = None,
     user: str | None = None,
+    timeout: int = const.COMMAND_TIMEOUT,
     poll_interval: int = const.POLL_INTERVAL,
     task_name: str | None = None,  # noqa: ARG001
 ) -> CommandResult:
@@ -280,6 +281,8 @@ def run_script(
     :type workdir: str | None, optional
     :param user: User to execute the script as, defaults to root
     :type user: str | None, optional
+    :param timeout: Maximum time to wait for command execution, defaults to 180
+    :type timeout: int, optional
     :param poll_interval: Interval between script execution status checks
     :type poll_interval: int, optional
     :param task_name: name for the task, defaults to None
@@ -306,6 +309,7 @@ def run_script(
             *args,
             user=user,
             workdir=workdir,
+            timeout=timeout,
             poll_interval=poll_interval,
         )
         log.debug(

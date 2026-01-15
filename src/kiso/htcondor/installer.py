@@ -446,6 +446,7 @@ class HTCondorInstaller:
                 machine,
                 Path(__file__).parent / "htcondor.sh",
                 "--no-dry-run",
+                timeout=-1,
             )
         )
 
@@ -454,6 +455,7 @@ class HTCondorInstaller:
                 machine,
                 Path(__file__).parent / "pegasus.sh",
                 "--no-dry-run",
+                timeout=-1,
             )
         )
         if results[-1].rc != 0:
