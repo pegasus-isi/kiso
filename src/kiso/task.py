@@ -920,6 +920,7 @@ def _install_commons(env: Environment) -> None:
                     "--hosts",
                     etc_hosts_content,
                     "--no-dry-run",
+                    timeout=-1,
                 )
             )
 
