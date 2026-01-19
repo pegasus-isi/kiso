@@ -97,7 +97,7 @@ tests = [
     "pytest-resource-path",
 ]
 docs = [
-    "sphinx",
+    "sphinx<9",
     "sphinx-book-theme",
     "sphinx-jsonschema",
     "sphinx_tabs",
