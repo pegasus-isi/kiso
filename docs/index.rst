@@ -5,6 +5,7 @@ Kiso: Edge to Cloud Workflows: Advancing Workflow Management in the Computing Co
    :maxdepth: 2
    :caption: Home
 
+   introduction.md
    getting-started.md
    experiment-configuration.rst
    example-experiments.md
