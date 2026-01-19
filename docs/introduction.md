@@ -1,6 +1,6 @@
 # Introduction
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/2L5kSMh25tc?si=2CqNOefwcDi5NDX8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<center><iframe width="560" height="315" src="https://www.youtube.com/embed/2L5kSMh25tc?si=2CqNOefwcDi5NDX8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></center>
 <p></p>
 
 Kiso is a framework that helps researchers run and reproduce experiments across edge, cloud, and testbed environments with minimal effort. Instead of writing custom scripts to provision resources, install software, and manage execution, users describe their experiments declaratively using simple configuration files. Kiso then handles resource provisioning, software setup, experiment execution, and result collection, allowing researchers to focus on designing and evaluating their experiments rather than managing infrastructure.
