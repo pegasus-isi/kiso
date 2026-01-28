@@ -1,3 +1,21 @@
+## v0.1.0a9 (2026-01-28)
+
+### Fix
+
+- set timeout to -1 for scripts installing software, deployments, etc
+- for chameleon edge just deleting the lease doesn't work. add code to remove the containers beforehand
+- treat all sites or fabric as the same
+- resolve_labels function failed when only two labels were passed
+- add retries and delay to apt command in commons main.yml file
+- add retries and delay to apt command in commons main.yml file
+- replace \*dst with dst in \_mkdir_remotely method
+- close the ProxyCommand in the copy experiment dir action with a single-quote after the endif as it is opended unconditionally
+- create HTCondor config, password, and token dir before creating files in them
+
+### Refactor
+
+- replace `-` in HTCondor config with `_`
+
 ## v0.1.0a8 (2026-01-07)
 
 ### Feat
