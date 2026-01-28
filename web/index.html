@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiso - Edge-to-Cloud Experimentation Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #060918;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7c3aed;
+            --accent-gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.2rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        nav.scrolled {
+            background: rgba(10, 14, 39, 0.95);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            position: relative;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: var(--accent-gradient);
+            border-radius: 12px;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            padding: 0.7rem 1.8rem;
+            background: var(--accent-gradient);
+            color: white !important;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .nav-cta::after {
+            display: none;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.5);
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 10rem 5% 6rem;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(0, 212, 255, 0.15) 0%, transparent 50%);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 80px 80px;
+            animation: gridSlide 20s linear infinite;
+        }
+
+        @keyframes gridSlide {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(80px, 80px); }
+        }
+
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-primary);
+            top: -10%;
+            left: -5%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            background: var(--accent-secondary);
+            bottom: 10%;
+            right: 10%;
+            animation-delay: 3s;
+        }
+
+        .shape:nth-child(3) {
+            width: 250px;
+            height: 250px;
+            background: var(--accent-primary);
+            top: 50%;
+            right: -5%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-30px, 20px) scale(0.9); }
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            z-index: 10;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .hero h1 {
+            font-size: 5rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.35rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 800px;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 1.1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent-gradient);
+            transition: transform 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-primary {
+            color: white;
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(0, 212, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary::before {
+            display: none;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .btn-video {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            color: var(--text-primary);
+        }
+
+        .btn-video::before {
+            display: none;
+        }
+
+        .btn-video:hover {
+            border-color: #ff0000;
+            background: rgba(255, 0, 0, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .code-demo {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 650px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-header {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot:nth-child(1) { background: #ff5f56; }
+        .code-dot:nth-child(2) { background: #ffbd2e; }
+        .code-dot:nth-child(3) { background: #27c93f; }
+
+        .code-demo code {
+            color: #93c5fd;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.9;
+            display: block;
+        }
+
+        .code-comment {
+            color: #6b7280;
+        }
+
+        .code-command {
+            color: var(--accent-primary);
+        }
+
+        section {
+            padding: 8rem 5%;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto 5rem;
+        }
+
+        .section-label {
+            display: inline-block;
+            color: var(--accent-primary);
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .section-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .about {
+            background: var(--bg-dark);
+        }
+
+        .about-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .about-text h3 {
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+        }
+
+        .about-text p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            line-height: 1.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-list {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .about-list li {
+            padding: 1rem 0 1rem 2.5rem;
+            position: relative;
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .about-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            aspect-ratio: 16/9;
+        }
+
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .workflow {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 2.5rem;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .workflow-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .workflow-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 30px 80px rgba(0, 212, 255, 0.2);
+        }
+
+        .workflow-card:hover::before {
+            opacity: 0.05;
+        }
+
+        .stage-number {
+            top: -18px;
+            left: 2.5rem;
+            width: 55px;
+            height: 55px;
+            background: var(--accent-gradient);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+            z-index: 1;
+        }
+
+        .workflow-icon {
+            font-size: 3.5rem;
+            margin: 2rem 0 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .workflow-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1.2rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .workflow-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-tag {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: var(--accent-primary);
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .features {
+            background: var(--bg-dark);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 2.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(124, 58, 237, 0.5);
+            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.2);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.8rem;
+            font-size: 2.5rem;
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3);
+        }
+
+        .feature-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+            border-top: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section p {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        footer {
+            background: var(--bg-darker);
+            padding: 4rem 5%;
+            text-align: center;
+            border-top: 1px solid var(--card-border);
+        }
+
+        footer p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #ffffff;
+        }
+
+        @media (max-width: 968px) {
+            .about-content {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .section-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav id="navbar">
+        <a href="#home" class="logo">
+            <img src="../docs/_static/assets/images/logo-kiso.png" alt="Kiso Logo" class="logo-icon">
+            <span class="logo-text">Kiso</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#workflow">How It Works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="https://kiso.readthedocs.io" target="_blank">Docs</a></li>
+            <li><a href="https://github.com/pegasus-isi/kiso" target="_blank" class="nav-cta">Get Started</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero" id="home">
+        <div class="hero-bg"></div>
+        <div class="grid-overlay"></div>
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                🚀 Reproducible Experimentation Framework
+            </div>
+            <h1>Run Experiments Anywhere<br>With Minimal Effort</h1>
+            <p class="hero-subtitle">Kiso helps researchers run and reproduce experiments across edge, cloud, and testbed environments. Define your experiments declaratively, and let Kiso handle the infrastructure complexity.</p>
+            <div class="hero-buttons">
+                <a href="#about" class="btn btn-primary">Learn More →</a>
+                <a href="https://www.youtube.com/watch?v=2L5kSMh25tc" target="_blank" class="btn btn-video">▶ Watch Introduction</a>
+                <a href="https://kiso.readthedocs.io" class="btn btn-secondary">Documentation</a>
+            </div>
+            <div class="code-demo">
+                <div class="code-header">
+                    <div class="code-dot"></div>
+                    <div class="code-dot"></div>
+                    <div class="code-dot"></div>
+                </div>
+                <code>
+                    <span class="code-comment"># Install Kiso</span><br>
+                    <span class="code-command">$ pip install kiso[all]</span><br><br>
+
+                    <span class="code-comment"># Define your experiment in YAML</span><br>
+                    <span class="code-command">$ vim experiment.yml</span><br><br>
+
+                    <span class="code-comment"># Provision resources across multiple testbeds</span><br>
+                    <span class="code-command">$ kiso up</span><br><br>
+
+                    <span class="code-comment"># Run across multiple testbeds</span><br>
+                    <span class="code-command">$ kiso run</span><br><br>
+
+                    <span class="code-comment"># Deprovision resources</span><br>
+                    <span class="code-command">$ kiso down</span>
+                </code>
+            </div>
+        </div>
+    </section>
+
+    <section class="about" id="about">
+        <div class="about-content">
+            <h3>Focus on Research, Not Infrastructure</h3>
+            <div class="about-text">
+                <h3>Focus on Research, Not Infrastructure</h3>
+                <p>Instead of writing custom scripts to provision resources, install software, and manage execution, Kiso lets you describe your experiments declaratively using simple configuration files.</p>
+                <p>Kiso handles resource provisioning, software setup, experiment execution, and result collection — allowing you to focus on designing and evaluating your experiments rather than managing infrastructure.</p>
+                <ul class="about-list">
+                    <li>Provision resources across multiple testbeds (cloud, edge, or local)</li>
+                    <li>Install and configure software stacks and workload management systems</li>
+                    <li>Deploy execution environments like workflow engines or agent runtimes</li>
+                    <li>Run experiments in a controlled and repeatable manner</li>
+                    <li>Collect results from distributed resources back to a central location</li>
+                </ul>
+            </div>
+            <div class="video-container">
+                <iframe src="https://www.youtube.com/embed/2L5kSMh25tc" allowfullscreen></iframe>
+            </div>
+        </div>
+    </section>
+
+    <section class="workflow" id="workflow">
+        <div class="section-header">
+            <div class="section-label">Lifecycle Management</div>
+            <h2 class="section-title">Complete Experiment Lifecycle</h2>
+            <p class="section-subtitle">Kiso manages every stage of your experiment with YAML-based configuration—no custom orchestration code required</p>
+        </div>
+
+        <div class="workflow-grid">
+            <div class="workflow-card">
+                <div class="stage-number">1</div>
+                <div class="workflow-icon">🏗️</div>
+                <h3>Provision Resources</h3>
+                <p>Declaratively provision computing resources across one or more supported testbeds. Kiso handles authentication, allocation, and configuration across diverse infrastructure providers.</p>
+                <div class="tech-tags">
+                    <span class="tech-tag">Chameleon</span>
+                    <span class="tech-tag">Chameleon Edge</span>
+                    <span class="tech-tag">FABRIC</span>
+                    <span class="tech-tag">Vagrant</span>
+                </div>
+            </div>
+
+            <div class="workflow-card">
+                <div class="stage-number">2</div>
+                <div class="workflow-icon">⚙️</div>
+                <h3>Install & Configure</h3>
+                <p>Automatically install and configure software stacks, workload management systems, and execution environments. Deploy containers, workflow engines, agent runtimes, and custom dependencies.</p>
+                <div class="tech-tags">
+                    <span class="tech-tag">Docker</span>
+                    <span class="tech-tag">Apptainer</span>
+                    <span class="tech-tag">Ollama</span>
+                    <span class="tech-tag">HTCondor</span>
+                    <span class="tech-tag">Pegasus</span>
+                </div>
+            </div>
+
+            <div class="workflow-card">
+                <div class="stage-number">3</div>
+                <div class="workflow-icon">🔬</div>
+                <h3>Execute & Collect</h3>
+                <p>Run experiments in a controlled, repeatable manner across distributed infrastructure. Collect results from all resources back to a central location for analysis.</p>
+                <div class="tech-tags">
+                    <span class="tech-tag">Monitoring</span>
+                    <span class="tech-tag">Result Collection</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="section-header">
+            <div class="section-label">Features</div>
+            <h2 class="section-title">Built for Reproducibility</h2>
+            <p class="section-subtitle">Everything you need to run reliable, reproducible experiments across distributed environments</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Multi-Environment</h3>
+                <p>Seamlessly run experiments across edge, and testbed environments through a unified interface. Support for major research testbeds providers.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Zero Custom Scripts</h3>
+                <p>No more writing and maintaining custom orchestration code. Define everything in YAML and let Kiso handle the complexity.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔌</div>
+                <h3>Extensible</h3>
+                <p>Plugin architecture supports custom testbeds, software installers, and experiment orchestrators to fit your specific needs.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Reliable</h3>
+                <p>Robust automated resource cleanup ensure your experiments run smoothly and don't leave resources stranded.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Centralized Results</h3>
+                <p>Collect experiment results from all distributed resources to a central location for easy analysis and sharing.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <h2>Start Your Next Experiment</h2>
+        <p>Join researchers using Kiso to simplify their edge-to-cloud experimentation workflows</p>
+        <div class="hero-buttons" style="justify-content: center;">
+            <a href="https://kiso.readthedocs.io" class="btn btn-primary">Read Documentation →</a>
+            <a href="https://github.com/pegasus-isi/kiso" class="btn btn-secondary">View on GitHub</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Kiso Project. Open Source Software.</p>
+        <p>
+            <a href="https://kiso.readthedocs.io">Documentation</a> •
+            <a href="https://github.com/pegasus-isi/kiso">GitHub</a> •
+            <a href="https://www.youtube.com/watch?v=2L5kSMh25tc">Introduction Video</a>
+        </p>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
