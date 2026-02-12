@@ -485,6 +485,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             transition: all 0.3s ease;
+            text-decoration: none;
         }
 
         .tech-tag:hover {
@@ -496,6 +497,78 @@
 
         .features {
             background: var(--bg-primary);
+        }
+
+        .examples {
+            background: var(--bg-secondary);
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .example-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            padding: 3rem;
+            transition: all 0.4s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-red);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .example-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .example-card h3 {
+            font-size: 2rem;
+            margin-bottom: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .example-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            font-size: 1.05rem;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1.5rem;
+            background: var(--text-primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .github-link:hover {
+            background: var(--accent-red);
+            transform: translateX(5px);
+        }
+
+        .github-link svg {
+            transition: transform 0.3s ease;
+        }
+
+        .github-link:hover svg {
+            transform: scale(1.1);
         }
 
         .features-grid {
@@ -642,6 +715,7 @@
             <li><a href="#about">About</a></li>
             <li><a href="#workflow">How It Works</a></li>
             <li><a href="#features">Features</a></li>
+            <li><a href="#examples">Examples</a></li>
             <li><a href="https://kiso.readthedocs.io" target="_blank">Docs</a></li>
             <li><a href="https://github.com/pegasus-isi/kiso" target="_blank" class="nav-cta">Get Started</a></li>
         </ul>
@@ -722,10 +796,10 @@
                 <h3>Provision Resources</h3>
                 <p>Declaratively provision computing resources across one or more supported testbeds. Kiso handles authentication, allocation, and configuration across diverse infrastructure providers.</p>
                 <div class="tech-tags">
-                    <span class="tech-tag">Chameleon</span>
-                    <span class="tech-tag">Chameleon Edge</span>
-                    <span class="tech-tag">FABRIC</span>
-                    <span class="tech-tag">Vagrant</span>
+                    <a href="https://chameleoncloud.org" target="_blank" class="tech-tag">Chameleon</a>
+                    <a href="https://chameleoncloud.org" target="_blank" class="tech-tag">Chameleon Edge</a>
+                    <a href="https://portal.fabric-testbed.net" target="_blank" class="tech-tag">FABRIC</a>
+                    <a href="https://developer.hashicorp.com/vagrant" target="_blank" class="tech-tag">Vagrant</a>
                 </div>
             </div>
 
@@ -735,11 +809,11 @@
                 <h3>Install & Configure</h3>
                 <p>Automatically install and configure software stacks, workload management systems, and execution environments. Deploy containers, workflow engines, agent runtimes, and custom dependencies.</p>
                 <div class="tech-tags">
-                    <span class="tech-tag">Docker</span>
-                    <span class="tech-tag">Apptainer</span>
-                    <span class="tech-tag">Ollama</span>
-                    <span class="tech-tag">HTCondor</span>
-                    <span class="tech-tag">Pegasus</span>
+                    <a href="https://www.docker.com" target="_blank" class="tech-tag">Docker</a>
+                    <a href="https://apptainer.org" target="_blank" class="tech-tag">Apptainer</a>
+                    <a href="https://ollama.com" target="_blank" class="tech-tag">Ollama</a>
+                    <a href="https://htcondor.org" target="_blank" class="tech-tag">HTCondor</a>
+                    <a href="https://pegasus.isi.edu" target="_blank" class="tech-tag">Pegasus</a>
                 </div>
             </div>
 
@@ -798,6 +872,52 @@
                 <div class="feature-icon">📊</div>
                 <h3>Centralized Results</h3>
                 <p>Automatically collect experiment results from all distributed resources to a central location for easy analysis and sharing.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="examples" id="examples">
+        <div class="section-header">
+            <div class="section-label">Use Cases</div>
+            <h2 class="section-title">Example Experiments</h2>
+            <p class="section-subtitle">Real-world research experiments powered by Kiso</p>
+        </div>
+
+        <div class="examples-grid">
+            <div class="example-card">
+                <div class="example-icon">🦠</div>
+                <h3>Plankifier</h3>
+                <p>Plankton are effective indicators of environmental change and ecosystem health in freshwater habitats, but collection of plankton data using manual microscopic methods is extremely labor-intensive and expensive. Automated plankton imaging offers a promising way forward to monitor plankton communities with high frequency and accuracy in real-time. Yet, manual annotation of millions of images proposes a serious challenge to taxonomists. Deep learning classifiers have been successfully applied here to categorize marine plankton images.</p>
+                <a href="https://github.com/pegasus-isi/kiso-plankifier-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+            </div>
+
+            <div class="example-card">
+                <div class="example-icon">🐋</div>
+                <h3>Orcasound</h3>
+                <p>This workflow is based on an open-source software and hardware project that trains itself using the audio files generated via the hydrophone sensors deployed in three locations in the state of Washington (San Juan Island, Point Bush, and Port Townsend) in order to study Orca whales in the Pacific Northwest region. This workflow uses code and ideas available in the Orcasound GitHub actions workflow and the Orca Hello real-time notification system.</p>
+                <a href="https://github.com/pegasus-isi/kiso-orcasound-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+            </div>
+
+            <div class="example-card">
+                <div class="example-icon">🔬</div>
+                <h3>COLMENA</h3>
+                <p>COLMENA is an open framework designed to simplify the development, deployment, and operation of hyper-distributed applications across the compute continuum. It enables collections of heterogeneous devices to collaborate as a decentralized swarm of agents, presenting the infrastructure as a single, unified computing platform.</p>
+                <a href="https://github.com/pegasus-isi/kiso-colmena-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
             </div>
         </div>
     </section>
