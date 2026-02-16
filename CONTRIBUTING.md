@@ -12,7 +12,7 @@ git clone https://github.com/pegasus-isi/kiso.git
 cd kiso
 
 # Install pre-commit
-pip3 install -u pre-commit
+pip3 install -U pre-commit
 
 # Install pre-commit hook
 pre-commit install
