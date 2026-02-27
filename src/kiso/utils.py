@@ -62,11 +62,13 @@ def resolve_labels(labels: Roles, label_names: list[str]) -> Roles:
         labels[label_names[0]]
         if len(label_names) == 1
         else reduce(
-            lambda a, b: labels[a] | labels[b]
-            if isinstance(a, str)
-            else a | labels[b]
-            if isinstance(b, str)
-            else b,
+            lambda a, b: (
+                labels[a] | labels[b]
+                if isinstance(a, str)
+                else a | labels[b]
+                if isinstance(b, str)
+                else b
+            ),
             label_names,
         )
     )
