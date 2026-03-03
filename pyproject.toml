@@ -117,7 +117,6 @@ version_files = [
     "pyproject.toml:version",
     "src/kiso/version.txt",
     "docs/conf.py:release",
-    "docs/getting-started.md",
 ]
 update_changelog_on_bump = true
 major_version_zero = true

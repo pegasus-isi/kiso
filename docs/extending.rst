@@ -250,7 +250,7 @@ Kiso supports adding new experiment types. The Pegasus workflow experiment is bu
 
 To create a custom experiment type, you need to create a Python class with two attributes, `schema` and `config_type`.
 Kiso will read the experiment configuration, validate it against the JSON Schema defined by the `schema` attribute. Kiso will load the configuration into the class defined by the `config_type` attribute.
-Kiso then instantiate the class and then invokes either the `check` method to check the configuration or the the `__call__` method to run the experiment.
+Kiso then instantiate the class and then invokes either the `check` method to check the configuration or the `__call__` method to run the experiment.
 
 1. The `schema` should be a Python dictionary defining your experiment configuration.
 
@@ -323,7 +323,7 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 +-------------------+----------------------------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | wd                | str                                    |         | Working directory, i.e., in which the `experiment.yml` is located.                                                                                                                                                                 |
 +-------------------+----------------------------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| remote_wd         | str                                    |         | Remote working directory, i.e., where the experiment directory is available on the provisioned resources.  is located.                                                                                                             |
+| remote_wd         | str                                    |         | Remote working directory, i.e., where the experiment directory is available on the provisioned resources.                                                                                                                          |
 +-------------------+----------------------------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | resultdir         | str                                    |         | The directory where the results from the experiment can be placed.                                                                                                                                                                 |
 +-------------------+----------------------------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -371,4 +371,4 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 Example
 ~~~~~~~
 
-The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso/workflow <https://github.com/pegasus-isi/kiso/blob/main/src/kiso/pegasus/runner.py>`_ directory of Kiso.
+The builtin Pegasus workflow experiment type is implemented using the above approach. You can see the code in `src/kiso/pegasus <https://github.com/pegasus-isi/kiso/blob/main/src/kiso/pegasus/runner.py>`_ directory of Kiso.

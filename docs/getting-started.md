@@ -66,7 +66,7 @@ $ kiso --help
 │ up           Create the resources needed to run the experiment.                                                     │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a9/ for more details.
+ Check out our docs at https://kiso.readthedocs.io for more details.
 
 $ kiso check --help
  _   __ _
@@ -85,7 +85,7 @@ $ kiso check --help
 │ --help  -h    Show this message and exit.                                                                           │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a9/ for more details.
+ Check out our docs at https://kiso.readthedocs.io for more details.
 
 $ kiso up --help
  _   __ _
@@ -106,7 +106,7 @@ $ kiso up --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at hhttps://kiso.readthedocs.io/en/v0.1.0a9/ for more details.
+ Check out our docs at https://kiso.readthedocs.io for more details.
 
 $ kiso run --help
  _   __ _
@@ -127,7 +127,7 @@ $ kiso run --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a9/ for more details.
+ Check out our docs at https://kiso.readthedocs.io for more details.
 
 $ kiso down --help
  _   __ _
@@ -147,5 +147,5 @@ $ kiso down --help
 │ --help    -h             Show this message and exit.                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- Check out our docs at https://kiso.readthedocs.io/en/v0.1.0a9/ for more details.
+ Check out our docs at https://kiso.readthedocs.io for more details.
 ```

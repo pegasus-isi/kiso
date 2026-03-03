@@ -11,8 +11,6 @@
 
 Kiso is an experiment management platform to enable the execution of experiments defined as Pegasus workflows on a variety of computing infrastructures.
 
-<!-- - [Introduction](docs/introduction.md) -->
-
 - [Getting Started](docs/getting-started.md)
 - [Experiment Configuration](docs/experiment-configuration.rst)
 

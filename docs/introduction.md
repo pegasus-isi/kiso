@@ -7,7 +7,8 @@ Kiso is a framework that helps researchers run and reproduce experiments across 
 
 ## What does Kiso do?
 
-- Kiso provides a structured way to manage the full lifecycle of an experiment:
+Kiso provides a structured way to manage the full lifecycle of an experiment:
+
 - Provision resources across one or more supported testbeds (e.g., cloud, edge, or local environments)
 - Install and configure software stacks and workload management systems
 - Deploy execution environments, such as workflow engines or agent runtimes
