@@ -1175,15 +1175,17 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
     providers = env["providers"]
     del env["providers"]
 
+    has_vagrant = hasattr(en, "Vagrant")
+    has_chameleon_edge = hasattr(en, "ChameleonEdge")
     for provider in providers.providers:
-        if isinstance(provider, en.Vagrant) and vagrant_dir.exists():
+        if has_vagrant and isinstance(provider, en.Vagrant) and vagrant_dir.exists():
             ssh_add = shutil.which("ssh-add")
             if ssh_add:
                 for key in vagrant_dir.glob("**/private_key"):
                     result = subprocess.run([ssh_add, "-d", str(key)])  # noqa: S603
                     if result.returncode != 0:
                         log.debug("Failed to remove SSH key <%s> from ssh-agent", key)
-        elif isinstance(provider, en.ChameleonEdge):
+        elif has_chameleon_edge and isinstance(provider, en.ChameleonEdge):
             import chi
 
             for container in env["labels"]["chameleon-edge"]:
@@ -1191,7 +1193,7 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
                     chi.container.destroy_container(container.uuid)
 
     providers.destroy()
-    if vagrant_dir.exists():
+    if has_vagrant and vagrant_dir.exists():
         shutil.rmtree(vagrant_dir)
-    if vagrant_file.exists():
+    if has_vagrant and vagrant_file.exists():
         vagrant_file.unlink()
