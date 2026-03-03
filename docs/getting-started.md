@@ -39,13 +39,12 @@ $ pip3 install kiso[chameleon]
 
 - An account on `FABRIC`.
 - A project on `FABRIC`.
+- Getting started with `FABRIC` is [here](https://learn.fabric-testbed.net/article-categories/getting-started/).
 - Install `FABRIC` dependencies needed by `Kiso`.
 
 ```sh
 $ pip3 install kiso[fabric]
 ```
-
-Not yet implemented.
 
 ### Usage
 
