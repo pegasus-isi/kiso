@@ -77,6 +77,7 @@ class ShellRunner:
         self.experiment = experiment
         self.name = experiment.name
         self.scripts = experiment.scripts
+        self.inputs = experiment.inputs or []
         self.outputs = experiment.outputs or []
         self.poll_interval = const.POLL_INTERVAL
         self.timeout = const.WORKFLOW_TIMEOUT
@@ -162,8 +163,85 @@ class ShellRunner:
         self.labels = labels
         self.env = env
 
+        self._copy_inputs()
         self._run_scripts()
         self._fetch_outputs()
+
+    def _copy_inputs(self) -> None:
+        """Copy input files to specified destinations across virtual machines and containers.
+
+        Iterates through input locations defined in the experiment configuration, resolving
+        labels and copying files to their destination. Supports copying to both virtual
+        machines and containers while tracking the status of each copy operation.
+        """  # noqa: E501
+        name = self.name
+        inputs = self.inputs
+        if not inputs:
+            return
+
+        log.debug("Copy inputs to the destination for <%s:%d>", name, self.index)
+        console.print(rf"\[{name}] Copying inputs to the destination")
+
+        self.env.setdefault("copy-input", {})
+        results = []
+        for instance, location in enumerate(inputs):
+            result = self._copy_input(instance, location)
+            results.append((instance, location, result))
+
+        display.inputs(console, results)
+
+    def _copy_input(
+        self, instance: int, input: Location
+    ) -> list[CommandResult | CustomCommandResult]:
+        """Copy input file to specified destination on virtual machines and containers.
+
+        Resolving labels and copying files to their destination. Supports copying to
+        both virtual machines and containers while tracking the status of each copy
+        operation.
+
+        :param index: The overall experiment index
+        :type index: int
+        :param input: Input file configuration dictionary
+        :type input: dict
+        :return: List of CommandResult or CustomCommandResult objects
+        :rtype: list[CommandResult | CustomCommandResult]
+        """
+        results: list[CommandResult | CustomCommandResult] = []
+        labels = self.labels
+        _labels = utils.resolve_labels(labels, input.labels)
+        vms, containers = utils.split_labels(_labels, labels)
+        src = Path(input.src)
+        dst = Path(input.dst)
+
+        kiso_state_key = "copy-input"
+        with experiment_state(self.env, kiso_state_key, instance) as state:
+            if state.status == const.STATUS_OK:
+                return results
+
+            if not src.exists():
+                log.debug("Input file <%s> does not exist, skipping copy", src)
+                return results
+            if vms:
+                with utils.actions(
+                    roles=vms,
+                    run_as=const.KISO_USER,
+                    on_error_continue=True,
+                    strategy="free",
+                ) as p:
+                    p.copy(
+                        src=str(src),
+                        dest=str(dst),
+                        mode="preserve",
+                        task_name=f"Copy input file {instance}",
+                    )
+                results.extend(p.results)
+            if containers:
+                for container in containers:
+                    results.append(
+                        edge.upload(container, src, dst, user=const.KISO_USER)
+                    )
+
+        return results
 
     def _run_scripts(self) -> None:
         """Run scripts for an experiment across specified labels.

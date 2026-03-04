@@ -26,4 +26,7 @@ class ShellConfiguration:
     description: Optional[str] = None
 
     #:
+    inputs: Optional[list[Location]] = None
+
+    #:
     outputs: Optional[list[Location]] = None

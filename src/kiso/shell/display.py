@@ -16,6 +16,13 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def inputs(
+    console: Console, results: list[CommandResult | CustomCommandResult]
+) -> None:
+    """Display status of moving inputs the provisioned nodes."""
+    _transfers(console, results, "Input")
+
+
 def scripts(
     console: Console, results: list[CommandResult | CustomCommandResult]
 ) -> None:

@@ -14,6 +14,11 @@ SCHEMA: dict = {
             "description": "A description name for the experiment",
             "type": "string",
         },
+        "inputs": {
+            "description": "Define all input files to be copied to the remote machine",
+            "type": "array",
+            "items": {"$ref": "#/$defs/location"},
+        },
         "scripts": {
             "description": "Define all scripts to be executed on the remote machine",
             "type": "array",
