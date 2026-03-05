@@ -240,13 +240,13 @@ def get_software(name: str) -> EntryPoint:
 
 
 def get_deployment(name: str) -> EntryPoint:
-    """Retrieve a specific software installer entry point by its name.
+    """Retrieve a specific deployment installer entry point by its name.
 
     Searches for and returns an entry point from the "kiso.deployment" group matching the specified name.
 
-    :param name: The name of the software installer entry point to retrieve
+    :param name: The name of the deployment installer entry point to retrieve
     :type name: str
-    :return: The matching software entry point
+    :return: The matching deployment entry point
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given name is found
     """  # noqa: E501
@@ -289,7 +289,7 @@ def run_script(
     :type poll_interval: int, optional
     :param task_name: name for the task, defaults to None
     :type task_name: str | None, optional
-    :return: _description_
+    :return: CommandResult from executing the script on the container
     :rtype: CommandResult
     """
     workdir = shlex.quote(str(utils.expanduser(container, workdir or const.TMP_DIR)))
@@ -355,24 +355,32 @@ def _get_single(group: str, name: str) -> EntryPoint:
 
 
 class experiment_state(ContextDecorator):
-    """kiso_state _summary_.
+    """Context manager and decorator for tracking the state of an experiment step.
 
-    _extended_summary_
+    Stores a status value in a nested environment dictionary under the provided
+    key path. On entry the key is initialised to ``STATUS_STARTED`` (unless it
+    already has a value). On exit the key is updated to ``STATUS_OK`` or
+    ``STATUS_FAILED`` depending on whether an exception was raised.
 
-    :param ContextDecorator: _description_
-    :type ContextDecorator: _type_
+    Can be used either as a ``with`` block or as a function decorator.
     """
 
     def __init__(
         self, env: Environment, *args: str | int, on_error_continue: bool = True
     ) -> None:
-        """__init__ _summary_.
+        """Initialise the context manager.
 
-        _extended_summary_
+        Traverses ``env`` using all but the last element of ``args`` as nested
+        keys, creating intermediate dicts as needed. The last element of
+        ``args`` is used as the state key on enter/exit.
 
-        :param env: _description_
+        :param env: The EnOSlib task environment used to persist step state
         :type env: Environment
-        :param on_error_continue: _description_, defaults to True
+        :param args: Key path into ``env``; intermediate keys are created
+            automatically, the final key stores the status value
+        :type args: str | int
+        :param on_error_continue: When ``True`` exceptions are suppressed on
+            exit (default). Set to ``False`` to let exceptions propagate.
         :type on_error_continue: bool, optional
         """
         self.env = env
@@ -390,11 +398,13 @@ class experiment_state(ContextDecorator):
             self.env = self.env[arg]
 
     def __enter__(self) -> experiment_state:
-        """__enter__ _summary_.
+        """Enter the context, initialising the state key to ``STATUS_STARTED``.
 
-        _extended_summary_
+        If the key already exists in the environment its current value is
+        preserved in ``self.status`` so callers can detect a previously
+        successful run and skip re-execution.
 
-        :return: _description_
+        :return: This ``experiment_state`` instance
         :rtype: experiment_state
         """
         self.status = self.env.setdefault(self.arg, const.STATUS_STARTED)
@@ -406,17 +416,20 @@ class experiment_state(ContextDecorator):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> bool | None:
-        """__exit__ _summary_.
+        """Exit the context, set the final status, and optionally suppress exceptions.
 
-        _extended_summary_
+        Sets the state key to ``STATUS_OK`` when no exception occurred, or
+        ``STATUS_FAILED`` when an exception was raised. Returns ``True`` to
+        suppress the exception when ``on_error_continue`` is ``True``.
 
-        :param exc_type: _description_
+        :param exc_type: Exception type, or ``None`` if no exception was raised
         :type exc_type: type | None
-        :param exc_val: _description_
+        :param exc_val: Exception instance, or ``None`` if no exception was raised
         :type exc_val: BaseException | None
-        :param exc_tb: _description_
+        :param exc_tb: Traceback, or ``None`` if no exception was raised
         :type exc_tb: TracebackType | None
-        :return: _description_
+        :return: ``True`` to suppress exceptions when ``on_error_continue`` is
+            ``True``, otherwise ``None`` to propagate them
         :rtype: bool | None
         """
         self.status = self.env[self.arg] = (

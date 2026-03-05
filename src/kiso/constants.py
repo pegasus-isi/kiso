@@ -11,7 +11,7 @@ MAX_PROCESSES: int = 5
 #: Default root user.
 ROOT_USER: str = "root"
 
-#: Default root user.
+#: Default temporary directory.
 TMP_DIR: str = "/tmp"  # noqa: S108
 
 #: Default Kiso user.

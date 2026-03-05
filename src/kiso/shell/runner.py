@@ -39,9 +39,10 @@ log = logging.getLogger("kiso.experiment.shell")
 
 
 class ShellRunner:
-    """_summary_.
+    """Runner that executes shell scripts directly on provisioned infrastructure.
 
-    _extended_summary_
+    Handles input staging, sequential script execution, and result fetching
+    for a single shell experiment entry in the Kiso configuration.
     """
 
     #:
@@ -59,16 +60,15 @@ class ShellRunner:
         index: int,
         variables: dict[str, str | int | float] | None = None,
     ) -> None:
-        """__init__ _summary_.
+        """Initialise the runner from a shell experiment configuration entry.
 
-        _extended_summary_
-
-        :param experiment: Experiment configuration
-        :type experiment: PegasusWorkflow
-        :param index: Experiment index
+        :param experiment: Shell experiment configuration
+        :type experiment: ShellConfiguration
+        :param index: Zero-based position of this experiment in the experiments list
         :type index: int
-        :param variables: Globally defined variables, defaults to None
-        :type variables: dict[str, str  |  int  |  float] | None, optional
+        :param variables: Globally defined variables to merge with per-experiment
+            variables, defaults to None
+        :type variables: dict[str, str | int | float] | None, optional
         """
         self.index = index
         self.variables = copy.deepcopy(variables or {})
@@ -83,11 +83,14 @@ class ShellRunner:
         self.timeout = const.WORKFLOW_TIMEOUT
 
     def check(self, config: Kiso, label_to_machines: Roles) -> None:
-        """Check  summary_.
+        """Validate the shell experiment configuration against the overall Kiso config.
 
-        _extended_summary_
+        Verifies that all labels referenced in the experiment's scripts and
+        outputs are defined in the sites section.
 
-        :param label_to_machines: _description_
+        :param config: The complete Kiso experiment configuration
+        :type config: Kiso
+        :param label_to_machines: Mapping of defined labels to their machine sets
         :type label_to_machines: Roles
         """
         self._check_undefined_labels(config, label_to_machines)
@@ -142,19 +145,17 @@ class ShellRunner:
     def __call__(
         self, wd: str, remote_wd: str, resultdir: str, labels: Roles, env: Environment
     ) -> None:
-        """__call__ _summary_.
+        """Execute the shell experiment: copy inputs, run scripts, fetch outputs.
 
-        _extended_summary_
-
-        :param wd: Experiment working directory
+        :param wd: Local experiment working directory
         :type wd: str
-        :param remote_wd: Remote experiment working directory
+        :param remote_wd: Remote working directory on provisioned resources
         :type remote_wd: str
-        :param resultdir: Results directory
+        :param resultdir: Local directory where experiment results are collected
         :type resultdir: str
-        :param labels: All provisioned resources
+        :param labels: All provisioned resources keyed by label
         :type labels: Roles
-        :param env: Environment context
+        :param env: EnOSlib task environment used to persist step state
         :type env: Environment
         """
         self.wd = wd
@@ -199,10 +200,10 @@ class ShellRunner:
         both virtual machines and containers while tracking the status of each copy
         operation.
 
-        :param index: The overall experiment index
-        :type index: int
-        :param input: Input file configuration dictionary
-        :type input: dict
+        :param instance: Zero-based index of this input in the inputs list
+        :type instance: int
+        :param input: Input file location configuration
+        :type input: Location
         :return: List of CommandResult or CustomCommandResult objects
         :rtype: list[CommandResult | CustomCommandResult]
         """
@@ -277,12 +278,10 @@ class ShellRunner:
         machines and containers. Handles script preparation, copying, and execution
         while tracking the status of each script run.
 
-        :param instance: The specific instance number of the setup_script
-        :type index: int
-        :param index: The overall experiment index
-        :type index: int
-        :param setup_script: Configuration dictionary containing setup_script details
-        :type setup_script: dict
+        :param instance: Zero-based index of this script in the scripts list
+        :type instance: int
+        :param setup_script: Script configuration (labels, executable, and content)
+        :type setup_script: Script
         :return: List of CommandResult or CustomCommandResult objects
         :rtype: list[CommandResult | CustomCommandResult]
         """
@@ -365,14 +364,10 @@ class ShellRunner:
         Resolves target labels, and fetches output files from VMs and containers to a
         local destination directory.
 
-        :param instance: Output instance index
+        :param instance: Zero-based index of this output in the outputs list
         :type instance: int
-        :param index: Experiment index in the environment configuration
-        :type index: int
-        :param output: Output file configuration dictionary
-        :type output: dict
-        :param env: Global environment configuration
-        :type env: Environment
+        :param output: Output file location configuration
+        :type output: Location
         :return: List of CommandResult or CustomCommandResult objects
         :rtype: list[CommandResult | CustomCommandResult]
         """

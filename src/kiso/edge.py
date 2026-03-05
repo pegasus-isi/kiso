@@ -121,7 +121,7 @@ def download(
     """
     status = CommandResult(
         container.address,
-        "upload",
+        "download",
         const.STATUS_OK,
         {"stdout": "", "stderr": "", "rc": 0},
     )

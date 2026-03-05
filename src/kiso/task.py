@@ -311,7 +311,7 @@ def _check_deployed_software(
 def _check_experiments(
     experiment_config: Kiso, label_to_machines: dict[str, set]
 ) -> None:
-    """Check software deployment configuration."""
+    """Check the experiment configurations defined in the experiment config."""
     experiments = experiment_config.experiments
     if experiments is None:
         return
@@ -532,11 +532,14 @@ def _init_site(
 
 
 def _deduplicate_hosts(labels: Roles) -> None:
-    """Deduplicate_hosts _summary_.
+    """Deduplicate host objects across label groups to a single canonical instance.
 
-    _extended_summary_
+    When a host appears in multiple label groups it may be represented by
+    different Python objects. This function replaces duplicate objects with the
+    first-seen canonical instance so that identity comparisons across groups
+    remain consistent.
 
-    :param labels: _description_
+    :param labels: Label-to-host mapping to deduplicate in place
     :type labels: Roles
     """
     dedup = {}

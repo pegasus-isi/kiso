@@ -47,9 +47,11 @@ console = Console()
 
 
 class PegasusRunner:
-    """_summary_.
+    """Runner that executes a Pegasus workflow on provisioned infrastructure.
 
-    _extended_summary_
+    Handles setup script execution, input staging, workflow submission,
+    progress monitoring, post-processing, and result fetching for a single
+    Pegasus experiment entry in the Kiso configuration.
     """
 
     #:
@@ -67,21 +69,15 @@ class PegasusRunner:
         index: int,
         variables: dict[str, str | int | float] | None = None,
     ) -> None:
-        """__init__ _summary_.
+        """Initialise the runner from a Pegasus experiment configuration entry.
 
-        _extended_summary_
-
-        :param experiment: Experiment configuration
-        :type experiment: PegasusWorkflow
-        :param index: Experiment index
+        :param experiment: Pegasus experiment configuration
+        :type experiment: PegasusConfiguration
+        :param index: Zero-based position of this experiment in the experiments list
         :type index: int
-        :param console: Rich console object to output experiment progress,
-        defaults to None
-        :type console: Console | None, optional
-        :param log: Logger to use, defaults to None
-        :type log: logging.Logger | None, optional
-        :param variables: Globally defined variables, defaults to None
-        :type variables: dict[str, str  |  int  |  float] | None, optional
+        :param variables: Globally defined variables to merge with per-experiment
+            variables, defaults to None
+        :type variables: dict[str, str | int | float] | None, optional
         """
         self.index = index
         self.variables = copy.deepcopy(variables or {})
@@ -102,11 +98,14 @@ class PegasusRunner:
         self.timeout = experiment.timeout or const.WORKFLOW_TIMEOUT
 
     def check(self, config: Kiso, label_to_machines: Roles) -> None:
-        """Check  summary_.
+        """Validate the Pegasus experiment configuration against the Kiso config.
 
-        _extended_summary_
+        Runs all pre-flight checks: verifies submit node labels, validates that
+        all referenced labels are defined, and confirms all input files exist.
 
-        :param label_to_machines: _description_
+        :param config: The complete Kiso experiment configuration
+        :type config: Kiso
+        :param label_to_machines: Mapping of defined labels to their machine sets
         :type label_to_machines: Roles
         """
         if config.deployment and config.deployment.htcondor:
@@ -128,15 +127,18 @@ class PegasusRunner:
     def _check_submit_labels_are_submit_nodes(
         self, experiment_config: Kiso, label_to_machines: dict[str, set]
     ) -> None:
-        """Check for missing input files in experiment configurations.
+        """Ensure each experiment's submit_node_labels map to HTCondor submit nodes.
 
-        Validates the existence of input files specified in experiment configurations.
-        Raises a ValueError with details of any missing input files and their associated
-        experiments.
+        Collects all labels that are configured as HTCondor submit or personal
+        nodes and verifies that each Pegasus experiment's ``submit_node_labels``
+        intersect with those nodes.
 
-        :param experiment_config: Configuration dictionary containing experiment details
+        :param experiment_config: The complete Kiso experiment configuration
         :type experiment_config: Kiso
-        :raises ValueError: If any specified input files do not exist
+        :param label_to_machines: Mapping of defined labels to their machine sets
+        :type label_to_machines: dict[str, set]
+        :raises ValueError: If an experiment's submit_node_labels do not map to
+            any configured HTCondor submit node
         """
         submit_node_labels = set()
         submit_nodes = set()

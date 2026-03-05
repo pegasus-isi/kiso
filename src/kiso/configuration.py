@@ -16,16 +16,19 @@ with contextlib.suppress(ImportError):
 
 
 def _get_experiment_kinds() -> _SpecialForm:
+    """Build a Union type of all registered experiment configuration types."""
     kinds = _get_kinds(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP)
     return Union[tuple(kind[1] for kind in kinds)]
 
 
 def _get_software_type() -> type:
+    """Dynamically create a dataclass with optional fields for each registered software."""  # noqa: E501
     kinds = _get_kinds(const.KISO_SOFTWARE_ENTRY_POINT_GROUP)
     return make_dataclass("Software", [(kind[0], Optional[kind[1]]) for kind in kinds])
 
 
 def _get_deployment_type() -> type:
+    """Dynamically create a dataclass with optional fields for each registered deployment."""  # noqa: E501
     kinds = _get_kinds(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP)
     return make_dataclass(
         "Deployment", [(kind[0], Optional[kind[1]]) for kind in kinds]
@@ -33,6 +36,13 @@ def _get_deployment_type() -> type:
 
 
 def _get_kinds(kind: str) -> set:
+    """Retrieve all entry point names and their config types for a given group.
+
+    :param kind: The entry point group name to query
+    :type kind: str
+    :return: A set of (name, config_type) tuples for all registered entry points
+    :rtype: set
+    """
     all_eps: dict | EntryPoints = entry_points()
     if isinstance(all_eps, dict):
         all_eps = all_eps.get(kind, [])
