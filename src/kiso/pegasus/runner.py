@@ -875,7 +875,7 @@ class PegasusRunner:
 
             submit_dir = workflow_state[1]
 
-        return Path(submit_dir)
+        return Path(submit_dir.strip())
 
     def _wait_for_workflow(self, instance: int) -> None:
         """Wait for a Pegasus workflow to complete for a specific experiment instance.
