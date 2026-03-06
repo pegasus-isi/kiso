@@ -1,6 +1,6 @@
 # Example Experiments
 
-- [Agentic](https://github.com/pegasus-isi/kiso-agentic-experiment):
+- [Pydantic Agent](https://github.com/pegasus-isi/kiso-agentic-experiment):
   The experiment is a proof-of-concept demonstrating how to run an AI agent workload on provisioned infrastructure using Kiso. The experiment provisions a virtual machine (via Vagrant/VirtualBox or optionally FABRIC testbed), installs
   Ollama to serve a local open-source LLM, and then runs a small Python agent using Pydantic that queries the model for structured output. The agent
   itself is intentionally minimal — it asks where the 2012 Olympics were held and parses the response into a typed CityLocation object — serving as a template for running more
