@@ -6,6 +6,7 @@ import itertools
 import logging
 import re
 from collections import defaultdict
+from ipaddress import ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -363,8 +364,11 @@ class HTCondorInstaller:
         :rtype: tuple[list[str], dict[str, str]]
         """
         is_public_ip_required = env["is_public_ip_required"]
+        is_ipv4 = condor_host_ip is not None and ip_address(condor_host_ip).version == 4
 
         htcondor_config = [
+            f"ENABLE_IPV4 = {'True' if is_ipv4 else 'False'}",
+            f"ENABLE_IPV6 = {'False' if is_ipv4 else 'True'}",
             f"CONDOR_HOST = {condor_host_ip}",
             f"TRUST_DOMAIN = {const.TRUST_DOMAIN}",
         ]
