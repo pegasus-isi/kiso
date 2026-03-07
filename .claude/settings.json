@@ -8,6 +8,7 @@
       "Bash(pre-commit:*)",
       "Bash(ruff:*)",
       "Bash(mypy:*)",
+      "Bash(pytest:*)",
       "Bash(tox:*)"
     ]
   },
