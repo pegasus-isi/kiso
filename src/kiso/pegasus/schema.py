@@ -25,11 +25,6 @@ SCHEMA: dict = {
             "description": "A script which execute teh experiment",
             "type": "string",
         },
-        "args": {
-            "description": "A list of arguments to be passed to the main script",
-            "type": "array",
-            "items": {"type": "string"},
-        },
         "poll_interval": {
             "description": "Checks the status of the experiment every poll_interval "
             "seconds",

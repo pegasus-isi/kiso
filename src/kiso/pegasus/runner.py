@@ -88,7 +88,6 @@ class PegasusRunner:
         self.main = experiment.main
         self.submit_node_labels = experiment.submit_node_labels
         self.variables.update(experiment.variables or {})
-        self.args = experiment.args or []
         self.setup = experiment.setup or []
         self.inputs = experiment.inputs or []
         self.post_scripts = experiment.post_scripts or []
@@ -683,7 +682,6 @@ class PegasusRunner:
         index = self.index
         name = self.name
         main = self.main
-        args = self.args
         vms = self.vms
         containers = self.containers
         bash = "/bin/bash"
@@ -715,7 +713,7 @@ class PegasusRunner:
                         task_name="Copy main script",
                     )
                     p.shell(
-                        f"{bash} {dst} {' '.join([shlex.quote(str(_)) for _ in args])}",
+                        f"{bash} {dst}",
                         chdir=str(dst.parent),
                         task_name="Generate workflow",
                     )
@@ -726,7 +724,6 @@ class PegasusRunner:
                 status = utils.run_script(
                     container,
                     Path(script.name),
-                    *args,
                     user=const.KISO_USER,
                     workdir=str(dst.parent),
                 )

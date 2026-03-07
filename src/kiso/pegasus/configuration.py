@@ -33,9 +33,6 @@ class PegasusConfiguration:
     description: Optional[str] = None
 
     #:
-    args: Optional[list[Union[str, int, float]]] = None
-
-    #:
     setup: Optional[list[Script]] = None
 
     #:
