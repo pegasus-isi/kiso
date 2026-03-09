@@ -1,10 +1,10 @@
 """Objects to represent Kiso Ollama software configuration."""
 
-# ruff: noqa: UP045
+# ruff: noqa: UP007, UP045
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
@@ -18,4 +18,4 @@ class Ollama:
     models: list[str]
 
     #:
-    environment: Optional[dict[str, str]]
+    environment: Optional[dict[str, Union[str, int, float]]]

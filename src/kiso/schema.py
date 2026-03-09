@@ -35,7 +35,6 @@ COMMONS_SCHEMA: dict = {
                 "^[a-zA-Z0-9_]+$": {
                     "oneOf": [
                         {"type": "string"},
-                        {"type": "integer"},
                         {"type": "number"},
                     ]
                 },

@@ -207,15 +207,15 @@ Example
           - large-model
         models:
           - gpt-oss:20b
-        variables:
-          - OLLAMA_MAX_QUEUE: 512
+        environment:
+          OLLAMA_MAX_QUEUE: 512
 
       - labels:
           - small-model
         models:
           - qwen3.5:2b
-        variables:
-          - OLLAMA_CONTEXT_LENGTH: 8192
+        environment:
+          OLLAMA_CONTEXT_LENGTH: 8192
 
 .. hint::
 
