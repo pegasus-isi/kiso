@@ -7,6 +7,12 @@
 - An allocation on `Chameleon Cloud` and/or `FABRIC`.
 - `Vagrant` and `VirtualBox`.
 
+```{eval-rst}
+.. hint::
+
+    Starting a new experiment? Check out our [template](https://github.com/pegasus-isi/kiso-experiment-template) for a quick start.
+```
+
 ## Installation
 
 ```sh
