@@ -917,7 +917,7 @@ def _install_commons(env: Environment) -> None:
     if containers:
         for container in containers:
             results.append(
-                utils.run_script(
+                edge.run_script(
                     container,
                     Path(__file__).parent / "commons/init.sh",
                     "--hosts",

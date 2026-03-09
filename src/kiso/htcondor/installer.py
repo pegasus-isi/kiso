@@ -446,7 +446,7 @@ class HTCondorInstaller:
         """
         results = []
         results.append(
-            utils.run_script(
+            edge.run_script(
                 machine,
                 Path(__file__).parent / "htcondor.sh",
                 "--no-dry-run",
@@ -455,7 +455,7 @@ class HTCondorInstaller:
         )
 
         results.append(
-            utils.run_script(
+            edge.run_script(
                 machine,
                 Path(__file__).parent / "pegasus.sh",
                 "--no-dry-run",

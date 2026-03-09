@@ -11,7 +11,7 @@ from rich.console import Console
 from .configuration import Ollama
 from .schema import SCHEMA
 
-from kiso import display, utils
+from kiso import display, edge, utils
 
 if TYPE_CHECKING:
     from enoslib.objects import Roles
@@ -124,7 +124,7 @@ class OllamaInstaller:
             if containers:
                 for container in containers:
                     results.append(
-                        utils.run_script(
+                        edge.run_script(
                             container,
                             Path(__file__).parent / "ollama.sh",
                             "--no-dry-run",

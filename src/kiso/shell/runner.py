@@ -324,7 +324,7 @@ class ShellRunner:
             if containers:
                 for container in containers:
                     results.append(
-                        utils.run_script(
+                        edge.run_script(
                             container,
                             Path(script.name),
                             user=const.KISO_USER,

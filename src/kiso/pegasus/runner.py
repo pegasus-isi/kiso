@@ -463,7 +463,7 @@ class PegasusRunner:
             if containers:
                 for container in containers:
                     results.append(
-                        utils.run_script(
+                        edge.run_script(
                             container,
                             Path(script.name),
                             user=const.KISO_USER,
@@ -552,7 +552,7 @@ class PegasusRunner:
             if containers:
                 for container in containers:
                     results.append(
-                        utils.run_script(
+                        edge.run_script(
                             container,
                             Path(script.name),
                             user=const.KISO_USER,
@@ -721,7 +721,7 @@ class PegasusRunner:
                 submit_dir = self._get_submit_dir(p.results[1], vm, ts)
             elif containers:
                 container = containers[0]
-                status = utils.run_script(
+                status = edge.run_script(
                     container,
                     Path(script.name),
                     user=const.KISO_USER,

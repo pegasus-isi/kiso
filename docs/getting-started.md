@@ -44,6 +44,15 @@ $ pip3 install kiso[chameleon]
 
 ```sh
 $ pip3 install kiso[fabric]
+
+# On macOS
+$ brew install rsync
+```
+
+```{eval-rst}
+.. caution::
+
+    Some FABRIC sites assign IPv6 addresses as the management IP. macOS' `rsync` implementation fails connecting to these IPv6 address via jump hosts. To fix this, install `rsync` from Homebrew.
 ```
 
 ### Usage

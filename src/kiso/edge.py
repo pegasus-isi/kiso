@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import shlex
+import tempfile
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -637,6 +638,108 @@ def _cp_remotely(container: ChameleonDevice, src: Path, dst: Path) -> CommandRes
     """
     cmd = f"cp {shlex.quote(str(src))} {shlex.quote(str(dst))}"
     return _execute(container, cmd)
+
+
+def run_script(
+    container: ChameleonDevice,
+    script: Path,
+    *args: str,
+    workdir: str | None = None,
+    user: str | None = None,
+    timeout: int = const.COMMAND_TIMEOUT,
+    poll_interval: int = const.POLL_INTERVAL,
+    task_name: str | None = None,  # noqa: ARG001
+) -> CommandResult:
+    """Run a script on a container with specified parameters.
+
+    Uploads a script to a container, sets appropriate permissions, executes it, and
+    handles cleanup.
+
+    :param container: The target container device for script execution
+    :type container: ChameleonDevice
+    :param script: Path to the script to be executed
+    :type script: Path
+    :param args: Optional additional arguments to pass to the script
+    :type args: str
+    :param workdir: Working directory for script execution, defaults to system
+    temporary directory
+    :type workdir: str | None, optional
+    :param user: User to execute the script as, defaults to root
+    :type user: str | None, optional
+    :param timeout: Maximum time to wait for command execution, defaults to 180
+    :type timeout: int, optional
+    :param poll_interval: Interval between script execution status checks
+    :type poll_interval: int, optional
+    :param task_name: name for the task, defaults to None
+    :type task_name: str | None, optional
+    :return: CommandResult from executing the script on the container
+    :rtype: CommandResult
+    """
+    workdir = shlex.quote(str(expanduser(container, workdir or const.TMP_DIR)))
+
+    with (
+        tempfile.NamedTemporaryFile(mode="w") as file,
+        script.open() as script_file,
+    ):
+        file.write(script_file.read())
+        file.seek(0)
+
+        remote_script = f"{workdir}/{Path(file.name).name}"
+        _upload_file(container, Path(file.name), Path(workdir))
+        _ch_perms_remotely(container, Path(remote_script), user=user, perms="+x")
+
+        status = execute(
+            container,
+            remote_script,
+            *args,
+            user=user,
+            workdir=workdir,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
+        log.debug(
+            "Script <%s> executed on container <%s>, status <%d> <%s> <%s>",
+            script,
+            container.address,
+            status.rc,
+            status.stdout,
+            status.stderr,
+        )
+
+        _rm_remotely(container, Path(remote_script))
+        return status
+
+
+def expanduser(container: ChameleonDevice, path: str | Path) -> str | Path:
+    """Expand a user's home directory path within a container.
+
+    Resolves paths starting with '~' by executing a shell command in the given container
+    to determine the actual home directory path.
+
+    :param container: The Chameleon device (container) to execute the path expansion in
+    :type container: ChameleonDevice
+    :param path: The path to expand, which may start with '~'
+    :type path: str | Path
+    :return: The fully resolved path, maintaining the original input type (str or Path)
+    :rtype: str | Path
+    :raises: Logs an error if home directory expansion fails, but continues with
+    original path
+    """
+    path_s = str(path)
+    if path_s[0] != "~":
+        return path
+
+    path_p = Path(path)
+
+    expand_user = _execute(container, f"echo {path_p.parts[0]}")
+    if expand_user.rc == 0:
+        expand_user = expand_user.stdout
+    else:
+        log.error("Can't expand user <%s>", path_p.parts[0])
+        expand_user = path_p.parts[0]
+
+    resolved_path = Path(expand_user) / path_p.relative_to(path_p.parts[0])
+    return resolved_path if isinstance(path, Path) else str(resolved_path)
 
 
 def _execute(
