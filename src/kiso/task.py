@@ -207,6 +207,7 @@ def check(experiment_config: Kiso, **kwargs: dict) -> None:
     log.debug("Check EnOSlib")
     en.MOTD = en.INFO = ""
     en.check(platform_filter=["Vagrant", "Fabric", "Chameleon", "ChameleonEdge"])
+    _show_rysnc_warning(experiment_config.sites)
 
 
 def _get_defined_machines(experiment_config: Kiso) -> Roles:
