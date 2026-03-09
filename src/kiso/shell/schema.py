@@ -10,6 +10,7 @@ SCHEMA: dict = {
             "description": "A suitable name for the experiment",
             "type": "string",
         },
+        "variables": {"$ref": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/variables"},
         "description": {
             "description": "A description name for the experiment",
             "type": "string",

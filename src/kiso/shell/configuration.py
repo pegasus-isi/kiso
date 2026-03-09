@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, Union
 
 from kiso.objects import Location, Script  # noqa: TC001
 
@@ -21,6 +21,9 @@ class ShellConfiguration:
 
     #:
     scripts: list[Script]
+
+    #:
+    variables: dict[str, Union[str, int, float]] = field(default_factory=dict)
 
     #:
     description: Optional[str] = None
