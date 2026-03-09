@@ -185,7 +185,7 @@ EOF
                     echo
                     echo "Installing EPEL"
                     epel_version=$VERSION_ID
-                    $sh_c "${repo_cmd} install findutils"
+                    $sh_c "${repo_cmd} install findutils zstd"
                     $sh_c "curl -fsSL https://ollama.com/install.sh | sudo sh"
                     ;;
                 suse|opensuse-leap)
