@@ -368,6 +368,7 @@ def up(
     _install_commons(env)
     _install_software(experiment_config, env)
     _install_deployed_software(experiment_config, env)
+    _show_rysnc_warning(experiment_config.sites)
 
 
 def _init_sites(
@@ -638,6 +639,34 @@ def _extend_labels(experiment_config: Kiso, labels: Roles) -> dict[str, set]:
     labels.update(extra)
 
     return daemon_to_site
+
+
+def _show_rysnc_warning(sites: list[dict[str, Any]]) -> None:
+    """Show a warning if default rsync package is in use on the host.
+
+    The site kind is FABRIC
+    The host OS is macOS
+    The rsync available is the default one
+    """
+    import sys
+
+    from rich.markdown import Markdown
+
+    for site in sites:
+        if site["kind"] == "fabric":
+            break
+    else:
+        return
+
+    rsync = shutil.which("rsync")
+    if sys.platform == "darwin" and rsync and rsync == "/usr/bin/rsync":
+        console.print(Markdown("# ⚠️  Warning  ⚠️"), style="yellow blink")
+        console.print(
+            "macOS' rsync does not work as expected when a host has an IPv6 address "
+            "and a gateway host is used in between. Install the rsync package from "
+            "Homebrew before invoking kiso run",
+            style="yellow",
+        )
 
 
 def _is_public_ip_required(daemon_to_site: dict[str, set]) -> bool:
