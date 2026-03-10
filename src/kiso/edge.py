@@ -9,7 +9,7 @@ import tempfile
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import enoslib as en
 from enoslib.api import CommandResult
@@ -772,7 +772,7 @@ def _execute(
             cmd = f"sudo -u {shlex.quote(user)} {cmd}"
 
         result = container.execute(cmd)
-        result = utils.command_result(container, result, task_name=task_name)
+        result = command_result(container, result, task_name=task_name)
         log.debug(
             "Run command <%s> on container <%s>, status <%s> stdout <%s> stderr <%s>",
             cmd,
@@ -782,3 +782,38 @@ def _execute(
             result.stderr,
         )
         return result
+
+
+def command_result(
+    container: ChameleonDevice, status: dict[str, Any], task_name: str | None
+) -> CommandResult:
+    """Create a CommandResult object from a dictionary.
+
+    Creates a CommandResult object from a dictionary containing container execution
+    status information. The dictionary should contain the following keys:
+    - exit_code: The exit code of the command
+    - output: The output of the command
+
+    :param container: The Chameleon device where the command was executed
+    :type container: ChameleonDevice
+    :param status: The dictionary containing container execution status information
+    :type status: dict[str, Any]
+    :param task_name: Optional name for the task, defaults to "container-task"
+    :type task_name: str | None
+    :return: A CommandResult object containing container execution status information
+    :rtype: CommandResult
+    """
+    status_code = (
+        const.STATUS_STARTED
+        if status["exit_code"] is None
+        else const.STATUS_OK
+        if status["exit_code"] == 0
+        else const.STATUS_FAILED
+    )
+    rc = None if status["exit_code"] is None else int(status["exit_code"])
+    return CommandResult(
+        container.address,
+        task_name or "container-task",
+        status_code,
+        {"stdout": status["output"].strip(), "stderr": "", "rc": rc},
+    )

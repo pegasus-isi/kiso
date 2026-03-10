@@ -9,10 +9,9 @@ from contextlib import ContextDecorator, suppress
 from functools import partial, reduce
 from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import enoslib as en
-from enoslib.api import CommandResult
 from enoslib.objects import Roles
 from enoslib.task import Environment
 
@@ -21,7 +20,6 @@ from kiso import constants as const
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.objects import Roles
     from enoslib.task import Environment
 
@@ -131,41 +129,6 @@ def split_labels(split: Roles, labels: Roles) -> tuple[Roles, Roles]:
     containers = split & labels["chameleon-edge"]
 
     return vms, containers
-
-
-def command_result(
-    container: ChameleonDevice, status: dict[str, Any], task_name: str | None
-) -> CommandResult:
-    """Create a CommandResult object from a dictionary.
-
-    Creates a CommandResult object from a dictionary containing container execution
-    status information. The dictionary should contain the following keys:
-    - exit_code: The exit code of the command
-    - output: The output of the command
-
-    :param container: The Chameleon device where the command was executed
-    :type container: ChameleonDevice
-    :param status: The dictionary containing container execution status information
-    :type status: dict[str, Any]
-    :param task_name: Optional name for the task, defaults to "container-task"
-    :type task_name: str | None
-    :return: A CommandResult object containing container execution status information
-    :rtype: CommandResult
-    """
-    status_code = (
-        const.STATUS_STARTED
-        if status["exit_code"] is None
-        else const.STATUS_OK
-        if status["exit_code"] == 0
-        else const.STATUS_FAILED
-    )
-    rc = None if status["exit_code"] is None else int(status["exit_code"])
-    return CommandResult(
-        container.address,
-        task_name or "container-task",
-        status_code,
-        {"stdout": status["output"].strip(), "stderr": "", "rc": rc},
-    )
 
 
 def get_runner(kind: str) -> EntryPoint:
