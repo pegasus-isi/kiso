@@ -201,14 +201,14 @@ markers = ["incremental"]
 
 [tool.tox]
 
-env_list = ["py39", "py310", "py311", "py312", "py313"]
+env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
 
 [tool.tox.env_run_base]
 
 dependency_groups = ["tests"]
 extras = ["vagrant", "chameleon", "fabric"]
 setenv = { PYTHONPATH = "{toxinidir}/src", PYTHONUNBUFFERED = "yes", PYTHONHASHSEED = "3104488430" }
-commands = [["pytest", "--cov", "src", "--no-cov-on-fail", "{posargs:tests}"]]
+commands = [["pytest", "--cov", "src", "--no-cov-on-fail", "--cov-fail-under", "75", "{posargs:tests}"]]
 
 [tool.tox.env.lint]
 
