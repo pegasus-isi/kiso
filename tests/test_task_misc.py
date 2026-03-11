@@ -44,7 +44,7 @@ def test_get_ips_non_host_private_ip() -> None:
     assert len(result) == 1
     ip, priority = result[0]
     assert str(ip) == "192.168.1.1"
-    assert priority == 1  # private
+    assert priority == 2  # private
 
 
 def test_get_ips_non_host_public_ip() -> None:
@@ -129,6 +129,38 @@ def test_get_ips_non_host_no_floating_ips() -> None:
 
     result = get_ips(machine)
     assert len(result) == 1
+
+
+def test_get_ips_non_host_shared_address_space_ip() -> None:
+    """ChameleonDevice with IP in 100.64.0.0/10 (shared address space) → priority 2."""
+    machine = MagicMock()
+    machine.address = "100.64.0.1"
+    machine.extra = {}
+    assert not isinstance(machine, Host)
+
+    result = get_ips(machine)
+    assert len(result) == 1
+    ip, priority = result[0]
+    assert str(ip) == "100.64.0.1"
+    assert priority == 2  # treated as private
+
+
+def test_get_ips_host_shared_address_space_ip(mocker: MockerFixture) -> None:
+    """Host with IP in 100.64.0.0/10 (shared address space) → priority 2."""
+    mocker.patch("kiso.utils.has_fabric", False)
+    nd = NetDevice("eth0")
+    ipa = IPAddress(
+        IPv4Interface("100.100.0.1/10"), network=DefaultNetwork("100.64.0.0/10")
+    )
+    nd.addresses.add(ipa)
+    h = Host("100.100.0.1", net_devices={nd})
+    h.extra = {}
+
+    result = get_ips(h)
+    assert len(result) == 1
+    ip, priority = result[0]
+    assert str(ip) == "100.100.0.1"
+    assert priority == 2  # treated as private
 
 
 # ---------------------------------------------------------------------------
