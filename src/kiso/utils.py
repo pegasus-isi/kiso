@@ -8,7 +8,14 @@ import string
 from contextlib import ContextDecorator, suppress
 from functools import partial, reduce
 from importlib.metadata import EntryPoint, entry_points
-from ipaddress import IPv4Address, IPv4Interface, IPv6Address, IPv6Interface, ip_address
+from ipaddress import (
+    IPv4Address,
+    IPv4Interface,
+    IPv6Address,
+    IPv6Interface,
+    ip_address,
+    ip_network,
+)
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -37,6 +44,9 @@ run_ansible = partial(en.run_ansible, on_error_continue=True)
 actions = partial(en.actions, on_error_continue=True)
 
 undefined = type("undefined", (), {})
+
+#: https://en.wikipedia.org/wiki/IPv4_shared_address_space
+IPV4_SHARED_ADDRESS_SPACE = ip_network("100.64.0.0/10")
 
 
 if hasattr(en, "Fabric"):
@@ -334,12 +344,17 @@ def get_ips(
                     # FABRIC uses the same IPRange (2602:FCFB::/36) for both IPv6
                     # and IPv6External networks, so we check if the IPv6 address
                     # assigned by FABRIC is public or private.
-                    is_private = ip.is_private or (
-                        has_fabric
-                        and isinstance(
-                            address.network.config, Fabnetv6NetworkConfiguration
+                    is_private = (
+                        ip.is_private
+                        or (
+                            has_fabric
+                            and isinstance(
+                                address.network.config, Fabnetv6NetworkConfiguration
+                            )
                         )
+                        or ip in IPV4_SHARED_ADDRESS_SPACE
                     )
+
                     # Prioritize public over private IPs and prioritize IPv4 over IPv6
                     priority = (
                         (2 if is_private else 0)
@@ -347,10 +362,16 @@ def get_ips(
                         else (3 if is_private else 1)
                     )
 
-                    addresses.append((address.ip.ip, priority))
+                    addresses.append((ip, priority))
     else:
         address = ip_address(machine.address)
-        priority = 1 if address.is_private else 0
+        is_private = address.is_private or address in IPV4_SHARED_ADDRESS_SPACE
+        # Prioritize public over private IPs and prioritize IPv4 over IPv6
+        priority = (
+            (2 if is_private else 0)
+            if isinstance(address, IPv4Address)
+            else (3 if is_private else 1)
+        )
         addresses.append((address, priority))
 
     for address in machine.extra.get("floating-ips", []):
@@ -358,6 +379,7 @@ def get_ips(
         if ip.is_multicast or ip.is_reserved or ip.is_loopback or ip.is_link_local:
             continue
 
+        is_private = ip.is_private or ip in IPV4_SHARED_ADDRESS_SPACE
         # Prioritize public over private IPs and prioritize IPv4 over IPv6
         priority = (
             (2 if is_private else 0)
