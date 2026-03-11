@@ -187,6 +187,11 @@ known-third-party = ["enoslib", "click", "jsonschema", "yaml"]
 forced-separate = ["kiso"]
 
 
+[tool.mypy]
+
+explicit_package_bases = true
+
+
 [tool.pytest.ini_options]
 
 markers = ["incremental"]

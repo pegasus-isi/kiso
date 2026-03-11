@@ -1,0 +1,21 @@
+name: test-experiment
+sites:
+  - kind: vagrant
+    resources:
+      machines:
+        - labels:
+            - compute
+          flavour: small
+          number: 1
+      networks:
+        - cidr: 192.168.42.0/24
+          labels:
+            - net1
+experiments:
+  - kind: shell
+    name: test-shell
+    scripts:
+      - labels:
+          - compute
+        script: |
+          echo hello
