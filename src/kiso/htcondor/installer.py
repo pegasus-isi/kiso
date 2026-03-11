@@ -18,7 +18,7 @@ from .configuration import HTCondorDaemon
 from .schema import SCHEMA
 
 import kiso.constants as const
-from kiso import display, edge, utils
+from kiso import display, edge, ip, utils
 from kiso.log import get_process_pool_executor
 
 if TYPE_CHECKING:
@@ -200,6 +200,19 @@ class HTCondorInstaller:
         console.rule("[bold green]Installing HTCondor[/bold green]")
 
         labels = env["labels"]
+        daemon_to_site = self._map_daemon_to_sites(labels)
+        is_public_ip_required = self._is_public_ip_required(daemon_to_site)
+        env["is_public_ip_required"] = is_public_ip_required
+
+        for node in labels.all():
+            if (
+                is_public_ip_required
+                and node.extra["is_kiso_preferred_ip_private"]
+                and (node.extra["is_central_manager"] or node.extra["is_submit"])
+            ):
+                preferred_ip = ip.associate_floating_ip(node)
+                node.extra["kiso_preferred_ip"] = str(preferred_ip)
+
         _condor_hosts = [c for c in self.config if c.kind[0] == "c"]
         _condor_host = (
             next(iter(utils.resolve_labels(labels, _condor_hosts[0].labels)))
@@ -276,6 +289,128 @@ class HTCondorInstaller:
                 results.append(result[-1])
 
             display._render(console, results)
+
+    def _map_daemon_to_sites(self, labels: Roles) -> dict[str, set]:
+        """Extend labels for an experiment configuration by adding unique labels and flags to nodes.
+
+        Processes the given labels and experiment configuration to:
+        - Add flags to nodes indicating their HTCondor daemon types (central manager,
+        submit, execute, personal)
+        - Track the sites where different HTCondor daemon types are located
+
+        :param labels: Dictionary of labels and their associated nodes
+        :type labels: Roles
+        :return: A mapping of HTCondor daemon types to their sites
+        :rtype: dict[str, set]
+        """  # noqa: E501
+        daemon_to_site = defaultdict(set)
+        central_manager_labels, submit_labels, execute_labels, personal_labels = (
+            self._get_condor_daemon_labels()
+        )
+
+        for label, nodes in labels.items():
+            is_central_manager = label in central_manager_labels
+            is_submit = label in submit_labels
+            is_execute = label in execute_labels
+            is_personal = label in personal_labels
+            for node in nodes:
+                # To each node we add flags to identify what HTCondor daemons will run
+                # on the node
+                node.extra["is_central_manager"] = (
+                    node.extra.get("is_central_manager", False) or is_central_manager
+                )
+                node.extra["is_submit"] = (
+                    node.extra.get("is_submit", False) or is_submit
+                )
+                node.extra["is_execute"] = (
+                    node.extra.get("is_execute", False) or is_execute
+                )
+                node.extra["is_personal"] = (
+                    node.extra.get("is_personal", False) or is_personal
+                )
+
+                site = [
+                    "fabric" if node.extra["kind"] == "fabric" else node.extra["site"]
+                ]
+                if is_execute:
+                    daemon_to_site["execute"].update(site)
+                if is_submit:
+                    daemon_to_site["submit"].update(site)
+                if is_central_manager:
+                    daemon_to_site["central-manager"].update(site)
+
+        return daemon_to_site
+
+    def _get_condor_daemon_labels(
+        self,
+    ) -> tuple[set[str], set[str], set[str], set[str]]:
+        """Get labels for different HTCondor daemon types from an experiment configuration.
+
+        Parses the HTCondor configuration to extract labels for central manager, submit,
+        execute, and personal daemon types. Validates daemon types and raises an error
+        for invalid types.
+
+        :raises ValueError: If an invalid HTCondor daemon type is encountered
+        :return: Tuple of label sets for central manager, submit, execute, and personal
+        daemons
+        :rtype: tuple[set[str], set[str], set[str], set[str]]
+        """  # noqa: E501
+        central_manager_labels = set()
+        submit_labels = set()
+        execute_labels = set()
+        personal_labels = set()
+
+        for config in self.config:
+            if config.kind[0] == "c":  # central-manager
+                central_manager_labels.update(config.labels)
+            elif config.kind[0] == "s":  # submit
+                submit_labels.update(config.labels)
+            elif config.kind[0] == "e":  # execute
+                execute_labels.update(config.labels)
+            elif config.kind[0] == "p":  # personal
+                personal_labels.update(config.labels)
+            else:
+                raise ValueError(
+                    f"Invalid HTCondor daemon <{config.kind}> in configuration"
+                )
+
+        return central_manager_labels, submit_labels, execute_labels, personal_labels
+
+    def _is_public_ip_required(self, daemon_to_site: dict[str, set]) -> bool:
+        """Determine if a public IP address is required for the HTCondor cluster configuration.
+
+        Checks if public IP addresses are needed based on the distribution of HTCondor
+        daemons
+        across different sites. A public IP is required under the following conditions:
+        - Execute nodes are spread across multiple sites
+        - Submit nodes are spread across multiple sites
+        - Execute and submit nodes are on different sites
+        - Submit nodes are on a different site from the central manager
+
+        :param daemon_to_site: A dictionary mapping HTCondor daemon types to their sites
+        :type daemon_to_site: dict[str, set]
+        :return: True if a public IP is required, False otherwise
+        :rtype: bool
+        """  # noqa: E501
+        is_public_ip_required = False
+        central_manager = daemon_to_site["central-manager"]
+        submit = daemon_to_site["submit"]
+        execute = daemon_to_site["execute"]
+
+        # A public IP is required if,
+        # 1. If execute nodes are on multiple sites
+        # 2. If submit nodes are on multiple sites
+        # 3. If all execute nodes and submit nodes are on one site, but not the same one
+        # 4. If submit nodes are on one site, but not same one as the central manager
+        if (central_manager or submit or execute) and (
+            len(execute) > 1
+            or len(submit) > 1
+            or execute != submit
+            or submit - central_manager
+        ):
+            is_public_ip_required = True
+
+        return is_public_ip_required
 
     def _get_label_daemon_machine_map(
         self, condor_config: list, labels: Roles

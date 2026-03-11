@@ -8,11 +8,12 @@ import string
 from contextlib import ContextDecorator, suppress
 from functools import partial, reduce
 from importlib.metadata import EntryPoint, entry_points
+from ipaddress import IPv4Address, IPv4Interface, IPv6Address, IPv6Interface, ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import enoslib as en
-from enoslib.objects import Roles
+from enoslib.objects import DefaultNetwork, Host, Roles
 from enoslib.task import Environment
 
 from kiso import constants as const
@@ -20,11 +21,14 @@ from kiso import constants as const
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.objects import Roles
     from enoslib.task import Environment
 
 with suppress(ImportError):
     from importlib.metadata import EntryPoints
+
+has_fabric = False
 
 log = logging.getLogger("kiso")
 
@@ -33,6 +37,12 @@ run_ansible = partial(en.run_ansible, on_error_continue=True)
 actions = partial(en.actions, on_error_continue=True)
 
 undefined = type("undefined", (), {})
+
+
+if hasattr(en, "Fabric"):
+    from enoslib.infra.enos_fabric.configuration import Fabnetv6NetworkConfiguration
+
+    has_fabric = True
 
 
 def resolve_labels(labels: Roles, label_names: list[str]) -> Roles:
@@ -210,6 +220,150 @@ def _get_single(group: str, name: str) -> EntryPoint:
             return ep
 
     raise ValueError(f"No such entrypoint <{group}>:{name}> found")
+
+
+def get_ips(
+    machine: Host | ChameleonDevice,
+) -> list[tuple[IPv4Address | IPv6Address, int]]:
+    """Get the IP addresses for a given machine.
+
+    Selects an IP address based on priority, filtering out multicast, reserved,
+    loopback, and link-local addresses. Supports both Host and ChameleonDevice
+    types. Optionally enforces returning a public IP address.
+
+    :param machine: The machine to get an IP address for
+    :type machine: Host | ChameleonDevice
+    :return: List of tuples of an IP address and it's priority.
+        Priority is 0 for a public IPv4 address, 1 for a public IPv6 address,
+        2 for a private IPv4 address, and 3 for a private IPv6 address.
+    :rtype: list[tuple[IPv4Address | IPv6Address, int]]
+    :raises ValueError: If a public IP is required but not available
+    """
+    addresses = []
+    # Vagrant Host
+    # net_devices={
+    #   NetDevice(
+    #       name='eth1',
+    #       addresses={
+    #           IPAddress(
+    #               network=None,
+    #               ip=IPv6Interface('fe80::a00:27ff:fe6f:87e4/64')),
+    #           IPAddress(
+    #               network=<enoslib.infra.enos_vagrant.provider.VagrantNetwork ..,
+    #               ip=IPv4Interface('172.16.255.243/24'))
+    #   ..
+    #   )
+    # }
+    #
+    # Chameleon Host
+    # net_devices={
+    #   NetDevice(
+    #     name='eno12419',
+    #     addresses=set()),
+    #   NetDevice(
+    #     name='enp161s0f1',
+    #     addresses=set()),
+    #   NetDevice(
+    #     name='enp161s0f0',
+    #     addresses={
+    #         IPAddress(
+    #             network=<enoslib.infra.enos_openstack.objects.OSNetwork ..>,
+    #             ip=IPv4Interface('10.52.3.205/22')
+    #         ),
+    #         IPAddress(
+    #             network=None,
+    #             ip=IPv6Interface('fe80::3680:dff:feed:50f4/64'))}
+    #         ),
+    #   NetDevice(
+    #     name='lo',
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface('127.0.0.1/8')),
+    #         IPAddress(network=None, ip=IPv6Interface('::1/128'))}),
+    #   NetDevice(
+    #     name='eno8303',
+    #     addresses=set()
+    #   )
+    # )
+    # Chameleon Edge Host
+    # Fabric Host
+    # 1 for Management, 1 for add_fabnet, and 1 for loopback
+    # net_devices={
+    #   NetDevice(
+    #     name="lo",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("127.0.0.1/8")),
+    #         IPAddress(network=None, ip=IPv6Interface("::1/128")),
+    #     },
+    #   ),
+    #   NetDevice(
+    #     name="eth0",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("10.20.4.136/23")),
+    #         IPAddress(network=None, ip=IPv6Interface("fe80::f816:3eff:fecd:a657/64")),
+    #     },
+    #   ),
+    #   NetDevice(
+    #     name="eth1",
+    #     addresses={
+    #         IPAddress(network=None, ip=IPv4Interface("10.134.142.2/24")),
+    #         IPAddress(network=None, ip=IPv6Interface("fe80::8117:f69:a883:76c5/64")),
+    #     },
+    #   ),
+    # }
+    if isinstance(machine, Host):
+        for net_device in machine.net_devices:
+            for address in net_device.addresses:
+                if isinstance(address.network, DefaultNetwork) and isinstance(
+                    address.ip, (IPv4Interface, IPv6Interface)
+                ):
+                    ip = address.ip.ip
+                    if (
+                        ip.is_multicast
+                        or ip.is_reserved
+                        or ip.is_loopback
+                        or ip.is_link_local
+                    ):
+                        continue
+
+                    # FABRIC uses the same IPRange (2602:FCFB::/36) for both IPv6
+                    # and IPv6External networks, so we check if the IPv6 address
+                    # assigned by FABRIC is public or private.
+                    is_private = ip.is_private or (
+                        has_fabric
+                        and isinstance(
+                            address.network.config, Fabnetv6NetworkConfiguration
+                        )
+                    )
+                    # Prioritize public over private IPs and prioritize IPv4 over IPv6
+                    priority = (
+                        (2 if is_private else 0)
+                        if isinstance(address.ip, IPv4Interface)
+                        else (3 if is_private else 1)
+                    )
+
+                    addresses.append((address.ip.ip, priority))
+    else:
+        address = ip_address(machine.address)
+        priority = 1 if address.is_private else 0
+        addresses.append((address, priority))
+
+    for address in machine.extra.get("floating-ips", []):
+        ip = ip_address(address)
+        if ip.is_multicast or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+            continue
+
+        # Prioritize public over private IPs and prioritize IPv4 over IPv6
+        priority = (
+            (2 if is_private else 0)
+            if isinstance(address.ip, IPv4Address)
+            else (3 if is_private else 1)
+        )
+        addresses.append((ip, priority))
+
+    addresses = sorted(addresses, key=lambda v: v[1])
+    log.debug("Addresses <%s>", addresses)
+
+    return addresses
 
 
 class experiment_state(ContextDecorator):
