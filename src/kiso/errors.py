@@ -2,12 +2,12 @@
 
 
 class KisoError(Exception):
-    """KisoError _summary_."""
+    """Base exception class for all Kiso errors."""
 
 
 class KisoValueError(KisoError):
-    """KisoValueError _summary_."""
+    """Raised when an invalid value is detected in Kiso configuration or execution."""
 
 
 class KisoTimeoutError(KisoError):
-    """KisoTimeoutError _summary_."""
+    """Raised when a Kiso operation exceeds its allowed time limit."""

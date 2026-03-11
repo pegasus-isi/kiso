@@ -142,15 +142,17 @@ def split_labels(split: Roles, labels: Roles) -> tuple[Roles, Roles]:
 
 
 def get_runner(kind: str) -> EntryPoint:
-    """Retrieve a specific workflow runner entry point by its kind.
+    """Retrieve and load a workflow runner class by its kind.
 
-    Searches for and returns an entry point from the "kiso.experiment" group matching the specified kind.
+    Searches the ``kiso.experiment`` entry-point group for an entry point whose
+    name matches ``kind`` and returns the loaded class.
 
     :param kind: The name of the workflow runner entry point to retrieve
     :type kind: str
-    :return: The matching workflow runner entry point
-    :rtype: EntryPoint
-    :raises ValueError: If no entry point with the given kind is found
+    :return: The loaded runner class registered under the given kind
+    :rtype: type
+    :raises ValueError: If no entry point with the given kind is found or the
+        module cannot be imported
     """  # noqa: E501
     runner = _get_single(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP, kind)
     try:
@@ -160,15 +162,17 @@ def get_runner(kind: str) -> EntryPoint:
 
 
 def get_software(name: str) -> EntryPoint:
-    """Retrieve a specific software installer entry point by its name.
+    """Retrieve and load a software installer class by its name.
 
-    Searches for and returns an entry point from the "kiso.software" group matching the specified name.
+    Searches the ``kiso.software`` entry-point group for an entry point whose
+    name matches ``name`` and returns the loaded class.
 
     :param name: The name of the software installer entry point to retrieve
     :type name: str
-    :return: The matching software entry point
-    :rtype: EntryPoint
-    :raises ValueError: If no entry point with the given name is found
+    :return: The loaded installer class registered under the given name
+    :rtype: type
+    :raises ValueError: If no entry point with the given name is found or the
+        module cannot be imported
     """  # noqa: E501
     software = _get_single(const.KISO_SOFTWARE_ENTRY_POINT_GROUP, name)
     try:
@@ -178,15 +182,17 @@ def get_software(name: str) -> EntryPoint:
 
 
 def get_deployment(name: str) -> EntryPoint:
-    """Retrieve a specific deployment installer entry point by its name.
+    """Retrieve and load a deployment installer class by its name.
 
-    Searches for and returns an entry point from the "kiso.deployment" group matching the specified name.
+    Searches the ``kiso.deployment`` entry-point group for an entry point whose
+    name matches ``name`` and returns the loaded class.
 
     :param name: The name of the deployment installer entry point to retrieve
     :type name: str
-    :return: The matching deployment entry point
-    :rtype: EntryPoint
-    :raises ValueError: If no entry point with the given name is found
+    :return: The loaded installer class registered under the given name
+    :rtype: type
+    :raises ValueError: If no entry point with the given name is found or the
+        module cannot be imported
     """  # noqa: E501
     software = _get_single(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP, name)
     try:

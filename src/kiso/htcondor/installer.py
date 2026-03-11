@@ -1,4 +1,4 @@
-"""Main class to check HTCondor configuration andinstall HTCondor."""
+"""Main class to check HTCondor configuration and install HTCondor."""
 
 from __future__ import annotations
 
@@ -52,11 +52,10 @@ class HTCondorInstaller:
     HAS_SOFTWARE_KEY: str = "has_htcondor"
 
     def __init__(self, config: list[HTCondorDaemon]) -> None:
-        """__init__ _summary_.
+        """Initialize the HTCondorInstaller with the given daemon configurations.
 
-        _extended_summary_
-
-        :param config: HTCondor configuration
+        :param config: List of HTCondor daemon configurations, or None to disable
+            installation
         :type config: list[HTCondorDaemon]
         """
         self.config = config
@@ -291,18 +290,17 @@ class HTCondorInstaller:
             display._render(console, results)
 
     def _map_daemon_to_sites(self, labels: Roles) -> dict[str, set]:
-        """Extend labels for an experiment configuration by adding unique labels and flags to nodes.
+        """Map HTCondor daemon types to the sites they are deployed on.
 
-        Processes the given labels and experiment configuration to:
-        - Add flags to nodes indicating their HTCondor daemon types (central manager,
-        submit, execute, personal)
-        - Track the sites where different HTCondor daemon types are located
+        Iterates over all labels and nodes, annotates each node with flags indicating
+        which HTCondor daemon types it hosts (central-manager, submit, execute,
+        personal), and records which sites each daemon type spans.
 
-        :param labels: Dictionary of labels and their associated nodes
+        :param labels: Mapping of labels to their associated nodes
         :type labels: Roles
-        :return: A mapping of HTCondor daemon types to their sites
+        :return: A mapping of HTCondor daemon type names to the set of sites they run on
         :rtype: dict[str, set]
-        """  # noqa: E501
+        """
         daemon_to_site = defaultdict(set)
         central_manager_labels, submit_labels, execute_labels, personal_labels = (
             self._get_condor_daemon_labels()
@@ -415,15 +413,18 @@ class HTCondorInstaller:
     def _get_label_daemon_machine_map(
         self, condor_config: list, labels: Roles
     ) -> dict[ChameleonDevice | Host, set]:
-        """Get mapping of labels, daemons, and machines from the HTCondor configuration.
+        """Build a machine-to-daemons mapping from the HTCondor configuration.
 
-        _extended_summary_
+        Builds an intermediate label→daemon index mapping from the configuration,
+        then resolves each label to the machines in ``labels``. The result is sorted
+        so that the central-manager machine comes first.
 
-        :param condor_config: _description_
+        :param condor_config: List of HTCondorDaemon configuration objects
         :type condor_config: list
-        :param labels: _description_
+        :param labels: Mapping of labels to their associated nodes
         :type labels: Roles
-        :return: _description_
+        :return: Ordered mapping of each machine to its set of (index, daemon-kind)
+            tuples
         :rtype: dict[ChameleonDevice | Host, set]
         """
         label_to_daemons: Roles = defaultdict(set)
@@ -444,14 +445,17 @@ class HTCondorInstaller:
         return dict(sorted(machine_to_daemons.items(), key=self._cmp))
 
     def _cmp(self, item: tuple[str, set]) -> int:
-        """Cmp _summary_.
+        """Return a sort key for a machine→daemons entry, prioritising central-manager.
 
-        _extended_summary_
+        Assigns installation-order priority: central-manager (0), personal (1),
+        execute (2), submit (3). Machines with no recognised daemons receive 10.
 
-        :param item: _description_
+        :param item: A ``(machine, daemons)`` pair from
+            ``_get_label_daemon_machine_map``
         :type item: tuple[str, set]
-        :raises ValueError: _description_
-        :return: _description_
+        :raises ValueError: If a daemon kind other than the four recognised types is
+            found
+        :return: Integer sort key; lower values are installed first
         :rtype: int
         """
         rv = 10
@@ -576,7 +580,7 @@ class HTCondorInstaller:
         :type htcondor_config: list[str]
         :param extra_vars: Additional configuration variables for HTCondor installation
         :type extra_vars: dict
-        :return: _description_
+        :return: List of CommandResult objects from each installation step
         :rtype: list[CommandResult]
         """
         results = []

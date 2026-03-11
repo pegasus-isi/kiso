@@ -1,4 +1,4 @@
-"""Main class to check HTCondor configuration and install HTCondor."""
+"""Main class to check Docker configuration and install Docker."""
 
 from __future__ import annotations
 
@@ -37,17 +37,15 @@ class DockerInstaller:
     HAS_SOFTWARE_KEY: str = "has_docker"
 
     def __init__(self, config: Docker) -> None:
-        """__init__ _summary_.
+        """Initialize the DockerInstaller with the given configuration.
 
-        _extended_summary_
-
-        :param config: Docker configuration
+        :param config: Docker configuration, or None to disable Docker installation
         :type config: Docker
         """
         self.config = config
 
     def check(self, label_to_machines: Roles) -> None:
-        """Check if the HTCondor configuration is valid."""
+        """Check if the Docker configuration is valid."""
         if self.config is None:
             return
 
@@ -81,17 +79,15 @@ class DockerInstaller:
             raise ValueError("Docker cannot be installed on Chameleon Edge devices")
 
     def __call__(self, env: Environment) -> None:
-        """Install Docker on specified labels in an experiment configuration.
+        """Install Docker on the nodes specified in the configuration.
 
-        Installs Docker on virtual machines and containers based on the provided
-        configuration.
-        Supports optional version specification and uses Ansible for VM installations.
+        Installs Docker on virtual machines using Ansible. Raises a RuntimeError
+        if any matching nodes are Chameleon Edge containers, as Docker requires
+        privileged mode which is unsupported there.
 
-        :param config: Configuration dictionary containing Docker
-        installation details
-        :type config: Docker
-        :param env: Environment context for the installation
+        :param env: Environment context containing label-to-host mappings
         :type env: Environment
+        :raises RuntimeError: If Docker is requested on Chameleon Edge containers
         """
         if self.config is None:
             return

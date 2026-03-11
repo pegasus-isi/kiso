@@ -1,4 +1,4 @@
-"""Main class to check HTCondor configuration andinstall HTCondor."""
+"""Main class to check Apptainer configuration and install Apptainer."""
 
 from __future__ import annotations
 
@@ -37,17 +37,16 @@ class ApptainerInstaller:
     HAS_SOFTWARE_KEY: str = "has_apptainer"
 
     def __init__(self, config: Apptainer) -> None:
-        """__init__ _summary_.
+        """Initialize the ApptainerInstaller with the given configuration.
 
-        _extended_summary_
-
-        :param config: Apptainer configuration
+        :param config: Apptainer configuration, or None to disable Apptainer
+            installation
         :type config: Apptainer
         """
         self.config = config
 
     def check(self, label_to_machines: Roles) -> None:
-        """Check if the HTCondor configuration is valid."""
+        """Check if the Apptainer configuration is valid."""
         if self.config is None:
             return
 
@@ -58,14 +57,11 @@ class ApptainerInstaller:
         self._check_apptainer_labels(label_to_machines)
 
     def _check_apptainer_labels(self, label_to_machines: Roles) -> None:
-        """Check Apptainer labels in an experiment configuration.
+        """Check that all Apptainer labels resolve to at least one machine.
 
-        Validates that all Apptainer labels are defined.
-
-        :param label_to_machines: Mapping of predefined labels
+        :param label_to_machines: Mapping of predefined labels to machines
         :type label_to_machines: Roles
-        :raises ValueError: If undefined labels are referenced or configuration files
-        are missing
+        :raises ValueError: If no machines are found for the configured labels
         """
         labels = set(self.config.labels) if self.config.labels else set()
         if not labels:
@@ -78,16 +74,12 @@ class ApptainerInstaller:
             raise ValueError("No machines found to install Apptainer")
 
     def __call__(self, env: Environment) -> None:
-        """Install Apptainer on specified labels in an experiment configuration.
+        """Install Apptainer on the nodes specified in the configuration.
 
-        Installs Apptainer on virtual machines and containers based on the provided
-        configuration. Supports optional version specification and uses Ansible for VM
-        installations and a script for container installations.
+        Uses Ansible for VM installations and a shell script for Chameleon Edge
+        container installations.
 
-        :param config: Configuration dictionary containing Apptainer
-        installation details
-        :type config: Apptainer
-        :param env: Environment context for the installation
+        :param env: Environment context containing label-to-host mappings
         :type env: Environment
         """
         if self.config is None:

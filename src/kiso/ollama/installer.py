@@ -1,4 +1,4 @@
-"""Main class to check HTCondor configuration andinstall HTCondor."""
+"""Main class to check Ollama configuration and install Ollama."""
 
 from __future__ import annotations
 
@@ -40,12 +40,10 @@ class OllamaInstaller:
         self,
         config: list[Ollama],
     ) -> None:
-        """__init__ _summary_.
+        """Initialize the OllamaInstaller with the given configuration.
 
-        _extended_summary_
-
-        :param config: Ollama configuration
-        :type config: Ollama
+        :param config: List of Ollama configurations, or None to disable installation
+        :type config: list[Ollama]
         """
         self.config = config
 
@@ -57,14 +55,11 @@ class OllamaInstaller:
         self._check_ollama_labels(label_to_machines)
 
     def _check_ollama_labels(self, label_to_machines: Roles) -> None:
-        """Check Apptainer labels in an experiment configuration.
+        """Check that all Ollama labels resolve to at least one machine.
 
-        Validates that all Apptainer labels are defined.
-
-        :param label_to_machines: Mapping of predefined labels
+        :param label_to_machines: Mapping of predefined labels to machines
         :type label_to_machines: Roles
-        :raises ValueError: If undefined labels are referenced or configuration files
-        are missing
+        :raises ValueError: If no machines are found for any configured Ollama section
         """
         if not self.config:
             return
@@ -80,16 +75,13 @@ class OllamaInstaller:
                 )
 
     def __call__(self, env: Environment) -> None:
-        """Install Ollama on specified labels in an experiment configuration.
+        """Install Ollama on the nodes specified in each configuration section.
 
-        Installs Ollama on virtual machines and containers based on the provided
-        configuration.
-        Supports optional version specification and uses Ansible for VM installations.
+        Iterates over all Ollama configuration sections and installs Ollama on the
+        matching nodes. Uses Ansible for VM installations and a shell script for
+        Chameleon Edge container installations.
 
-        :param config: Configuration dictionary containing Ollama
-        installation details
-        :type config: Ollama
-        :param env: Environment context for the installation
+        :param env: Environment context containing label-to-host mappings
         :type env: Environment
         """
         if self.config is None:

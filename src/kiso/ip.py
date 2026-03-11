@@ -198,18 +198,18 @@ def _associate_floating_ip_chameleon_edge(
 
 
 def _associate_floating_ip_fabric(node: Host) -> IPv4Address | IPv6Address:
-    """Associate a floating IP address with a Chameleon node.
+    """Associate a public IP address with a FABRIC node.
 
-    Retrieves or creates a floating IP for a Chameleon node using the OpenStack CLI.
-    Handles cases where a node may already have a floating IP or requires a new one.
-    Logs debug information during the IP association process.
+    Checks whether the node already has a floating IP persisted in
+    ``/etc/floating-ip``. If not, creates an IPv4Ext L3 network and NIC,
+    makes the IP publicly routable, and configures the interface on the node.
+    The acquired IP is stored in ``node.extra["floating-ips"]``.
 
-    :param node: The Chameleon node to associate a floating IP with
+    :param node: The FABRIC node to associate a public IP with
     :type node: Host
-    :return: The associated floating IP address
+    :return: The associated public IP address
     :rtype: IPv4Address | IPv6Address
-    :raises ValueError: If the OpenStack CLI is not found or the server cannot be
-    located
+    :raises ValueError: If an error occurs while assigning the public IP
     """
     with source_fabric_credentials_from_rc_file(node.extra["rc_file"]):
         try:

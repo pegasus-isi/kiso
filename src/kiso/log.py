@@ -18,14 +18,15 @@ if TYPE_CHECKING:
 
 
 def init_logging(level: int = logging.INFO, **kwargs: Any) -> None:  # noqa: ANN401
-    """init_logging _summary_.
+    """Initialize logging for Kiso, filtering output to relevant modules.
 
-    _extended_summary_
+    Delegates to EnOSlib's ``init_logging``, then attaches a filter to every
+    root handler so that only records whose logger names start with ``kiso``,
+    ``enoslib``, or ``fablib`` are emitted.
 
-    :param level: _description_, defaults to logging.INFO
+    :param level: Logging level for the root logger, defaults to logging.INFO
     :type level: int, optional
-    :yield: _description_
-    :rtype: _type_
+    :param kwargs: Additional keyword arguments forwarded to EnOSlib's init_logging
     """
     # Initialize basic logging using EnOSlib's init_logging method.
     en.init_logging(level=level, **kwargs)
