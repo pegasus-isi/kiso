@@ -61,7 +61,84 @@ $ brew install rsync
     Some FABRIC sites assign IPv6 addresses as the management IP. macOS' `rsync` implementation fails connecting to these IPv6 address via jump hosts. To fix this, install `rsync` from Homebrew.
 ```
 
-### Usage
+## Your First Experiment
+
+The following example uses Vagrant (no cloud account required) to provision a local VM, install Docker, and run a shell experiment that prints "Hello, world!".
+
+**1. Create `experiment.yml`**
+
+```yaml
+sites:
+  - kind: vagrant
+    backend: virtualbox
+    box: bento/rockylinux-9
+    user: vagrant
+    resources:
+      machines:
+        - labels:
+            - submit
+          backend: virtualbox
+          box: bento/rockylinux-9
+          user: vagrant
+          flavour: "large"
+          number: 1
+      networks:
+        - labels:
+            - net
+          cidr: "172.16.42.0/16"
+
+software:
+  docker:
+    labels:
+      - submit
+
+experiments:
+  - kind: shell
+    name: hello-world
+    description: Print a message
+    scripts:
+      - labels:
+          - submit
+        script: |
+          #!/bin/bash
+          echo "Hello, world!" > hello.txt
+    outputs:
+      - labels:
+          - submit
+        src: hello.txt
+        dst: ./
+```
+
+**2. Validate the configuration**
+
+```sh
+$ kiso check experiment.yml
+```
+
+**3. Provision resources and install software**
+
+```sh
+$ kiso up experiment.yml
+```
+
+**4. Run the experiment**
+
+```sh
+$ kiso run experiment.yml
+
+# View the output
+cat hello.txt
+```
+
+**5. Tear down resources**
+
+```sh
+$ kiso down experiment.yml
+```
+
+## CLI Reference
+
+For full details on each command and its options, see the [Command Line Tool](clt.rst) reference.
 
 ```sh
 $ kiso --help

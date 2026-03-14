@@ -16,3 +16,9 @@ Kiso provides a structured way to manage the full lifecycle of an experiment:
 - Collect results from distributed resources back to a central location
 
 All of this is described using a YAML-based experiment specification, which captures what should be run, where, and how, without requiring users to write custom orchestration code.
+
+## Next Steps
+
+- [Getting Started](getting-started.md) — install Kiso and run your first experiment
+- [Concepts](concepts.rst) — understand how sites, software, deployments, and experiments fit together
+- [Example Experiments](example-experiments.md) — explore real-world experiments built with Kiso

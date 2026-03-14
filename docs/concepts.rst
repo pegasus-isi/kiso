@@ -1,6 +1,54 @@
 Concepts
 ========
 
+Labels
+------
+
+Labels are user-defined strings that you assign to machines when provisioning sites. They act as selectors — every other section (software, deployment, experiments) references machines by label rather than by name or IP address.
+
+This indirection means your software and experiment configuration stays the same regardless of which testbed you run on; only the ``sites`` section changes.
+
+**How they work**
+
+1. Assign one or more labels to a machine in the ``sites`` section.
+2. Reference those labels in ``software``, ``deployment``, and ``experiments`` to target those machines.
+
+.. code-block:: yaml
+
+   sites:
+     - kind: vagrant
+       resources:
+         machines:
+           - labels:
+               - submit    # you define this name
+             flavour: large
+             number: 1
+           - labels:
+               - execute   # and this one
+             flavour: large
+             number: 2
+
+   software:
+     docker:
+       labels:
+         - submit          # install Docker only on machines tagged "submit"
+
+   deployment:
+     htcondor:
+       - kind: submit
+         labels:
+           - submit        # configure HTCondor submit node on "submit" machines
+       - kind: execute
+         labels:
+           - execute       # configure HTCondor execute nodes on "execute" machines
+
+   experiments:
+     - kind: pegasus
+       submit_node_labels:
+         - submit          # run the workflow from the "submit" machine
+
+A machine can have multiple labels, and a label can match multiple machines (e.g., ``number: 3`` with ``labels: [execute]`` gives you three execute nodes, all reachable by the ``execute`` label).
+
 Sites
 -----
 
@@ -138,7 +186,7 @@ Example
     - kind: chameleon-edge
       walltime: "04:00:00"
       lease_name: edge-lease
-      rc_file: secrets/chi-edge-app-credopenrc.sh
+      rc_file: secrets/chi-edge-app-cred-openrc.sh
       resources:
         machines:
           - labels:
@@ -320,49 +368,49 @@ Example
 
   experiments:
     - kind: pegasus
-        name: process-experiment
-        description: A Pegasus workflow
-        # Number of time to run the experiment
-        count: 1
-        # Script to run the Pegasus workflow
-        main: bin/main.sh
-        # The node from which the workflow will be submitted
-        submit_node_labels:
-          - submit
+      name: process-experiment
+      description: A Pegasus workflow
+      # Number of time to run the experiment
+      count: 1
+      # Script to run the Pegasus workflow
+      main: bin/main.sh
+      # The node from which the workflow will be submitted
+      submit_node_labels:
+        - submit
 
-        # Optionally, specify input files and on which node to copy them on to setup the environment
-        # By default, the directory containing the experiment.yml file will be copied to all provisioned nodes
-        inputs:
-          - labels:
-              - execute
-            src: README.md
-            dst: ~kiso/kiso-process-experiment
+      # Optionally, specify input files and on which node to copy them on to setup the environment
+      # By default, the directory containing the experiment.yml file will be copied to all provisioned nodes
+      inputs:
+        - labels:
+            - execute
+          src: README.md
+          dst: ~kiso/kiso-process-experiment
 
-        # Optionally, specify what scripts to run and on which node to run them on to setup the environment
-        setup:
-          - labels:
-              - submit
-            executable: /bin/bash
-            script: |
-              #!/bin/bash
-              echo "Setup script here"
+      # Optionally, specify what scripts to run and on which node to run them on to setup the environment
+      setup:
+        - labels:
+            - submit
+          executable: /bin/bash
+          script: |
+            #!/bin/bash
+            echo "Setup script here"
 
-        # Optionally, specify what scripts to run and on which node to run them on after the environment
-        post_scripts:
-          - labels:
-              - submit
-            executable: /bin/bash
-            script: |
-              #!/bin/bash
-              echo "Post script here"
+      # Optionally, specify what scripts to run and on which node to run them on after the environment
+      post_scripts:
+        - labels:
+            - submit
+          executable: /bin/bash
+          script: |
+            #!/bin/bash
+            echo "Post script here"
 
-        # Optionally, specify output files and on which node to copy them from after the experiment
-        # By default, the Pegasus workflow submit directory will be copied to the local machine
-        outputs:
-          - labels:
-              - submit
-            src: ~kiso/kiso-process-experiment
-            dst: local-machine
+      # Optionally, specify output files and on which node to copy them from after the experiment
+      # By default, the Pegasus workflow submit directory will be copied to the local machine
+      outputs:
+        - labels:
+            - submit
+          src: ~kiso/kiso-process-experiment
+          dst: local-machine
 
 .. hint::
 

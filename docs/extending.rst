@@ -14,9 +14,9 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 
 1. The `schema` should be a Python dictionary defining your experiment configuration.
 
-1. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your software configuration.
+2. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your software configuration.
 
-1. The Python class implements how to check and install your software.
+3. The Python class implements how to check and install your software.
 
 .. code-block:: python
 
@@ -69,7 +69,7 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 | env               | enoslib.task.Environment               | None    | A map whose values will be persisted. The `env` can be used to preserve installation state.                                                                         |
 +-------------------+----------------------------------------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-1. Register your software type under the entrypoint group `kiso.software` with a suitable EntryPoint name in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
+4. Register your software type under the entrypoint group `kiso.software` with a suitable EntryPoint name in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
 
 .. tabs::
 
@@ -134,9 +134,9 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 
 1. The `schema` should be a Python dictionary defining your experiment configuration.
 
-1. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your deployment configuration.
+2. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your deployment configuration.
 
-1. The Python class implements how to check and install your deployment.
+3. The Python class implements how to check and install your deployment.
 
 .. code-block:: python
 
@@ -188,7 +188,7 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 | env               | enoslib.task.Environment               | None    | A map whose values will be persisted. The `env` can be used to preserve installation state.                                                                           |
 +-------------------+----------------------------------------+---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-1. Register your deployment type under the entrypoint group `kiso.deployment` with a suitable EntryPoint name in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
+4. Register your deployment type under the entrypoint group `kiso.deployment` with a suitable EntryPoint name in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
 
 .. tabs::
 
@@ -258,9 +258,9 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 
     The `kind` property should be a constant string that uniquely identifies your experiment type. This value will also be used to register the experiment type with Kiso.
 
-1. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your experiment configuration.
+2. The `config_type` should be a Python class of type `dataclasses.dataclass` defining your experiment configuration.
 
-1. The Python class implements how to check and run your experiment.
+3. The Python class implements how to check and run your experiment.
 
 .. code-block:: python
 
@@ -332,11 +332,7 @@ Kiso then instantiate the class and then invokes either the `check` method to ch
 | env               | Environment                            |         | A map whose values will be persisted. The `env` can be used to preserve experiment state.                                                                                                                                          |
 +-------------------+----------------------------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. note::
-
-    The `kind` property should be a constant string that uniquely identifies your experiment type. This value will also be used to register the experiment type with Kiso.
-
-1. Register your experiment type under the entrypoint group `kiso.experiment` with a suitable name (should match the `kind` value above) in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
+4. Register your experiment type under the entrypoint group `kiso.experiment` with a suitable name (should match the `kind` value above) in your project's `pyproject.toml`, `setup.cfg`, or `setup.py` file.
 
 .. tabs::
 
