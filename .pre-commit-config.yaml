@@ -28,7 +28,7 @@ repos:
 
   - hooks:
       - id: mdformat
-        exclude: "^(.github/|LICENSE.md)"
+        exclude: "^(.github/|CHANGELOG.md|LICENSE.md)"
         additional_dependencies:
           - mdformat-ruff
           - ruff

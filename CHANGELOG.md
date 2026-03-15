@@ -1,3 +1,23 @@
+## v0.1.0a10 (2026-03-15)
+
+### Fix
+
+- **chameleon-edge**: chameleon edge moved to using ipv4 shared address space from private ip range
+- JSON Schema oneOf won't work with [{type: integer}, {type: number}] as number encompasses integer
+- ollama now requires installing the zstd package
+- remove the ``args`` argument from Pegasus experiment type config as it use is confusing
+- configure condor to enable on IPv4 ot IPv6
+- invoke Vagrant and Chameleon related cleanup actions only if those providers are installed
+
+### Refactor
+
+- move public ip assignment to htcondor installer
+- move remaining chameleon-edge related functions to edge.py
+- add a warning to install rsync package for the FABRIC provider on macOS machines when kiso check is run
+- add a warning to install rsync package for the FABRIC provider on macOS machines when kiso up is run
+- add variables to shell runner similar to the pegasus runner
+- add missing and improve existing code comments
+
 ## v0.1.0a9 (2026-01-28)
 
 ### Fix
