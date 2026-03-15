@@ -55,7 +55,7 @@ Homepage = "https://pegasus.isi.edu"
 Repository = "https://github.com/pegasus-isi/kiso.git"
 Issues = "https://github.com/pegasus-isi/kiso/issues"
 Changelog = "https://github.com/pegasus-isi/kiso/blob/main/CHANGELOG.md"
-Documentation = "https://kiso.readthedocs.io/en/latest/"
+Documentation = "https://kiso.readthedocs.io/en/latest"
 
 [project.scripts]
 

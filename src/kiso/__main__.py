@@ -11,7 +11,7 @@ import rich_click as click
 from kiso import log, task, version
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
-EPILOG = f"Check out our docs at {version.__documentation__} for more details."
+EPILOG = f"Check our docs at {version.__documentation__} for more details."
 DEFAULT_EXPERIMENT_CONFIG = "experiment.yml"
 
 
@@ -53,7 +53,11 @@ def check(ctx: click.Context, experiment_config: os.PathLike) -> None:
 
 @kiso.command(epilog=EPILOG)
 @click.pass_context
-@click.option("--force/--no-force", default=False)
+@click.option(
+    "--force/--no-force",
+    default=False,
+    help="Tears down existing resources and recreates them.",
+)
 @click.option(
     "--output",
     "-o",
@@ -80,7 +84,11 @@ def up(
 
 @kiso.command(epilog=EPILOG)
 @click.pass_context
-@click.option("--force/--no-force", default=False)
+@click.option(
+    "--force/--no-force",
+    default=False,
+    help="Disregard previous run results and rerun the experiment.",
+)
 @click.option(
     "--output",
     "-o",
