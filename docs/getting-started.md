@@ -156,6 +156,7 @@ $ kiso --help
 │ down         Destroy the resources provisioned for the experiments.                                                 │
 │ run          Run the defined experiments.                                                                           │
 │ up           Create the resources needed to run the experiment.                                                     │
+│ version      Display the version information.                                                                       │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
  Check our docs at https://kiso.readthedocs.io/en/v0.1.0a10 for more details.
@@ -237,6 +238,18 @@ $ kiso down --help
 ╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ --output  -o  DIRECTORY  Environment to use for the experiment.                                                     │
 │ --help    -h             Show this message and exit.                                                                │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Check our docs at https://kiso.readthedocs.io/en/v0.1.0a10 for more details.
+
+$ kiso version --help
+
+ Usage: kiso version [OPTIONS]
+
+ Display the version information.
+
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --help  -h  Show this message and exit.                                                                             │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
  Check our docs at https://kiso.readthedocs.io/en/v0.1.0a10 for more details.

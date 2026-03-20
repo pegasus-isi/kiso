@@ -20,16 +20,17 @@ DEFAULT_EXPERIMENT_CONFIG = "experiment.yml"
 @click.option("--debug/--no-debug", default=False)
 def kiso(ctx: click.Context, debug: bool = False) -> None:
     """🏇 Kiso: Edge to Cloud Workflows: Advancing Workflow Management in the Computing Continuum."""  # noqa: E501
-    click.secho(
-        rf""" _   __ _
+    if ctx.invoked_subcommand != "version":
+        click.secho(
+            rf""" _   __ _
 | | / /(_)
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
 \_| \_/|_||___/ \___/  v{version.__version__}
 """,
-        fg="magenta",
-    )
+            fg="magenta",
+        )
 
     log.init_logging(level=logging.DEBUG if debug else logging.INFO)
 
@@ -137,6 +138,12 @@ def down(
         click.secho("✨ Success", fg="green")
     except Exception as e:
         _error(ctx, e)
+
+
+@kiso.command(name="version", epilog=EPILOG)
+def version_info() -> None:
+    """Display the version information."""
+    click.echo(f"kiso {version.__version__}")
 
 
 def _error(ctx: click.Context, e: Exception, ec: int = 1) -> None:
