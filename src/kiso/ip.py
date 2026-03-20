@@ -119,6 +119,7 @@ def _associate_floating_ip_chameleon(node: Host) -> IPv4Address | IPv6Address:
                         and floating_ip["Port"] is None
                     ):
                         _floating_ip = {"name": floating_ip["Floating IP Address"]}
+                        break
                 else:
                     log.debug("Request a new floating ip")
                     # Request a new floating ip
@@ -187,7 +188,7 @@ def _associate_floating_ip_chameleon_edge(
         ip = status.stdout.strip()
     else:
         ip = node.associate_floating_ip()
-        edge._execute(node, f"echo {ip} > /etc/floating-ip")
+        edge._execute(node, f"echo '{ip}' > /etc/floating-ip")
 
     log.debug("Floating IP associated with the device %s", ip)
     floating_ips = node.extra.get("floating-ips", [])

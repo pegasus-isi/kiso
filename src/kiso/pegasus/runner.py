@@ -163,7 +163,7 @@ class PegasusRunner:
                     break
             else:
                 raise ValueError(
-                    f"Experiment <{experiment['name']}>'s submit_node_labels do not map"
+                    f"Experiment <{experiment.name}>'s submit_node_labels do not map"
                     f"to any submit node(s) {submit_node_labels}"
                 )
 

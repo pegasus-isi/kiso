@@ -281,7 +281,7 @@ def _upload_file(
     :type check: bool, optional
     :raises ValueError: If source does not exist or destination is invalid
     """
-    with redirect_stdout(Path(os.devnull).open("w")):
+    with Path(os.devnull).open("w") as devnull, redirect_stdout(devnull):
         container.upload(str(src), dest=str(dst))
         if check:
             exists = _exists_remotely(container, dst / src.name)
@@ -368,7 +368,7 @@ def _download_file(
         # Copy the src file to the temporary directory
         _cp_remotely(container, src, tmpdir)
 
-    with redirect_stdout(Path(os.devnull).open("w")):
+    with Path(os.devnull).open("w") as devnull, redirect_stdout(devnull):
         container.download(str(tmpdir) if mktemp else str(src), str(dst))
         if check:
             exists = _exists_locally(dst / src.name)
@@ -764,7 +764,7 @@ def _execute(
     :return: CommandResult containing execution status and output
     :rtype: CommandResult
     """
-    with redirect_stdout(Path(os.devnull).open("w")):
+    with Path(os.devnull).open("w") as devnull, redirect_stdout(devnull):
         cmd = f"sh -c {shlex.quote(command)}"
 
         # Check if the command is to be executed as a specific user

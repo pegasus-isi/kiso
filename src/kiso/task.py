@@ -240,16 +240,15 @@ def _get_defined_machines(experiment_config: Kiso) -> Roles:
                 for label in machine["labels"]:
                     label_to_machines[label].add(machine_key)
 
-    else:
-        if vagrant_sites > 1:
-            raise ValueError("Multiple vagrant sites are not supported")
+    if vagrant_sites > 1:
+        raise ValueError("Multiple vagrant sites are not supported")
 
-        extra_labels = {}
-        for label, count in def_labels.items():
-            machines = list(label_to_machines[label])
-            for index in range(1, count + 1):
-                extra_labels[f"kiso.{label}.{index}"] = 1
-                label_to_machines[f"kiso.{label}.{index}"].add(machines[index - 1])
+    extra_labels = {}
+    for label, count in def_labels.items():
+        machines = list(label_to_machines[label])
+        for index in range(1, count + 1):
+            extra_labels[f"kiso.{label}.{index}"] = 1
+            label_to_machines[f"kiso.{label}.{index}"].add(machines[index - 1])
 
     return label_to_machines
 
@@ -310,7 +309,7 @@ def _check_experiments(
     if experiments is None:
         return
 
-    variables = copy.deepcopy(experiment_config.variables, {})
+    variables = copy.deepcopy(experiment_config.variables)
     for index, experiment in enumerate(experiments):
         # Get the `kind` of experiment
         kind = experiment.kind
@@ -745,7 +744,7 @@ def run(
     console.rule("[bold green]Run experiments[/bold green]")
 
     experiments = experiment_config.experiments
-    variables = copy.deepcopy(experiment_config.variables, {})
+    variables = copy.deepcopy(experiment_config.variables)
     env.setdefault("experiments", {})
     if force is True:
         env["experiments"] = {}

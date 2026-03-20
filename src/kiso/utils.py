@@ -383,7 +383,7 @@ def get_ips(
         # Prioritize public over private IPs and prioritize IPv4 over IPv6
         priority = (
             (2 if is_private else 0)
-            if isinstance(address.ip, IPv4Address)
+            if isinstance(address, IPv4Address)
             else (3 if is_private else 1)
         )
         addresses.append((ip, priority))
