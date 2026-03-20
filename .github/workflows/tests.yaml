@@ -30,4 +30,4 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: pip install tox
-      - run: tox -e ${{ format('py{0}', matrix.python) }}
+      - run: tox -e ${{ format('py{0}', replace(matrix.python, '.', '')) }}
