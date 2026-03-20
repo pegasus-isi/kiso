@@ -27,8 +27,7 @@ def kiso(ctx: click.Context, debug: bool = False) -> None:
 | |/ /  _  ___   ___
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
-\_| \_/|_||___/ \___/  v{version.__version__}
-""",
+\_| \_/|_||___/ \___/  v{version.__version__}""",
             fg="magenta",
         )
 

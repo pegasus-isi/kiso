@@ -169,7 +169,6 @@ $ kiso check --help
 | |\  \| |\__ \| (_) |
 \_| \_/|_||___/ \___/  v0.1.0a10
 
-
  Usage: kiso check [OPTIONS] [EXPERIMENT_CONFIG]
 
  Check the experiment configuration.
@@ -187,7 +186,6 @@ $ kiso up --help
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
 \_| \_/|_||___/ \___/  v0.1.0a10
-
 
  Usage: kiso up [OPTIONS] [EXPERIMENT_CONFIG]
 
@@ -209,7 +207,6 @@ $ kiso run --help
 | |\  \| |\__ \| (_) |
 \_| \_/|_||___/ \___/  v0.1.0a10
 
-
  Usage: kiso run [OPTIONS] [EXPERIMENT_CONFIG]
 
  Run the defined experiments.
@@ -229,7 +226,6 @@ $ kiso down --help
 |    \ | |/ __| / _ \
 | |\  \| |\__ \| (_) |
 \_| \_/|_||___/ \___/  v0.1.0a10
-
 
  Usage: kiso down [OPTIONS] [EXPERIMENT_CONFIG]
 
