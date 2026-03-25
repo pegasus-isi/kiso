@@ -140,8 +140,12 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            padding: 10rem 5% 6rem;
+            padding: 7rem 5% 6rem;
             background: linear-gradient(135deg, #fef3f4 0%, #f0f4f8 100%);
+        }
+
+        .hero h2 {
+            color: var(--text-primary);
         }
 
         .hero-pattern {
@@ -218,9 +222,30 @@
         .hero-subtitle {
             font-size: 1.35rem;
             color: var(--text-secondary);
-            margin-bottom: 3rem;
+            margin-bottom: 1rem;
             max-width: 800px;
             line-height: 1.8;
+        }
+
+        .hero-subtitle li {
+            font-size: 1.35rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            max-width: 800px;
+            line-height: .8;
+            list-style-type: none;
+        }
+
+        .hero-subtitle li::before {
+            content: '→';
+            color: var(--accent-red);
+            font-weight: bold;
+            font-size: 1.3rem;
+            padding-right: 0.5rem;
+        }
+
+        .hero-subtitle a {
+            color: var(--text-secondary);
         }
 
         .hero-buttons {
@@ -272,7 +297,7 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 2rem;
-            max-width: 650px;
+            max-width: 550px;
             box-shadow: var(--shadow-md);
         }
 
@@ -309,20 +334,20 @@
         }
 
         section {
-            padding: 8rem 5%;
+            padding: 3rem 5%;
             position: relative;
         }
 
         .section-header {
             text-align: center;
             max-width: 900px;
-            margin: 0 auto 5rem;
+            margin: 0 auto 3rem;
         }
 
         .section-label {
             display: inline-block;
             color: var(--accent-red);
-            font-size: 0.9rem;
+            font-size: 1.5rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -347,27 +372,41 @@
             background: var(--bg-primary);
         }
 
+        .about-text p::before {
+            content: '→';
+            color: var(--accent-red);
+            font-weight: bold;
+            font-size: 1.3rem;
+            padding-right: 0.5rem;
+        }
+
         .about-content {
             max-width: 1100px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: center;
+            grid-template-rows: auto 1fr;
+            gap: 1.5rem 4rem;
+            align-items: start;
+        }
+
+        .about-content > h3 {
+            grid-column: 1 / -1;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-align: center;
         }
 
         .about-text h3 {
-            font-size: 2.2rem;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
             color: var(--text-primary);
+            margin-top: 1rem;
+            margin-bottom: 1rem;
         }
-
         .about-text p {
             font-size: 1.15rem;
             color: var(--text-secondary);
             line-height: 1.9;
-            margin-bottom: 1.5rem;
         }
 
         .about-list {
@@ -414,7 +453,7 @@
 
         .workflow-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 2.5rem;
             max-width: 1300px;
             margin: 0 auto;
@@ -424,7 +463,7 @@
             background: white;
             border: 2px solid var(--border-color);
             border-radius: 24px;
-            padding: 3rem 2.5rem;
+            padding: 2rem 1.5rem;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
@@ -452,21 +491,19 @@
             color: white;
         }
 
-        .workflow-icon {
-            font-size: 3.5rem;
-            margin: 2rem 0 1.5rem;
-        }
-
         .workflow-card h3 {
+            display: inline-block;
             font-size: 1.8rem;
-            margin-bottom: 1.2rem;
+            margin: 2rem 0 0.5rem 0;
             font-weight: 700;
             color: var(--text-primary);
+            vertical-align: middle;
         }
 
         .workflow-card p {
             color: var(--text-secondary);
             line-height: 1.8;
+            margin-top: 1.2rem;
             margin-bottom: 2rem;
         }
 
@@ -495,17 +532,25 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .features {
+        .examples-by-testbed {
             background: var(--bg-primary);
         }
 
-        .examples {
+        .features {
             background: var(--bg-secondary);
+        }
+
+        .examples-by-application {
+            background: var(--bg-primary);
+        }
+
+        .examples-by-testbed .example-card {
+            text-align: center;
         }
 
         .examples-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 3rem;
             max-width: 1200px;
             margin: 0 auto;
@@ -515,7 +560,7 @@
             background: white;
             border: 2px solid var(--border-color);
             border-radius: 24px;
-            padding: 3rem;
+            padding: 2rem 1.5rem;
             transition: all 0.4s ease;
         }
 
@@ -548,13 +593,13 @@
             display: inline-flex;
             align-items: center;
             gap: 0.6rem;
-            padding: 0.8rem 1.5rem;
+            padding: 0.5rem 1.2rem;
             background: var(--text-primary);
             color: white;
             text-decoration: none;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             transition: all 0.3s ease;
         }
 
@@ -573,19 +618,23 @@
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2.5rem;
             max-width: 1300px;
             margin: 0 auto;
         }
 
         .feature-card {
-            text-align: center;
+            text-align: left;
             padding: 2.5rem;
             background: white;
             border: 2px solid var(--border-color);
             border-radius: 20px;
             transition: all 0.4s ease;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0 1rem;
         }
 
         .feature-card:hover {
@@ -595,28 +644,32 @@
         }
 
         .feature-icon {
-            width: 80px;
-            height: 80px;
+            width: 52px;
+            height: 52px;
             background: var(--accent-gradient);
-            border-radius: 20px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1.8rem;
-            font-size: 2.5rem;
+            margin: 0;
+            font-size: 1.8rem;
             box-shadow: 0 6px 20px rgba(230, 57, 70, 0.25);
+            flex-shrink: 0;
         }
 
         .feature-card h3 {
             font-size: 1.4rem;
-            margin-bottom: 1rem;
+            margin: 0;
             font-weight: 700;
             color: var(--text-primary);
+            flex: 1;
         }
 
         .feature-card p {
             color: var(--text-secondary);
             line-height: 1.8;
+            flex-basis: 100%;
+            margin-top: 1rem;
         }
 
         .cta-section {
@@ -706,16 +759,21 @@
     </style>
 </head>
 <body>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+        <symbol id="icon-github" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </symbol>
+    </svg>
     <nav id="navbar">
         <a href="#home" class="logo">
-            <img src="/assets/images/logo-kiso.png" alt="Kiso Logo" class="logo-icon">
+            <img src="/assets/images/logo-kiso.png" alt="Kiso Logo" class="logo-icon" loading="lazy">
             <span class="logo-text">Kiso</span>
         </a>
         <ul class="nav-links">
             <li><a href="#about">About</a></li>
             <li><a href="#workflow">How It Works</a></li>
             <li><a href="#features">Features</a></li>
-            <li><a href="#examples">Examples</a></li>
+            <li><a href="#examples-by-testbed">Examples</a></li>
             <li><a href="https://kiso.readthedocs.io" target="_blank">Docs</a></li>
             <li><a href="https://github.com/pegasus-isi/kiso" target="_blank" class="nav-cta">Get Started</a></li>
         </ul>
@@ -726,58 +784,79 @@
         <div class="hero-dots"></div>
         <div class="hero-content">
             <div class="hero-badge">
-                <span class="badge"></span>
+                <span class="badge-dot"></span>
                 🚀 Reproducible Experimentation Framework
             </div>
             <h1>Run Experiments Anywhere<br>With Minimal Effort</h1>
-            <p class="hero-subtitle">Kiso helps researchers run and reproduce experiments across edge, cloud, and testbed environments, like FABRIC, Chameleon, etc. Define your experiments declaratively, and let Kiso handle the infrastructure complexity.</p>
+            <p class="hero-subtitle">Kiso helps researchers run and reproduce experiments across edge, cloud, and testbed environments, like <a href="https://kiso.readthedocs.io/en/latest/concepts.html#fabric">FABRIC</a>, <a href="https://kiso.readthedocs.io/en/latest/concepts.html#chameleon">Chameleon</a>, etc. Define your experiments declaratively, and let Kiso handle the infrastructure complexity.</p>
+            <div class="hero-subtitle">Kiso is designed for
+                <ul>
+                    <li>Running workflow experiments across testbeds with builtin support for <a href="https://pegasus.isi.edu" target="_blank">Pegasus</a>.</li>
+                    <li>Running agentic experiments.</li>
+                </ul>
+            </div>
             <div class="hero-buttons">
                 <a href="#about" class="btn btn-primary">Learn More →</a>
                 <a href="https://www.youtube.com/watch?v=2L5kSMh25tc" target="_blank" class="btn btn-video">▶ Watch Introduction</a>
                 <a href="https://kiso.readthedocs.io" class="btn btn-secondary">Documentation</a>
             </div>
+            <div class="workflow-grid">
+                <div class="code-demo" >
+                <div class="code-header">
+                    <h2>What does Kiso do?</h2>
+                </div>
+                <div>
+                    <!-- <ul>
+                        <li>Experimentation on cloud testbeds is hard.</li>
+                        <li>Kiso automates provisioning of resources that your experiment requires</li>
+                        <li>Reproducible, repeatable, and portable</li>
+                        <li></li> -->
+                        <img src="/assets/images/kiso-experiment-big-picture.png" width="100%" alt="Kiso Experiment Big Picture" loading="lazy">
+                    <!-- </ul> -->
+                </div>
+            </div>
+
             <div class="code-demo">
                 <div class="code-header">
-                    <div class="code-dot"></div>
-                    <div class="code-dot"></div>
-                    <div class="code-dot"></div>
+                    <h2>Kiso in action</h2>
                 </div>
                 <code>
                     <span class="code-comment"># Install Kiso</span><br>
-                    <span class="code-command">$ pip install kiso[all]</span><br><br>
+                    <span class="code-command">$ pip install kiso[all]</span><br>
 
                     <span class="code-comment"># Define your experiment in YAML</span><br>
-                    <span class="code-command">$ vim experiment.yml</span><br><br>
+                    <span class="code-command">$ vim experiment.yml</span><br>
 
                     <span class="code-comment"># Provision resources across multiple testbeds</span><br>
-                    <span class="code-command">$ kiso up</span><br><br>
+                    <span class="code-command">$ kiso up</span><br>
 
                     <span class="code-comment"># Run across multiple testbeds</span><br>
-                    <span class="code-command">$ kiso run</span><br><br>
+                    <span class="code-command">$ kiso run</span><br>
 
                     <span class="code-comment"># Deprovision resources</span><br>
                     <span class="code-command">$ kiso down</span>
                 </code>
+            </div>
             </div>
         </div>
     </section>
 
     <section class="about" id="about">
         <div class="about-content">
+            <h3>Focus on Research, Not Infrastructure</h3>
             <div class="about-text">
-                <h3>Focus on Research, Not Infrastructure</h3>
-                <p>Instead of writing custom scripts to provision resources, install software, and manage execution, Kiso lets you describe your experiments declaratively using simple configuration files.</p>
-                <p>Kiso handles resource provisioning, software setup, experiment execution, and result collection—allowing you to focus on designing and evaluating your experiments rather than managing infrastructure.</p>
-                <ul class="about-list">
-                    <li>Provision resources across multiple testbeds (cloud, edge, or local)</li>
-                    <li>Install and configure software stacks and workload management systems</li>
-                    <li>Deploy execution environments like workflow engines or agent runtimes</li>
-                    <li>Run experiments in a controlled and repeatable manner</li>
-                    <li>Collect results from distributed resources back to a central location</li>
-                </ul>
+                <h3>Without Kiso</h3>
+                <p>You write custom scripts to provision resources, install software, and manage (start, wait, stop) execution instead of focusing on your experiment.</p>
+                <p>Need to learn testbed-specific APIs to do the above.</p>
+
+                <h3>With Kiso</h3>
+                <p>You focus on designing and evaluating your experiments rather than managing infrastructure</p>
+                <p>Kiso handles resource provisioning, software setup, experiment execution, and result collection</p>
+
+                <p>Kiso supports FABRIC, Chameleon, and Vagrant testbeds, and can run Shell and Pegasus workflow experiments.</p>
             </div>
             <div class="video-container">
-                <iframe src="https://www.youtube.com/embed/2L5kSMh25tc" allowfullscreen></iframe>
+                <iframe src="https://www.youtube.com/embed/2L5kSMh25tc" title="Kiso Introduction Video" allowfullscreen loading="lazy"></iframe>
             </div>
         </div>
     </section>
@@ -792,40 +871,95 @@
         <div class="workflow-grid">
             <div class="workflow-card">
                 <div class="stage-number">1</div>
-                <div class="workflow-icon">🏗️</div>
-                <h3>Provision Resources</h3>
+                <h3>🏗️ Provision Resources</h3>
                 <p>Declaratively provision computing resources across one or more supported testbeds. Kiso handles authentication, allocation, and configuration across diverse infrastructure providers.</p>
                 <div class="tech-tags">
-                    <a href="https://chameleoncloud.org" target="_blank" class="tech-tag">Chameleon</a>
-                    <a href="https://chameleoncloud.org" target="_blank" class="tech-tag">Chameleon Edge</a>
-                    <a href="https://portal.fabric-testbed.net" target="_blank" class="tech-tag">FABRIC</a>
-                    <a href="https://developer.hashicorp.com/vagrant" target="_blank" class="tech-tag">Vagrant</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#chameleon" target="_blank" class="tech-tag">Chameleon</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#chameleon" target="_blank" class="tech-tag">Chameleon Edge</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#fabric" target="_blank" class="tech-tag">FABRIC</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#vagrant" target="_blank" class="tech-tag">Vagrant</a>
                 </div>
             </div>
 
             <div class="workflow-card">
                 <div class="stage-number">2</div>
-                <div class="workflow-icon">⚙️</div>
-                <h3>Install & Configure</h3>
+                <h3>⚙️ Install & Configure</h3>
                 <p>Automatically install and configure software stacks, workload management systems, and execution environments. Deploy containers, workflow engines, agent runtimes, and custom dependencies.</p>
                 <div class="tech-tags">
-                    <a href="https://www.docker.com" target="_blank" class="tech-tag">Docker</a>
-                    <a href="https://apptainer.org" target="_blank" class="tech-tag">Apptainer</a>
-                    <a href="https://ollama.com" target="_blank" class="tech-tag">Ollama</a>
-                    <a href="https://htcondor.org" target="_blank" class="tech-tag">HTCondor</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#id4" target="_blank" class="tech-tag">Apptainer</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#id6" target="_blank" class="tech-tag">Docker</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#id8" target="_blank" class="tech-tag">Ollama</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#id10" target="_blank" class="tech-tag">HTCondor</a>
                     <a href="https://pegasus.isi.edu" target="_blank" class="tech-tag">Pegasus</a>
                 </div>
             </div>
 
             <div class="workflow-card">
                 <div class="stage-number">3</div>
-                <div class="workflow-icon">🔬</div>
-                <h3>Execute & Collect</h3>
+                <h3>🔬 Execute & Collect</h3>
                 <p>Run experiments in a controlled, repeatable manner across distributed infrastructure. Automatically collect results from all resources back to a central location for analysis.</p>
                 <div class="tech-tags">
                     <span class="tech-tag">Monitoring</span>
                     <span class="tech-tag">Result Collection</span>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="examples-by-testbed" id="examples-by-testbed">
+        <div class="section-header">
+            <div class="section-label">Example for each Testbed</div>
+        </div>
+
+        <div class="examples-grid">
+            <div class="example-card">
+                <div class="example-icon"><img src="/assets/images/logo-fabric.png" height="64" alt="FABRIC Testbed Logo" loading="lazy"></div>
+                <p>🚀 Starter Example: A basic hello world example for FABRIC testbed</p>
+                <a href="https://github.com/pegasus-isi/kiso-fabric-starter" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+                <p></p>
+                <p>🤖 Pydantic Agent: A template for running AI agent workloads on provisioned infrastructure: spins up Ollama with a local LLM and a Pydantic agent that returns structured output.</p>
+                <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+                <p></p>
+                <p>🔬 COLMENA: Hyper-distributed agent swarms across heterogeneous edge devices, coordinated as a unified computing platform spanning the full compute continuum.</p>
+                <a href="https://github.com/pegasus-isi/kiso-colmena-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+            </div>
+            <div class="example-card">
+                <div class="example-icon"><img src="/assets/images/logo-chameleon.jpg" height="64" alt="Chameleon Cloud Logo" loading="lazy"></div>
+                <p>🚀 Starter Example: A basic hello world example for Chameleon testbed</p>
+                <a href="https://github.com/pegasus-isi/kiso-chameleon-starter" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+                <p></p>
+                <p>🦠 Plankifier: Deep learning classification of freshwater plankton images to automate ecosystem monitoring at scale, replacing costly manual microscopic annotation.</p>
+                <a href="https://github.com/pegasus-isi/kiso-plankifier-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+            </div>
+
+            <div class="example-card">
+                <div class="example-icon"><img src="/assets/images/logo-vagrant.png" height="64" alt="Vagrant Logo" loading="lazy"></div>
+                <p>🚀 Starter Example: A basic hello world example for Vagrant</p>
+                <a href="https://github.com/pegasus-isi/kiso-vagrant-starter" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+                <p></p>
+                <p>🐋 Orcasound: Real-time orca detection using hydrophone sensors across Washington state, training on live audio to identify whale calls with automated ML pipelines.</p>
+                <a href="https://github.com/pegasus-isi/kiso-orcasound-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
             </div>
         </div>
     </section>
@@ -847,7 +981,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🔄</div>
                 <h3>Multi-Environment</h3>
-                <p>Seamlessly run experiments across edge, and testbed environments through a unified interface. Support for major research testbeds providers.</p>
+                <p>Seamlessly run experiments across edge, and testbed environments through a unified interface. Support for major research testbed providers.</p>
             </div>
 
             <div class="feature-card">
@@ -859,7 +993,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🔌</div>
                 <h3>Extensible</h3>
-                <p>Plugin architecture supports custom testbeds, software installers, and experiment orchestrators to fit your specific needs.</p>
+                <p>Plugin architecture supports custom software installers, and experiment orchestrators to fit your specific needs.</p>
             </div>
 
             <div class="feature-card">
@@ -876,7 +1010,7 @@
         </div>
     </section>
 
-    <section class="examples" id="examples">
+    <section class="examples-by-application" id="examples-by-application">
         <div class="section-header">
             <div class="section-label">Use Cases</div>
             <h2 class="section-title">Example Experiments</h2>
@@ -885,54 +1019,51 @@
 
         <div class="examples-grid">
             <div class="example-card">
-                <div class="example-icon">🦠</div>
-                <h3>Plankifier</h3>
-                <p>Plankton are effective indicators of environmental change and ecosystem health in freshwater habitats, but collection of plankton data using manual microscopic methods is extremely labor-intensive and expensive. Automated plankton imaging offers a promising way forward to monitor plankton communities with high frequency and accuracy in real-time. Yet, manual annotation of millions of images proposes a serious challenge to taxonomists. Deep learning classifiers have been successfully applied here to categorize marine plankton images.</p>
-                <a href="https://github.com/pegasus-isi/kiso-plankifier-experiment" target="_blank" class="github-link">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    View on GitHub
-                </a>
+                <h3>🤖 Pydantic Agent</h3>
+                <p>A template for running AI agent workloads on provisioned infrastructure: spins up Ollama with a local LLM and a Pydantic agent that returns structured output.</p>
+                <div class="tech-tags">
+                    <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
+                        <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                        View on GitHub
+                    </a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#fabric" target="_blank" class="tech-tag">FABRIC</a>
+                </div>
             </div>
 
             <div class="example-card">
-                <div class="example-icon">🐋</div>
-                <h3>Orcasound</h3>
-                <p>This workflow is based on an open-source software and hardware project that trains itself using the audio files generated via the hydrophone sensors deployed in three locations in the state of Washington (San Juan Island, Point Bush, and Port Townsend) in order to study Orca whales in the Pacific Northwest region. This workflow uses code and ideas available in the Orcasound GitHub actions workflow and the Orca Hello real-time notification system.</p>
-                <a href="https://github.com/pegasus-isi/kiso-orcasound-experiment" target="_blank" class="github-link">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    View on GitHub
-                </a>
+                <h3>🦠 Plankifier</h3>
+                <p>Deep learning classification of freshwater plankton images to automate ecosystem monitoring at scale, replacing costly manual microscopic annotation.</p>
+                <div class="tech-tags">
+                    <a href="https://github.com/pegasus-isi/kiso-plankifier-experiment" target="_blank" class="github-link">
+                        <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                        View on GitHub
+                    </a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#chameleon" target="_blank" class="tech-tag">Chameleon</a>
+                </div>
             </div>
 
             <div class="example-card">
-                <div class="example-icon">🔬</div>
-                <h3>COLMENA</h3>
-                <p>COLMENA is an open framework designed to simplify the development, deployment, and operation of hyper-distributed applications across the compute continuum. It enables collections of heterogeneous devices to collaborate as a decentralized swarm of agents, presenting the infrastructure as a single, unified computing platform.</p>
-                <a href="https://github.com/pegasus-isi/kiso-colmena-experiment" target="_blank" class="github-link">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    View on GitHub
-                </a>
+                <h3>🐋 Orcasound</h3>
+                <p>Real-time orca detection using hydrophone sensors across Washington state, training on live audio to identify whale calls with automated ML pipelines.</p>
+                <div class="tech-tags">
+                    <a href="https://github.com/pegasus-isi/kiso-orcasound-experiment" target="_blank" class="github-link">
+                        <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                        View on GitHub
+                    </a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#vagrant" target="_blank" class="tech-tag">Vagrant</a>
+                </div>
             </div>
 
             <div class="example-card">
-                <div class="example-icon">🤖</div>
-                <h3>Pydantic Agent</h3>
-                <p>The experiment is a proof-of-concept demonstrating how to run an AI agent workload on provisioned infrastructure using Kiso. The experiment provisions a virtual machine (via Vagrant/VirtualBox or optionally FABRIC testbed), installs
-  Ollama to serve a local open-source LLM, and then runs a small Python agent using Pydantic that queries the model for structured output. The agent
-  itself is intentionally minimal — it asks where the 2012 Olympics were held and parses the response into a typed CityLocation object — serving as a template for running more
-  complex agentic workloads on reproducible, cloud-provisioned infrastructure.</p>
-                <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    View on GitHub
-                </a>
+                <h3>🔬 COLMENA</h3>
+                <p>Hyper-distributed agent swarms across heterogeneous edge devices, coordinated as a unified computing platform spanning the full compute continuum.</p>
+                <div class="tech-tags">
+                    <a href="https://github.com/pegasus-isi/kiso-colmena-experiment" target="_blank" class="github-link">
+                        <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                        View on GitHub
+                    </a>
+                    <a href="https://kiso.readthedocs.io/en/latest/concepts.html#fabric" target="_blank" class="tech-tag">FABRIC</a>
+                </div>
             </div>
         </div>
     </section>
@@ -941,18 +1072,20 @@
         <h2>Start Your Next Experiment</h2>
         <p>Join researchers using Kiso to simplify their edge-to-cloud experimentation workflows</p>
         <div class="hero-buttons" style="justify-content: center;">
-            <a href="https://kiso.readthedocs.io" class="btn btn-primary">Read Documentation →</a>
+            <a href="https://github.com/pegasus-isi/kiso-experiment-template" class="btn btn-primary">Starter Template →</a>
+            <a href="https://kiso.readthedocs.io" class="btn btn-secondary">Read Documentation</a>
             <a href="https://github.com/pegasus-isi/kiso" class="btn btn-secondary">View on GitHub</a>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2026 Kiso Project. Kiso is funded by the National Science Foundation (NSF) under award <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2403051">2403051.</a></p>
         <p>
             <a href="https://kiso.readthedocs.io">Documentation</a> •
             <a href="https://github.com/pegasus-isi/kiso">GitHub</a> •
             <a href="https://www.youtube.com/watch?v=2L5kSMh25tc">Introduction Video</a>
         </p>
+        <p style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"><img src="/assets/images/logo-nsf.png" height="40" width="40" /> Kiso is funded by the National Science Foundation (NSF) under award <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2403051">2403051.</a></p>
+        <p>&copy; 2026 Kiso Project.</p>
     </footer>
 
     <script>
