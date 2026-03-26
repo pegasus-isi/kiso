@@ -103,6 +103,7 @@ docs = [
     "sphinx_tabs",
     "sphinx-click",
     "myst-parser",
+    "sphinx_copybutton",
 ]
 
 
