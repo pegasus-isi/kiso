@@ -8,6 +8,7 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
@@ -254,8 +255,19 @@ def _associate_floating_ip_fabric(node: Host) -> IPv4Address | IPv6Address:
                 fabric_slice.submit()
 
                 # Make an IP publicly routable
-                fabric_slice = fablib.get_slice(name=node.extra["slice"])
-                network = fabric_slice.get_network(name=network_name)
+                # TODO(mayani): Sometimes the get_network returns None, so we sleep for
+                # a few seconds and try again. Remove this when FABRIC API is fixed.
+                for _ in range(3):
+                    fabric_slice = fablib.get_slice(name=node.extra["slice"])
+                    network = fabric_slice.get_network(name=network_name)
+                    if network is not None:
+                        break
+                    log.debug(
+                        "Could not get FABRIC network <%s> from slice <%s>",
+                        network_name,
+                        node.extra["slice"],
+                    )
+                    time.sleep(2)
                 ip = network.get_available_ips()
                 network.make_ip_publicly_routable(ipv4=[str(ip[0])])
 
