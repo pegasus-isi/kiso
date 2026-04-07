@@ -121,6 +121,12 @@ After `kiso up`, check the Chameleon dashboard:
 - Active lease under **Reservations → Leases**
 - Instances under **Compute → Instances**
 
+You can also connect to a node directly using `kiso ssh` with the label assigned to it in your config:
+
+```bash
+kiso ssh <your-node-label>
+```
+
 ## Common failure modes
 
 **No nodes available for lease**

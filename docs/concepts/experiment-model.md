@@ -53,6 +53,8 @@ For Pegasus experiments, Kiso also automatically retrieves the Pegasus submit di
 
 All three commands — `kiso up`, `kiso run`, and `kiso down` — accept a `--debug` flag. When set, Kiso captures logs generated at every stage of the experiment, including calls to testbed APIs during provisioning, Ansible output during software installation, and runtime errors during experiment execution. These logs are useful for diagnosing a wide range of issues: intermittent testbed API errors, connectivity problems between nodes, failed package installs due to insufficient disk space, or unreachable external URLs during dependency fetching.
 
+After `kiso up` completes, you can connect directly to any provisioned node using `kiso ssh <node-label>`. This is useful for inspecting the environment, checking installed software, or running commands manually before or after `kiso run`. See the [CLI reference](../reference/cli.md) for the full `kiso ssh` options.
+
 ## The config file as single source of truth
 
 The config file is not just input to the CLI. It is the complete, reproducible description of the experiment:

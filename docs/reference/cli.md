@@ -145,6 +145,56 @@ kiso down --output /data/exp1 experiment.yml
 - Destroys all provisioned resources. This action is irreversible.
 - Collect all results before running `kiso down`.
 
+## `kiso ssh`
+
+SSH into a provisioned node by label or alias.
+
+```
+kiso ssh [OPTIONS] NODE_ALIAS [EXTRA_SSH_ARGS]...
+```
+
+**Arguments:**
+
+| Argument         | Required | Description                                                                  |
+| ---------------- | -------- | ---------------------------------------------------------------------------- |
+| `NODE_ALIAS`     | Yes      | Label or node alias to connect to. Accepts `[user@]<label-or-alias>` format. |
+| `EXTRA_SSH_ARGS` | No       | Additional arguments passed verbatim to the underlying `ssh` command.        |
+
+**Options:**
+
+| Option               | Default    | Description                                                                                  |
+| -------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `-o, --output PATH`  | `output`   | Directory containing the EnOSlib environment (must match the `--output` used with `kiso up`) |
+| `-c, --command TEXT` | —          | Execute a command on the remote node instead of opening an interactive shell                 |
+| `-t / -T`            | `-t` (tty) | Allocate (`-t`) or suppress (`-T`) a pseudo-TTY. Suppress when piping output from `-c`       |
+
+**Examples:**
+
+```bash
+# Interactive shell on the node with label submit-host
+kiso ssh submit-host
+
+# Connect as a specific user
+kiso ssh ubuntu@submit-host
+
+# Run a one-off command
+kiso ssh -c "hostname" submit-host
+
+# Run a command without TTY (useful for piping output)
+kiso ssh -T -c "cat /etc/os-release" submit-host
+
+# Pass extra SSH options (e.g. port forwarding)
+kiso ssh submit-host -- -vvv
+```
+
+**Notes:**
+
+- Resources must be provisioned (`kiso up`) before connecting.
+- `NODE_ALIAS` can be either a **label** defined in the `sites` section of the config or the node's own **alias** assigned by the testbed. Labels that map to more than one node are not usable — use the specific node alias instead.
+- The `user@` prefix overrides the default login user for the node. Without it, Kiso uses the user configured by the testbed (e.g. `cc` for Chameleon bare metal, `rocky` for FABRIC Rocky images).
+- `EXTRA_SSH_ARGS` are appended after `--` and passed through to `ssh` unchanged.
+- Not supported on Chameleon Edge — those resources are containers without SSH access.
+
 ## `kiso version`
 
 Display the version information.
@@ -168,10 +218,13 @@ kiso check experiment.yml
 # 2. Provision and configure
 kiso up experiment.yml
 
-# 3. Run experiments and collect results
+# 3. (Optional) Inspect a node while resources are up
+kiso ssh submit-host
+
+# 4. Run experiments and collect results
 kiso run experiment.yml
 
-# 4. Tear down
+# 5. Tear down
 kiso down experiment.yml
 ```
 

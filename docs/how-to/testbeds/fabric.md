@@ -197,6 +197,12 @@ After `kiso up`, check the FABRIC dashboard:
 
 - Active slice under **Experiments → MY SLICES**
 
+You can also connect to a node directly using `kiso ssh` with the label assigned to it in your config:
+
+```bash
+kiso ssh <your-node-label>
+```
+
 ## Common failure modes
 
 **Missing or invalid RC file**
