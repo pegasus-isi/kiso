@@ -1037,7 +1037,7 @@ def _build_ssh_cmd(
     cmd.append(target)
     if command:
         cmd.append(command)
-    print(cmd)
+
     return cmd
 
 
