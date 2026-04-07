@@ -7,6 +7,8 @@ import contextlib
 import copy
 import io
 import logging
+import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -24,6 +26,7 @@ from enoslib.task import Environment, enostask
 from jsonschema.validators import validator_for
 from jsonschema_pyref import RefResolver, ValidationError
 from rich.console import Console
+from rich.table import Table
 
 import kiso.constants as const
 from kiso import display, edge, utils
@@ -139,7 +142,7 @@ def check_provisioned(func: Callable[..., T]) -> Callable[..., T]:
     """
 
     @wraps(func)
-    def wrapper(experiment_config: Kiso, *args: Any, **kwargs: Any) -> T:  # noqa: ANN401
+    def wrapper(*args: Any, **kwargs: Any) -> T:  # noqa: ANN401
         is_provisioned = False
         env = kwargs.get("env")
         if env and env.get("providers"):
@@ -151,7 +154,7 @@ def check_provisioned(func: Callable[..., T]) -> Callable[..., T]:
                 "Suggestion: Run `kiso up` first."
             )
 
-        return func(experiment_config, *args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapper
 
@@ -918,3 +921,159 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
         shutil.rmtree(vagrant_dir)
     if has_vagrant and vagrant_file.exists():
         vagrant_file.unlink()
+
+
+@enostask()
+@check_provisioned
+def ssh(
+    node_alias: str,
+    command: str | None = None,
+    tty: bool = True,
+    extra_ssh_args: list[str] | None = None,
+    env: Environment = None,
+    **kwargs: dict,
+) -> None:
+    """SSH into provisioned resources.
+
+    This function is responsible for SSHing into the resources associated with an
+    experiment configuration using the specified providers.
+
+    :param node_alias: The alias of the node to SSH into
+    :type node_alias: str
+    :param command: An SSH command to execute on the remote node
+    :type command: str | None, optional
+    :param tty: Allocate a pseudo-TTY, defaults to True
+    :type tty: bool, optional
+    :param extra_ssh_args: Extra arguments to pass to the SSH command
+    :type extra_ssh_args: list[str] | None, optional
+    :param env: Environment object containing provider information
+    :type env: Environment, optional
+    :param kwargs: Additional keyword arguments
+    :type kwargs: dict
+    """
+    ssh_path = shutil.which("ssh")
+    if not ssh_path:
+        raise KisoError("Unable to locate SSH executable.")
+
+    node, login_user_prefix = _resolve_ssh_node(node_alias, env["labels"])
+    login_user = login_user_prefix or node.user
+    target = f"{login_user}@{node.address}" if login_user else node.address
+
+    ssh_cmd = _build_ssh_cmd(ssh_path, node, target, tty, extra_ssh_args, command)
+    log.debug("SSH command: %s", " ".join(ssh_cmd))
+    os.execvp(ssh_path, ssh_cmd)  # noqa: S606
+
+
+def _resolve_ssh_node(node_alias: str, labels: Any) -> tuple[Host, str | None]:  # noqa: ANN401
+    """Resolve a node alias to a Host and optional login-user prefix.
+
+    :param node_alias: Alias in ``[user@]alias`` or ``[user@]label`` form. The ``label``
+    must be associated with a single node and not contain `@` in it.
+    :param labels: Provisioned label→hosts mapping
+    :raises KisoError: If the alias does not match any known host
+    :return: Matching host and the explicit login user (or None)
+    """
+    parts = node_alias.split("@")
+    login_user_prefix, target_alias = (
+        (parts[0], parts[-1]) if len(parts) > 1 else (None, parts[0])
+    )
+
+    host_lookup: dict[str, Host] = {}
+    host_to_labels: dict[str, list[str]] = defaultdict(list)
+    for label, nodes in labels.items():
+        if "@" in label or len(nodes) > 1:
+            continue
+        for n in nodes:
+            if isinstance(n, Host):
+                host_lookup.setdefault(n.alias, n)
+                host_to_labels[n.alias].append(label)
+
+    if target_alias in labels:
+        return next(
+            h for h in labels[target_alias] if isinstance(h, Host)
+        ), login_user_prefix
+    if target_alias in host_lookup:
+        return host_lookup[target_alias], login_user_prefix
+
+    table = Table("Alias", "Alternate Aliases")
+    for alias, alt_labels in sorted(host_to_labels.items()):
+        table.add_row(alias, ", ".join(sorted(alt_labels)))
+    console.print(table)
+    raise KisoError(f"Node alias <{node_alias}> not found.")
+
+
+def _build_ssh_cmd(
+    ssh_path: str,
+    node: Host,
+    target: str,
+    tty: bool,
+    extra_ssh_args: list[str] | None,
+    command: str | None,
+) -> list[str]:
+    """Assemble the SSH command list ready for execvp."""
+    cmd = [
+        ssh_path,
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "ForwardAgent=yes",
+    ]
+
+    proxy_cmd = _get_proxy_jump_cmd(node)
+    if proxy_cmd:
+        cmd.insert(1, f"ProxyCommand={proxy_cmd.replace('ssh', ssh_path)}")
+        cmd.insert(1, "-o")
+
+    if tty:
+        cmd.append("-t")
+    if node.port and node.port != 22:
+        cmd.extend(["-p", str(node.port)])
+    if node.keyfile:
+        cmd.extend(["-i", str(node.keyfile)])
+    if extra_ssh_args:
+        cmd.extend(extra_ssh_args)
+    cmd.append(target)
+    if command:
+        cmd.append(command)
+    print(cmd)
+    return cmd
+
+
+def _get_proxy_jump_cmd(node: Host) -> str | None:
+    """Get the ProxyJump command for a given node."""
+    if "gateway" not in node.extra and "management_ip" not in node.extra:
+        return None
+
+    # TODO(mayani): Not needed after EnOSlib issue #240 is resolved
+    if "management_ip" in node.extra:
+        proxy_cmd = node.extra["ansible_ssh_common_args"]
+        match = re.search(r".*ProxyCommand=\"(.*)\".*", proxy_cmd)
+        if match:
+            # TODO: Remove single quotes from aroudn the ProxyCommand as we run it
+            # through ``os.execvp`` which doesn't not use a shell so there is no
+            # need to escape them.
+            return match.group(1).replace("'", "")
+
+        raise KisoError("No proxy command found for node <%s>", node.alias)
+
+    base_ssh_args = (
+        "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "
+        "-o ForwardAgent=yes"
+    )
+
+    gw = node.extra["gateway"]
+    gw_user = node.extra.get("gateway_user", node.user)
+    gw_port = node.extra.get("gateway_port", 22)
+    gw_private_key = node.extra.get("gateway_private_key", node.keyfile)
+    proxy_cmd = f"ssh -W \\[%h\\]:%p {base_ssh_args}"
+    if gw_user:
+        proxy_cmd += f" -l {gw_user}"
+    if gw_port:
+        proxy_cmd += f" -p {gw_port}"
+    if gw_private_key:
+        proxy_cmd += f" -o IdentitiesOnly=yes -i '{gw_private_key}'"
+    proxy_cmd += f" {gw}"
+
+    return proxy_cmd

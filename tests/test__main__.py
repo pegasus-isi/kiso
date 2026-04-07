@@ -6,6 +6,7 @@ from unittest.mock import patch
 from click.testing import CliRunner
 
 from kiso.__main__ import kiso
+from kiso.errors import KisoError
 
 
 def test_kiso_help() -> None:
@@ -115,4 +116,31 @@ def test_down_error_path(resource_path_root: Path) -> None:
     runner = CliRunner()
     with patch("kiso.task.down", side_effect=RuntimeError("boom")):
         result = runner.invoke(kiso, ["down", str(config)])
+    assert "Error" in result.output
+
+
+# ---------------------------------------------------------------------------
+# ssh
+# ---------------------------------------------------------------------------
+
+
+def test_ssh_help() -> None:
+    runner = CliRunner()
+    result = runner.invoke(kiso, ["ssh", "--help"])
+    assert result.exit_code == 0
+
+
+def test_ssh_kiso_error_is_caught() -> None:
+    runner = CliRunner()
+    with patch("kiso.task.ssh", side_effect=KisoError("node not found")):
+        result = runner.invoke(kiso, ["ssh", "worker1"])
+    assert result.exit_code != 0
+    assert "Error" in result.output
+
+
+def test_ssh_generic_exception_is_caught() -> None:
+    runner = CliRunner()
+    with patch("kiso.task.ssh", side_effect=RuntimeError("boom")):
+        result = runner.invoke(kiso, ["ssh", "worker1"])
+    assert result.exit_code != 0
     assert "Error" in result.output

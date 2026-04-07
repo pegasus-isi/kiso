@@ -560,6 +560,159 @@ def test_show_rsync_warning_fabric_mac_default_rsync(mocker: MockerFixture) -> N
     assert mock_print.call_count >= 2  # Markdown header + message
 
 
+# ---------------------------------------------------------------------------
+# ssh
+# ---------------------------------------------------------------------------
+
+# Bypass @enostask so tests can pass env as a plain dict.
+_ssh = task.ssh.__wrapped__
+
+
+def _make_ssh_env(*hosts: Host) -> dict:
+    """Build a minimal env dict for ssh unit tests."""
+    labels: Roles = Roles()
+    for host in hosts:
+        labels[host.alias] = [host]
+    _extend_labels(labels)
+    return {"providers": [object()], "labels": labels}
+
+
+def _make_host(
+    alias: str,
+    address: str = "10.0.0.1",
+    user: str = "ubuntu",
+    port: int = 22,
+    keyfile: str | None = None,
+) -> Host:
+    return Host(address, alias=alias, user=user, port=port, keyfile=keyfile)
+
+
+def test_ssh_no_executable_raises(mocker: MockerFixture) -> None:
+    mocker.patch("kiso.task.shutil.which", return_value=None)
+    with pytest.raises(KisoError, match="Unable to locate SSH"):
+        _ssh("worker1", env=_make_ssh_env(_make_host("worker1")))
+
+
+def test_ssh_unknown_alias_raises(mocker: MockerFixture) -> None:
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+    with pytest.raises(KisoError, match="not found"):
+        _ssh("ghost", env=_make_ssh_env(_make_host("worker1")))
+
+
+def test_ssh_by_host_alias(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", address="10.0.0.1", user="ubuntu")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "ubuntu@10.0.0.1" in cmd
+
+
+def test_ssh_by_kiso_label(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", address="10.0.0.2", user="ubuntu")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("kiso.worker1.1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "ubuntu@10.0.0.2" in cmd
+
+
+def test_ssh_tty_adds_dash_t(mocker: MockerFixture) -> None:
+    host = _make_host("worker1")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", tty=True, env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-t" in cmd
+
+
+def test_ssh_no_tty_omits_dash_t(mocker: MockerFixture) -> None:
+    host = _make_host("worker1")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", tty=False, env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-t" not in cmd
+
+
+def test_ssh_command_appended(mocker: MockerFixture) -> None:
+    host = _make_host("worker1")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", command="hostname", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert cmd[-1] == "hostname"
+
+
+def test_ssh_extra_args_appended(mocker: MockerFixture) -> None:
+    host = _make_host("worker1")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", extra_ssh_args=["-L", "8080:localhost:80"], env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-L" in cmd
+    assert "8080:localhost:80" in cmd
+
+
+def test_ssh_nonstandard_port(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", port=2222)
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-p" in cmd
+    assert "2222" in cmd
+
+
+def test_ssh_standard_port_omitted(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", port=22)
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-p" not in cmd
+
+
+def test_ssh_keyfile_added(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", keyfile="/home/user/.ssh/id_rsa")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("worker1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "-i" in cmd
+    assert "/home/user/.ssh/id_rsa" in cmd
+
+
+def test_ssh_user_prefix_overrides_node_user(mocker: MockerFixture) -> None:
+    host = _make_host("worker1", user="ubuntu")
+    mock_execvp = mocker.patch("kiso.task.os.execvp")
+    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
+
+    _ssh("root@worker1", env=_make_ssh_env(host))
+
+    cmd = mock_execvp.call_args[0][1]
+    assert "root@10.0.0.1" in cmd
+    assert "ubuntu@" not in " ".join(cmd)
+
+
 def test_validate_config_accepts_dict_config() -> None:
     """validate_config wrapper handles dict input without a file path."""
     # A fully valid config (same as test-1.yml) passed as a dict

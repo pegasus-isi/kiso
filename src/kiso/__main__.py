@@ -1,14 +1,20 @@
 """Kiso command line interface."""
 
 # ruff: noqa: ARG001
+from __future__ import annotations
+
 import logging
 import os
 import traceback
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import rich_click as click
 
 from kiso import log, task, version
+
+if TYPE_CHECKING:
+    import os
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 EPILOG = f"Check our docs at {version.__documentation__} for more details."
@@ -20,7 +26,7 @@ DEFAULT_EXPERIMENT_CONFIG = "experiment.yml"
 @click.option("--debug/--no-debug", default=False)
 def kiso(ctx: click.Context, debug: bool = False) -> None:
     """🏇 Kiso: Edge to Cloud Workflows: Advancing Workflow Management in the Computing Continuum."""  # noqa: E501
-    if ctx.invoked_subcommand != "version":
+    if ctx.invoked_subcommand not in ["version", "ssh"]:
         click.secho(
             rf""" _   __ _
 | | / /(_)
@@ -135,6 +141,53 @@ def down(
     try:
         task.down(experiment_config=Path(experiment_config), env=output)
         click.secho("✨ Success", fg="green")
+    except Exception as e:
+        _error(ctx, e)
+
+
+@kiso.command(
+    name="ssh", epilog=EPILOG, context_settings={"ignore_unknown_options": True}
+)
+@click.pass_context
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(file_okay=False, dir_okay=True, exists=False),
+    default="output",
+    help="Environment to use for the experiment.",
+)
+@click.option(
+    "-c",
+    "--command",
+    type=str,
+    default=None,
+    help="Execute an SSH command directly.",
+)
+@click.option(
+    "-t/-T",
+    "--tty/--no-tty",
+    default=True,
+    help="Enables tty when executing an ssh command (defaults to true).",
+)
+@click.argument("node-alias", required=True, type=str)
+@click.argument("extra-ssh-args", nargs=-1, type=click.UNPROCESSED)
+def ssh(
+    ctx: click.Context,
+    output: os.PathLike,
+    command: str | None,
+    tty: bool,
+    node_alias: str,
+    extra_ssh_args: tuple[str, ...],
+) -> None:
+    """SSH into provisioned resources."""
+    try:
+        task.ssh(
+            node_alias,
+            command=command,
+            tty=tty,
+            extra_ssh_args=list(extra_ssh_args) if extra_ssh_args else None,
+            env=output,
+        )
     except Exception as e:
         _error(ctx, e)
 
