@@ -5,3 +5,7 @@
     /** Change teh background color to match the background color of the logo */
     --pst-color-background: #f7f7f2 !important;
 }
+
+.component-author {
+    display: none;
+}

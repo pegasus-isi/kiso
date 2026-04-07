@@ -1,0 +1,23 @@
+name: htcondor-pegasus
+
+sites:
+  - kind: vagrant
+    resources:
+      machines:
+        - labels: [compute]
+          flavour: medium
+          number: 1
+      networks:
+        - labels: [net1]
+          cidr: 172.16.42.0/16
+
+deployment:
+  htcondor:
+    - kind: personal
+      labels: [compute]
+
+experiments:
+  - kind: pegasus
+    name: my-workflow
+    main: ./workflow.py
+    submit_node_labels: [compute]

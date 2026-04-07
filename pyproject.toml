@@ -51,7 +51,7 @@ dependencies = [
 
 [project.urls]
 
-Homepage = "https://pegasus.isi.edu"
+Homepage = "https://kiso.scitech.group"
 Repository = "https://github.com/pegasus-isi/kiso.git"
 Issues = "https://github.com/pegasus-isi/kiso/issues"
 Changelog = "https://github.com/pegasus-isi/kiso/blob/main/CHANGELOG.md"
@@ -104,6 +104,7 @@ docs = [
     "sphinx-click",
     "myst-parser",
     "sphinx_copybutton",
+    "sphinxcontrib-mermaid",
 ]
 
 
@@ -118,7 +119,7 @@ version_files = [
     "pyproject.toml:version",
     "src/kiso/version.txt",
     "docs/conf.py:release",
-    "docs/getting-started.md",
+    "docs/about/citing.md",
 ]
 update_changelog_on_bump = true
 major_version_zero = true

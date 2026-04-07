@@ -1,0 +1,57 @@
+name: multi-testbed-workflow
+
+sites:
+  - kind: fabric
+    rc_file: secrets/fabric_rc
+    walltime: "01:00:00"
+    resources:
+      machines:
+        - labels: [submit, central-manager, execute]
+          flavour: small
+          number: 1
+      networks:
+        - labels: [internal]
+          kind: FABNetv4
+          site: UCSD
+          nic:
+            kind: SharedNIC
+            model: ConnectX-6
+
+  - kind: chameleon-edge
+    rc_file: secrets/edge-app-cred-oac-edge-openrc.sh
+    walltime: "01:00:00"
+    lease_name: kiso-multi-testbed
+    resources:
+      machines:
+        - labels:
+            - execute
+          machine_name: raspberrypi4-64
+          count: 1
+          container:
+            name: execute
+            image: rockylinux:9
+
+deployment:
+  htcondor:
+    - kind: central-manager
+      labels: [central-manager]
+    - kind: submit
+      labels: [submit]
+    - kind: execute
+      labels: [execute]
+
+experiments:
+  - kind: pegasus
+    name: distributed-workflow
+    main: ./workflow.py
+    submit_node_labels: [submit]
+    timeout: 3600
+    outputs:
+      - labels:
+          - submit
+        src: outputs/result-a.txt
+        dst: output
+      - labels:
+          - submit
+        src: outputs/result-b.txt
+        dst: output

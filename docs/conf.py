@@ -8,10 +8,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-from datetime import datetime
 
 project = "Kiso"
-copyright = str(datetime.now().year)
+copyright = "2007-2012 University Of Southern California"
 author = "Rajiv Mayani"
 release = "0.1.0a10"
 repository_url = "https://github.com/pegasus-isi/kiso"
@@ -29,10 +28,11 @@ extensions = [
     "sphinx_click.ext",
     "sphinx-jsonschema",
     "sphinx_copybutton",
+    "sphinxcontrib.mermaid",
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "_includes", "Thumbs.db", ".DS_Store", "CLAUDE.md"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -82,6 +82,12 @@ html_theme_options = {
             "type": "url",
         },
     ],
+    "extra_footer": """<div>
+        <img src='/_static/assets/images/logo-nsf.png' alt='Pegasus logo' width='5%'/>
+        Award <a href='https://www.nsf.gov/awardsearch/showAward?AWD_ID=2403051'>2403051</a>,
+        OAC Core: Edge to Cloud Workflows: Advancing Workflow Management in the
+        Computing Continuum
+    </div>""",
 }
 html_css_files = [
     "assets/css/custom.css",

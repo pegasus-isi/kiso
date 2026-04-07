@@ -19,6 +19,6 @@ All of this is described using a YAML-based experiment specification, which capt
 
 ## Next Steps
 
-- [Getting Started](getting-started.md) — install Kiso and run your first experiment
-- [Concepts](concepts.rst) — understand how sites, software, deployments, and experiments fit together
-- [Example Experiments](example-experiments.md) — explore real-world experiments built with Kiso
+- [Getting started](../introduction/getting-started.md) — install Kiso and run your first experiment
+- [Concepts](../concepts/what-is-kiso.md) — understand how sites, software, deployments, and experiments fit together
+- [Experiment gallery](../examples/index.md) — explore real-world experiments built with Kiso

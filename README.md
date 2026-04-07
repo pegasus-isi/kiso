@@ -23,35 +23,52 @@ Kiso replaces that with a single declarative configuration file. The same experi
 
 ## Quick Start
 
+Install Kiso with the extra for your testbed:
+
 ```sh
-pip install kiso
-kiso check experiment.yml  # validate your config
-kiso up experiment.yml     # provision resources and install software
-kiso run experiment.yml    # run the experiment
-kiso down experiment.yml   # tear down resources
+pip install kiso[vagrant]    # local VMs — good for development
+pip install kiso[fabric]     # FABRIC testbed
+pip install kiso[chameleon]  # Chameleon Cloud and Chameleon Edge (same package, different OpenRC files)
+pip install kiso[all]        # all testbeds
 ```
 
-See [Getting Started](docs/getting-started.md) for a complete walkthrough, or use the [experiment template](https://github.com/pegasus-isi/kiso-experiment-template) to scaffold a new experiment.
+Then run your experiment:
+
+```sh
+# 1. Validate the config
+kiso check experiment.yml
+
+# 2. Provision and configure
+kiso up experiment.yml
+
+# 3. Run experiments
+kiso run experiment.yml
+
+# 4. Collect results, then tear down
+kiso down experiment.yml
+```
+
+See the [Your first experiment](https://kiso.readthedocs.io/en/latest/tutorials/first-experiment.html) tutorial for a complete walkthrough, or use the [experiment template](https://github.com/pegasus-isi/kiso-experiment-template) to scaffold a new experiment.
 
 ## What's Supported
 
-| Category | Options |
-|---|---|
-| **Testbeds** | Chameleon Cloud, Chameleon Edge, FABRIC, Vagrant |
-| **Software** | Docker, Apptainer, Ollama |
-| **Deployment** | HTCondor |
-| **Experiments** | Pegasus workflows, Shell scripts |
+| Category        | Options                                          |
+| --------------- | ------------------------------------------------ |
+| **Testbeds**    | Vagrant, FABRIC, Chameleon Cloud, Chameleon Edge |
+| **Software**    | Docker, Apptainer, Ollama                        |
+| **Deployment**  | HTCondor                                         |
+| **Experiments** | Pegasus workflows, Shell scripts                 |
 
-New testbeds, software, and experiment types can be added as plugins via Python entry points. See [Extending Kiso](docs/extending.rst).
+New testbeds, software, and experiment types can be added as plugins via Python entry points. See [Extending Kiso](https://kiso.readthedocs.io/en/latest/extending/how-extensions-work.html).
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) — install Kiso and run your first experiment
-- [Concepts](docs/concepts.rst) — understand sites, labels, software, deployments, and experiments
-- [Experiment Configuration](docs/experiment-configuration-schema.rst) — full YAML schema reference
-- [Example Experiments](docs/example-experiments.md) — real-world experiments built with Kiso
-- [Extending Kiso](docs/extending.rst) — add custom testbeds, software, and experiment types
-- [Full Documentation](https://kiso.readthedocs.io)
+- [Your first experiment](https://kiso.readthedocs.io/en/latest/tutorials/first-experiment.html) — install Kiso and run a working experiment end-to-end
+- [Multi-testbed experiment](https://kiso.readthedocs.io/en/latest/tutorials/multi-testbed.html) — span FABRIC and Chameleon simultaneously
+- [Concepts](https://kiso.readthedocs.io/en/latest/concepts/what-is-kiso.html) — understand sites, labels, software, deployments, and experiments
+- [Config file reference](https://kiso.readthedocs.io/en/latest/reference/config.html) — every supported configuration key
+- [Extending Kiso](https://kiso.readthedocs.io/en/latest/extending/how-extensions-work.html) — add custom testbeds, software, and experiment types
+- [Full documentation](https://kiso.readthedocs.io)
 
 ## Contributing
 
@@ -70,7 +87,7 @@ Please follow [conventional commits](https://www.conventionalcommits.org/) for c
 
 - [Pegasus Workflow Management System](https://pegasus.isi.edu) — scientific workflow engine used to define and execute experiments in Kiso
 - [EnOSlib](https://discovery.gitlabpages.inria.fr/enoslib/) — infrastructure management library that Kiso builds on for provisioning and remote execution
-- [Chameleon Cloud](https://www.chameleoncloud.org) — NSF-funded cloud testbed supported by Kiso
+- [Chameleon Cloud](https://www.chameleoncloud.org) — NSF-funded cloud testbed supported by Kiso; includes both bare-metal nodes (CHI@UC, CHI@TACC) and edge devices (CHI@Edge) under the same project allocation, each with its own OpenRC credentials file
 - [FABRIC](https://portal.fabric-testbed.net) — nationwide programmable research infrastructure supported by Kiso
 - [Vagrant](https://www.vagrantup.com/) — tool for managing local VMs; used by Kiso for local development without a cloud account
 - [VirtualBox](https://www.virtualbox.org/) — virtualization platform used as the default Vagrant backend
