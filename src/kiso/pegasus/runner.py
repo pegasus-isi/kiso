@@ -351,7 +351,10 @@ class PegasusRunner:
         _labels = utils.resolve_labels(labels, input.labels)
         vms, containers = utils.split_labels(_labels, labels)
         src = Path(input.src)
+
         dst = Path(input.dst)
+        if not dst.is_absolute() and input.dst[0] != "~":
+            dst = Path(self.remote_wd) / src
 
         kiso_state_key = "copy-input"
         with experiment_state(self.env, kiso_state_key, instance) as state:
