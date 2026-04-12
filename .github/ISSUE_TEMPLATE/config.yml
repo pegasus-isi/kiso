@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/pegasus-isi/kiso/discussions
     about: Ask questions about your own experiments on the Discussions tab.
   - name: Questions on Slack or Email
-    url: https://pegasus.isi.edu/contact
+    url: https://kiso.readthedocs.io/en/latest/about/contact.html
     about: Ask questions about your own experiments on our Slack.
