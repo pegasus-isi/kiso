@@ -83,7 +83,7 @@ html_theme_options = {
         },
     ],
     "extra_footer": """<div>
-        <img src='../_static/assets/images/logo-nsf.png' alt='Pegasus logo' width='5%'/>
+        <img src='_static/assets/images/logo-nsf.png' alt='Pegasus logo' width='5%'/>
         Award <a href='https://www.nsf.gov/awardsearch/showAward?AWD_ID=2403051'>2403051</a>,
         OAC Core: Edge to Cloud Workflows: Advancing Workflow Management in the
         Computing Continuum
