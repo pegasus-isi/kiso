@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/assets/images/logo-kiso.png">
+    <title>Help - Kiso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-accent: #fef3f4;
+            --accent-red: #e63946;
+            --accent-blue: #1d3557;
+            --accent-teal: #2a9d8f;
+            --accent-gradient: linear-gradient(135deg, #e63946 0%, #1d3557 100%);
+            --text-primary: #1d3557;
+            --text-secondary: #457b9d;
+            --text-muted: #6c757d;
+            --border-color: #e9ecef;
+            --shadow-sm: 0 2px 10px rgba(29, 53, 87, 0.08);
+            --shadow-md: 0 10px 30px rgba(29, 53, 87, 0.12);
+            --shadow-lg: 0 20px 60px rgba(29, 53, 87, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.2rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        nav.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-red);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-red);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            padding: 0.7rem 1.8rem;
+            background: var(--accent-gradient);
+            color: white !important;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.25);
+        }
+
+        .nav-cta::after {
+            display: none;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(230, 57, 70, 0.35);
+        }
+
+        .page-hero {
+            padding: 9rem 5% 5rem;
+            background: linear-gradient(135deg, #fef3f4 0%, #f0f4f8 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-pattern {
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(230, 57, 70, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(29, 53, 87, 0.08) 0%, transparent 50%);
+        }
+
+        .hero-dots {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(29, 53, 87, 0.15) 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: 0.4;
+        }
+
+        .page-hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: white;
+            border: 2px solid rgba(230, 57, 70, 0.2);
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--accent-red);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .page-hero h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            letter-spacing: -2px;
+        }
+
+        .page-hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .contact-section {
+            padding: 5rem 5%;
+            background: var(--bg-secondary);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .contact-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: all 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-red);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .contact-card-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--accent-gradient);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 6px 20px rgba(230, 57, 70, 0.25);
+            flex-shrink: 0;
+        }
+
+        .contact-card h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .contact-card .best-for {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .contact-card .best-for::before {
+            content: 'Best for: ';
+            color: var(--accent-red);
+        }
+
+        .contact-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-size: 1rem;
+            flex: 1;
+        }
+
+        .contact-card .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1.8rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .card-link-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.25);
+        }
+
+        .card-link-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(230, 57, 70, 0.35);
+        }
+
+        .card-link-secondary {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .card-link-secondary:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .slack-badge {
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .security-note {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .security-note a {
+            color: var(--accent-red);
+            text-decoration: none;
+        }
+
+        .security-note a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            background: var(--text-primary);
+            padding: 4rem 5%;
+            text-align: center;
+            color: white;
+        }
+
+        footer p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 1rem;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent-red);
+        }
+
+        @media (max-width: 768px) {
+            .page-hero h1 {
+                font-size: 2.8rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav id="navbar">
+        <a href="/" class="logo">
+            <img src="/assets/images/logo-kiso.png" alt="Kiso Logo" class="logo-icon" loading="lazy">
+            <span class="logo-text">Kiso</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/#about">About</a></li>
+            <li><a href="/#workflow">How It Works</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#examples-by-testbed">Examples</a></li>
+            <li><a href="https://kiso.readthedocs.io" target="_blank">Docs</a></li>
+            <li><a href="/help.html">Get Help</a></li>
+            <li><a href="https://github.com/pegasus-isi/kiso" target="_blank" class="nav-cta">Get Started</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-hero">
+        <div class="hero-pattern"></div>
+        <div class="hero-dots"></div>
+        <div class="page-hero-content">
+            <div class="hero-badge">📬 Reach the Team</div>
+            <h1>Contact</h1>
+            <p>How to reach the Kiso team and community.</p>
+        </div>
+    </div>
+
+    <section class="contact-section">
+        <div class="contact-grid">
+
+            <div class="contact-card">
+                <div class="contact-card-icon">🐛</div>
+                <h2>GitHub Issues</h2>
+                <span class="best-for">Bug reports, feature requests, and specific technical problems</span>
+                <p>Open an issue for anything that can be tracked: a reproducible bug, a clear feature request, or a question with a definitive answer. Issues are public and searchable — check existing issues before opening a new one.</p>
+                <a href="https://github.com/pegasus-isi/kiso/issues" target="_blank" class="card-link card-link-primary">Open an Issue →</a>
+            </div>
+
+            <div class="contact-card">
+                <div class="contact-card-icon">💬</div>
+                <h2>GitHub Discussions</h2>
+                <span class="best-for">Release announcements and general questions</span>
+                <p>New releases are announced on GitHub Discussions. Watch the repository to be notified of new releases and announcements.</p>
+                <a href="https://github.com/pegasus-isi/kiso/discussions" target="_blank" class="card-link card-link-primary">Join Discussions →</a>
+            </div>
+
+            <div class="contact-card">
+                <div class="contact-card-icon">⚡</div>
+                <h2>Slack</h2>
+                <span class="best-for">Quick questions, informal discussion, and getting help from other users</span>
+                <p>The community Slack is the fastest way to get a quick answer. Join the <strong>#kiso-users</strong> channel. Search the history before asking — many common questions have already been answered.</p>
+                <a href="https://join.slack.com/t/pegasus-users/shared_invite/zt-3uyo7shrr-AEjBAs8CgRWPM39leHsMBg" target="_blank" class="card-link card-link-primary">Join Slack →</a>
+            </div>
+
+            <div class="contact-card">
+                <div class="contact-card-icon">✉️</div>
+                <h2>Email</h2>
+                <span class="best-for">Private questions, security disclosures, or enquiries not suitable for a public forum</span>
+                <p>For security vulnerabilities, please use GitHub's private vulnerability reporting rather than a public issue.</p>
+                <a href="mailto:pegasus-users@isi.edu" class="card-link card-link-secondary">pegasus-users@isi.edu</a>
+                <p class="security-note">For security issues, use <a href="https://github.com/pegasus-isi/kiso/security/advisories/new" target="_blank">GitHub's vulnerability reporting</a> instead.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <footer>
+        <p>
+            <a href="https://kiso.readthedocs.io">Documentation</a> •
+            <a href="/contact.html">Contact</a> •
+            <a href="https://github.com/pegasus-isi/kiso">GitHub</a> •
+            <a href="https://www.youtube.com/watch?v=2L5kSMh25tc">Introduction Video</a>
+        </p>
+        <p>&copy; 2026 Kiso Project.</p>
+        <p style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <img src="/assets/images/logo-nsf.png" height="70" width="70" />
+            Kiso is funded by the National Science Foundation (NSF) under award <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2403051">2403051.</a>
+        </p>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
