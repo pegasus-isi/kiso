@@ -30,11 +30,9 @@ For security vulnerabilities, please use [GitHub's vulnerability reporting](http
 
 **Best for:** Quick questions, informal discussion, and getting help from other users.
 
-<a href="https://join.slack.com/t/pegasus-users/shared_invite/zt-2z5a6w3c1-pSFKwIvnDmHG0T68_5VCYg">
+<a href="https://join.slack.com/t/pegasus-users/shared_invite/zt-3uyo7shrr-AEjBAs8CgRWPM39leHsMBg">
   <img decoding="async" src="https://cdn.bfldr.com/5H442O3W/at/pl54cs-bd9mhs-47n26k/btn-add-to-slack.svg?auto=webp&format=png" alt="Sign in with Slack" width="172" height="40">
 </a>
-
-Join the `#kiso-users` channel.
 
 The community Slack is the fastest way to get a quick answer. Search the history before asking — many common questions have already been answered.
 
