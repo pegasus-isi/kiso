@@ -62,6 +62,7 @@ Chameleon). The same config file runs locally and on real testbeds with minimal 
 
    examples/index
    examples/pydantic-agent
+   examples/multi-pydantic-agents
    examples/plankifier
    examples/orcasound
    examples/colmena
