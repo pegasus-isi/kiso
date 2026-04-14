@@ -776,7 +776,7 @@
             <li><a href="#examples-by-testbed">Examples</a></li>
             <li><a href="https://kiso.readthedocs.io" target="_blank">Docs</a></li>
             <li><a href="https://kiso.readthedocs.io/contact">Get Help</a></li>
-            <li><a href="https://github.com/pegasus-isi/kiso" target="_blank" class="nav-cta">Get Started</a></li>
+            <li><a href="https://kiso.readthedocs.io/en/latest/introduction/getting-started.html" target="_blank" class="nav-cta">Get Started</a></li>
         </ul>
     </nav>
 
@@ -900,7 +900,7 @@
                 <h3>🔬 Execute & Collect</h3>
                 <p>Run experiments in a controlled, repeatable manner across distributed infrastructure. Automatically collect results from all resources back to a central location for analysis.</p>
                 <div class="tech-tags">
-                    <a href="https://kiso.readthedocs.io/en/latest/how-to/collect-results.html#" target="_blank" class="tech-tag">Monitoring & Result Collection</a>
+                    <a href="https://kiso.readthedocs.io/en/latest/how-to/collect-results.html" target="_blank" class="tech-tag">Monitoring & Result Collection</a>
                 </div>
             </div>
         </div>
@@ -919,12 +919,21 @@
                     <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
                     View on GitHub
                 </a>
+
                 <p></p>
                 <p>🤖 Pydantic Agent: A template for running AI agent workloads on provisioned infrastructure: spins up Ollama with a local LLM and a Pydantic agent that returns structured output.</p>
                 <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
                     <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
                     View on GitHub
                 </a>
+
+                <p></p>
+                <p>An example running agents on 2 FABRIC VMs. The first VM runs an Ollama to serve an open-source LLM, and locally runs a Pydantic agent. The agent asks where the 2012 Olympics were held. The second VM runs the second Pydantic agent which uses the Ollama LLM model installed on the first VM and asks it to "List the first five presidents of the United States". Both agents return structured output.</p>
+                <a href="https://github.com/pegasus-isi/kiso-multi-agent-experiment" target="_blank" class="github-link">
+                    <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                    View on GitHub
+                </a>
+
                 <p></p>
                 <p>🔬 COLMENA: Hyper-distributed agent swarms across heterogeneous edge devices, coordinated as a unified computing platform spanning the full compute continuum.</p>
                 <a href="https://github.com/pegasus-isi/kiso-colmena-experiment" target="_blank" class="github-link">
@@ -1021,6 +1030,18 @@
             <div class="example-card">
                 <h3>🤖 Pydantic Agent</h3>
                 <p>A template for running AI agent workloads on provisioned infrastructure: spins up Ollama with a local LLM and a Pydantic agent that returns structured output.</p>
+                <div class="tech-tags">
+                    <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
+                        <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
+                        View on GitHub
+                    </a>
+                    <a href="https://kiso.readthedocs.io/en/latest/how-to/testbeds/fabric.html" target="_blank" class="tech-tag">FABRIC</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <h3>🤖 Multiple Pydantic Agents</h3>
+                <p>An example running agents on 2 FABRIC VMs. The first VM runs an Ollama to serve an open-source LLM, and locally runs a Pydantic agent. The agent asks where the 2012 Olympics were held. The second VM runs the second Pydantic agent which uses the Ollama LLM model installed on the first VM and asks it to "List the first five presidents of the United States". Both agents return structured output.</p>
                 <div class="tech-tags">
                     <a href="https://github.com/pegasus-isi/kiso-agentic-experiment" target="_blank" class="github-link">
                         <svg width="20" height="20" aria-hidden="true"><use href="#icon-github"></use></svg>
