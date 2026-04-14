@@ -66,6 +66,7 @@ Chameleon). The same config file runs locally and on real testbeds with minimal 
    examples/plankifier
    examples/orcasound
    examples/colmena
+   examples/network-measurement-experiment
 
 .. toctree::
    :maxdepth: 2

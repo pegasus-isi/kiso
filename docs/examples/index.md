@@ -13,13 +13,14 @@ kiso run experiment.yml
 kiso down experiment.yml
 ```
 
-| Experiment                                           | Components                             | Description                                                                                                                                                                    |
-| ---------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Pydantic agent](pydantic-agent.md)                  | `FABRIC · Ollama · Shell`              | AI agent workload running a local LLM with Pydantic-structured output                                                                                                          |
-| [Multiple Pydantic agents](multi-pydantic-agents.md) | `FABRIC · Ollama · Shell`              | Multiple AI agents on two nodes, one with local LLM and a local Agent, and another running an agent using the LLM on the first node. Both returning Pydantic-structured output |
-| [Plankifier](plankifier.md)                          | `Chameleon · Chameleon Edge · Pegasus` | Deep learning classifier for automated plankton image categorisation                                                                                                           |
-| [Orcasound](orcasound.md)                            | `Vagrant · Pegasus`                    | Audio analysis workflow for detecting orca whale vocalisations                                                                                                                 |
-| [COLMENA](colmena.md)                                | `FABRIC · Shell`                       | Hyper-distributed swarm framework across multiple testbeds                                                                                                                     |
+| Experiment                                                          | Components                             | Description                                                                                                                                                                    |
+| ------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Pydantic agent](pydantic-agent.md)                                 | `FABRIC · Ollama · Shell`              | AI agent workload running a local LLM with Pydantic-structured output                                                                                                          |
+| [Multiple Pydantic agents](multi-pydantic-agents.md)                | `FABRIC · Ollama · Shell`              | Multiple AI agents on two nodes, one with local LLM and a local Agent, and another running an agent using the LLM on the first node. Both returning Pydantic-structured output |
+| [Plankifier](plankifier.md)                                         | `Chameleon · Chameleon Edge · Pegasus` | Deep learning classifier for automated plankton image categorisation                                                                                                           |
+| [Orcasound](orcasound.md)                                           | `Vagrant · Pegasus`                    | Audio analysis workflow for detecting orca whale vocalisations                                                                                                                 |
+| [COLMENA](colmena.md)                                               | `FABRIC · Shell`                       | Hyper-distributed swarm framework across multiple testbeds                                                                                                                     |
+| [Network Measurement Experiment](network-measurement-experiment.md) | `FABRIC · Docker · Shell`              | A Kiso experiment that tests bandwidth between two nodes on two different sites. The experiment runs `iperf3` server on one node and the `iperf3` client on the other node     |
 
 ## Submit your experiment
 
