@@ -23,6 +23,8 @@ A clear and concise description of what you expected to happen.
  - OS Version [e.g. 8.10]
  - Python Version [e.g. 3.6.1]
  - Kiso Version [e.g. 5.0.9]
+ - Testbed Used [e.g. Vagrant, Chameleon, FABRIC]
+ - Kiso Experiment Type [e.g. Shell, Pegasus]
 
 **Additional context**
 Add any other context about the problem here.
