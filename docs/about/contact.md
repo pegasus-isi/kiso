@@ -22,7 +22,7 @@ New releases are announced on GitHub Discussions. Watch the repository to be not
 
 **Best for:** Private questions, security disclosures, or enquiries not suitable for a public forum.
 
-[pegasus-users@isi.edu](mailto:pegasus-users@isi.edu)
+[kiso@isi.edu](mailto:kiso@isi.edu)
 
 For security vulnerabilities, please use [GitHub's vulnerability reporting](https://github.com/pegasus-isi/kiso/security/advisories/new) rather than a public issue.
 
