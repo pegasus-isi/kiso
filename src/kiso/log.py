@@ -71,13 +71,18 @@ def get_process_pool_executor(
     handler = logging.getLogger().handlers[0]
     listener = QueueListener(queue, handler)
     listener.start()
-    yield ProcessPoolExecutor(
-        max_workers=max_workers,
-        initializer=_init_worker,
-        initargs=(queue, logging.getLogger().level),
-        **kwargs,
-    )
-    listener.stop()
+    try:
+        with ProcessPoolExecutor(
+            max_workers=max_workers,
+            initializer=_init_worker,
+            initargs=(queue, logging.getLogger().level),
+            **kwargs,
+        ) as executor:
+            yield executor
+    finally:
+        listener.stop()
+        queue.cancel_join_thread()
+        queue.close()
 
 
 def _init_worker(queue: Queue, level: int) -> None:
