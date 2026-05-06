@@ -31,9 +31,6 @@ if hasattr(en, "CBM"):
 if hasattr(en, "Fabric"):
     log.debug("FABRIC provider is available")
     from enoslib.infra.enos_fabric.constants import FABNETV4EXT, NIC_BASIC
-    from enoslib.infra.enos_fabric.utils import (
-        source_credentials_from_rc_file as source_fabric_credentials_from_rc_file,
-    )
     from fabrictestbed_extensions.fablib.fablib import FablibManager as fablib_manager
 
 
@@ -213,102 +210,95 @@ def _associate_floating_ip_fabric(node: Host) -> IPv4Address | IPv6Address:
     :rtype: IPv4Address | IPv6Address
     :raises ValueError: If an error occurs while assigning the public IP
     """
-    with source_fabric_credentials_from_rc_file(node.extra["rc_file"]):
-        try:
-            fablib = fablib_manager(log_propagate=True)
+    try:
+        fablib = fablib_manager(fabric_rc=node.extra["rc_file"], log_propagate=True)
+        fabric_slice = fablib.get_slice(name=node.extra["slice"])
+        fabric_node = fabric_slice.get_node(name=node.extra["name"])
+        stdout, _stderr = fabric_node.execute("cat /etc/floating-ip")
+        if len(stdout.strip()):
+            log.debug("Floating IP already associated with the device")
+            ip = stdout.strip()
+        else:
+            # Create an L3 network for the public IP
+            network_name = f"kiso-public-network-{node.extra['site']}"
+            network = fabric_slice.get_network(name=network_name)
+            if not network:
+                log.debug(
+                    "Adding IPv4Ext L3 Network to FABRIC node <%s>",
+                    fabric_node.get_management_ip(),
+                )
+                network = fabric_slice.add_l3network(name=network_name, type="IPv4Ext")
+
+            # Create a NIC for the public IP
+            nic_name = "kiso-public-nic"
+            try:
+                component = fabric_node.get_component(name=nic_name)
+            except Exception:
+                log.debug(
+                    "Adding NIC_Basic component to FABRIC node <%s>",
+                    node.extra["name"],
+                )
+                component = fabric_node.add_component(model=NIC_BASIC, name=nic_name)
+            finally:
+                interface = component.get_interfaces()[0]
+                network.add_interface(interface)
+
+            # Submit needed for the changes to take effect
+            fabric_slice.submit()
+
+            # Make an IP publicly routable
+            # TODO(mayani): Sometimes the get_network returns None, so we sleep for
+            # a few seconds and try again. Remove this when FABRIC API is fixed.
+            for _ in range(3):
+                fabric_slice = fablib.get_slice(name=node.extra["slice"])
+                network = fabric_slice.get_network(name=network_name)
+                if network is not None:
+                    break
+                log.debug(
+                    "Could not get FABRIC network <%s> from slice <%s>",
+                    network_name,
+                    node.extra["slice"],
+                )
+                time.sleep(2)
+            ip = network.get_available_ips()
+            network.make_ip_publicly_routable(ipv4=[str(ip[0])])
+
+            # Submit needed for the changes to take effect
+            fabric_slice.submit()
+
             fabric_slice = fablib.get_slice(name=node.extra["slice"])
             fabric_node = fabric_slice.get_node(name=node.extra["name"])
-            stdout, _stderr = fabric_node.execute("cat /etc/floating-ip")
-            if len(stdout.strip()):
-                log.debug("Floating IP already associated with the device")
-                ip = stdout.strip()
-            else:
-                # Create an L3 network for the public IP
-                network_name = f"kiso-public-network-{node.extra['site']}"
-                network = fabric_slice.get_network(name=network_name)
-                if not network:
-                    log.debug(
-                        "Adding IPv4Ext L3 Network to FABRIC node <%s>",
-                        fabric_node.get_management_ip(),
-                    )
-                    network = fabric_slice.add_l3network(
-                        name=network_name, type="IPv4Ext"
-                    )
+            interface = fabric_node.get_interface(network_name=network_name)
+            os_ifname = interface.get_physical_os_interface_name()
+            network = fabric_slice.get_network(name=network_name)
+            gateway = network.get_gateway()
+            subnet = network.get_subnet()
+            prefix_len = subnet.prefixlen
 
-                # Create a NIC for the public IP
-                nic_name = "kiso-public-nic"
-                try:
-                    component = fabric_node.get_component(name=nic_name)
-                except Exception:
-                    log.debug(
-                        "Adding NIC_Basic component to FABRIC node <%s>",
-                        node.extra["name"],
-                    )
-                    component = fabric_node.add_component(
-                        model=NIC_BASIC, name=nic_name
-                    )
-                finally:
-                    interface = component.get_interfaces()[0]
-                    network.add_interface(interface)
+            ip = network.get_public_ips()[-1]
+            interface.ip_addr_add(addr=ip, subnet=subnet)
+            scripts_dir = Path(inspect.getfile(en.Fabric)).parent / "scripts"
+            fabric_node.upload_directory(str(scripts_dir), const.TMP_DIR)
+            cmd = (
+                f"cd /tmp/{scripts_dir.name} ; chmod +x *.sh ; "
+                f"sudo ./main.sh -t {FABNETV4EXT} -I {os_ifname} "
+                f"-A {ip}/{prefix_len} -G {gateway}"
+            )
+            log.debug("Executing command <%s> on node <%s>", cmd, node.extra["name"])
+            fabric_node.execute(cmd)
+            fabric_node.execute(f"echo {ip} | sudo tee /etc/floating-ip")
 
-                # Submit needed for the changes to take effect
-                fabric_slice.submit()
+        log.debug("Floating IP associated with the device %s", ip)
+        floating_ips = node.extra.get("floating-ips", [])
+        floating_ips.append(ip)
+        node.extra["floating-ips"] = floating_ips
 
-                # Make an IP publicly routable
-                # TODO(mayani): Sometimes the get_network returns None, so we sleep for
-                # a few seconds and try again. Remove this when FABRIC API is fixed.
-                for _ in range(3):
-                    fabric_slice = fablib.get_slice(name=node.extra["slice"])
-                    network = fabric_slice.get_network(name=network_name)
-                    if network is not None:
-                        break
-                    log.debug(
-                        "Could not get FABRIC network <%s> from slice <%s>",
-                        network_name,
-                        node.extra["slice"],
-                    )
-                    time.sleep(2)
-                ip = network.get_available_ips()
-                network.make_ip_publicly_routable(ipv4=[str(ip[0])])
+    except Exception as e:
+        raise ValueError(
+            f"Error occurred assigning public IP to FABRIC node <{node.alias}>"
+        ) from e
 
-                # Submit needed for the changes to take effect
-                fabric_slice.submit()
-
-                fabric_slice = fablib.get_slice(name=node.extra["slice"])
-                fabric_node = fabric_slice.get_node(name=node.extra["name"])
-                interface = fabric_node.get_interface(network_name=network_name)
-                os_ifname = interface.get_physical_os_interface_name()
-                network = fabric_slice.get_network(name=network_name)
-                gateway = network.get_gateway()
-                subnet = network.get_subnet()
-                prefix_len = subnet.prefixlen
-
-                ip = network.get_public_ips()[-1]
-                interface.ip_addr_add(addr=ip, subnet=subnet)
-                scripts_dir = Path(inspect.getfile(en.Fabric)).parent / "scripts"
-                fabric_node.upload_directory(str(scripts_dir), const.TMP_DIR)
-                cmd = (
-                    f"cd /tmp/{scripts_dir.name} ; chmod +x *.sh ; "
-                    f"sudo ./main.sh -t {FABNETV4EXT} -I {os_ifname} "
-                    f"-A {ip}/{prefix_len} -G {gateway}"
-                )
-                log.debug(
-                    "Executing command <%s> on node <%s>", cmd, node.extra["name"]
-                )
-                fabric_node.execute(cmd)
-                fabric_node.execute(f"echo {ip} | sudo tee /etc/floating-ip")
-
-            log.debug("Floating IP associated with the device %s", ip)
-            floating_ips = node.extra.get("floating-ips", [])
-            floating_ips.append(ip)
-            node.extra["floating-ips"] = floating_ips
-
-        except Exception as e:
-            raise ValueError(
-                f"Error occurred assigning public IP to FABRIC node <{node.alias}>"
-            ) from e
-
-        return ip_address(ip)
+    return ip_address(ip)
 
 
 IP_PROVIDER_MAP: dict[str, Callable[[Host], IPv4Address | IPv6Address]] = {
