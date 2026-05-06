@@ -184,7 +184,7 @@ kiso ssh -c "hostname" submit-host
 kiso ssh -T -c "cat /etc/os-release" submit-host
 
 # Pass extra SSH options (e.g. port forwarding)
-kiso ssh submit-host -- -vvv
+kiso ssh submit-host -- -L 9000:localhost:8000
 ```
 
 **Notes:**
