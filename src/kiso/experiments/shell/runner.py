@@ -22,12 +22,9 @@ from kiso.experiments.shell import display
 from kiso.utils import experiment_state
 
 if TYPE_CHECKING:
-    import enoslib as en
     from enoslib.api import CommandResult, CustomCommandResult
     from enoslib.objects import Environment, Roles
 
-    if hasattr(en, "ChameleonEdge"):
-        pass
     from kiso.configuration import Kiso
     from kiso.objects import Location, Script
 
