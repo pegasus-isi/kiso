@@ -6,7 +6,7 @@ import contextlib
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from logging.handlers import QueueHandler, QueueListener
-from multiprocessing import Queue
+from multiprocessing import Manager, get_context
 from typing import TYPE_CHECKING, Any
 
 import enoslib as en
@@ -15,6 +15,8 @@ from kiso import constants as const
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from multiprocessing.managers import SyncManager
+    from queue import Queue
 
 
 def init_logging(level: int = logging.INFO, **kwargs: Any) -> None:  # noqa: ANN401
@@ -67,22 +69,29 @@ def get_process_pool_executor(
     :yield: Configured ProcessPoolExecutor
     :rtype: Generator[ProcessPoolExecutor, None, None]
     """
-    queue: Queue = Queue()
-    handler = logging.getLogger().handlers[0]
+    manager: SyncManager = Manager()
+    queue: Queue = manager.Queue()
+
+    root = logging.getLogger()
+    if not root.handlers:
+        raise RuntimeError("Logging not initialized")
+
+    handler = root.handlers[0]
     listener = QueueListener(queue, handler)
     listener.start()
+
     try:
         with ProcessPoolExecutor(
             max_workers=max_workers,
             initializer=_init_worker,
-            initargs=(queue, logging.getLogger().level),
+            initargs=(queue, root.level),
+            mp_context=get_context("forkserver"),
             **kwargs,
         ) as executor:
             yield executor
     finally:
         listener.stop()
-        queue.cancel_join_thread()
-        queue.close()
+        manager.shutdown()
 
 
 def _init_worker(queue: Queue, level: int) -> None:

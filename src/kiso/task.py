@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import tempfile
 from collections import Counter, defaultdict
+from concurrent.futures import as_completed
 from dataclasses import fields
 from functools import wraps
 from pathlib import Path
@@ -31,7 +32,7 @@ from rich.table import Table
 import kiso.constants as const
 from kiso import display, edge, utils
 from kiso.configuration import Deployment, Kiso, Software
-from kiso.errors import KisoError
+from kiso.errors import KisoError, KisoUpError
 from kiso.log import get_process_pool_executor
 from kiso.schema import SCHEMA
 from kiso.version import __version__
@@ -394,19 +395,24 @@ def _init_sites(
     providers = []
     labels = Roles()
     networks = Networks()
+    errors = {}
 
     with get_process_pool_executor() as executor:
-        futures = [
-            executor.submit(_init_site, site_index, site, force)
+        futures_to_site = {
+            executor.submit(_init_site, site_index, site, force): (site_index, site)
             for site_index, site in enumerate(experiment_config.sites)
-        ]
+        }
 
-        for future in futures:
-            provider, _labels, _networks = future.result()
+        for future in as_completed(futures_to_site):
+            site_index, _site = futures_to_site[future]
+            try:
+                provider, _labels, _networks = future.result()
 
-            providers.append(provider)
-            labels.extend(_labels)
-            networks.extend(_networks)
+                providers.append(provider)
+                labels.extend(_labels)
+                networks.extend(_networks)
+            except Exception as e:
+                errors[site_index] = e
 
     providers = en.Providers(providers)
     env["providers"] = providers
@@ -414,6 +420,12 @@ def _init_sites(
     env["networks"] = networks
 
     _extend_labels(labels)
+
+    if errors:
+        raise KisoUpError("Failed to initialize sites", errors)
+
+    # Save the environment
+    env.dump()
 
     for node in labels.all():
         preferred_ip, priority = None, 1000
