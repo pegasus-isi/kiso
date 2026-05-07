@@ -179,7 +179,7 @@ With a config that uses `deployment.slurm`, the validator should accept it. An i
 
 ## Step 8 — Write tests
 
-Add tests in `tests/` following the existing patterns for `htcondor`. Run:
+Add tests in `tests/deployment/` following the existing patterns in `tests/deployment/htcondor/`. Run:
 
 ```bash
 pytest tests/

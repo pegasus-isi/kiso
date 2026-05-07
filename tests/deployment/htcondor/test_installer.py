@@ -1,4 +1,4 @@
-"""Unit tests for kiso.htcondor.installer.HTCondorInstaller."""
+"""Unit tests for kiso.deployment.htcondor.installer.HTCondorInstaller."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-from kiso.htcondor.configuration import HTCondorDaemon
-from kiso.htcondor.installer import HTCondorInstaller
+from kiso.deployment.htcondor.configuration import HTCondorDaemon
+from kiso.deployment.htcondor.installer import HTCondorInstaller
 
 # ---------------------------------------------------------------------------
 # __init__ / check
@@ -162,7 +162,7 @@ def test_htcondor_call_with_host_non_central_manager(mocker: MockerFixture) -> N
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
-        "kiso.htcondor.installer.utils.get_pool_passwd_file",
+        "kiso.deployment.htcondor.installer.utils.get_pool_passwd_file",
         return_value="/fake/pool_passwd",
     )
 
@@ -174,14 +174,16 @@ def test_htcondor_call_with_host_non_central_manager(mocker: MockerFixture) -> N
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_executor)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
     mocker.patch(
-        "kiso.htcondor.installer.get_process_pool_executor", return_value=mock_cm
+        "kiso.deployment.htcondor.installer.get_process_pool_executor",
+        return_value=mock_cm,
     )
 
     mocker.patch(
-        "kiso.htcondor.installer.utils.run_ansible", return_value=[mocker.MagicMock()]
+        "kiso.deployment.htcondor.installer.utils.run_ansible",
+        return_value=[mocker.MagicMock()],
     )
-    mocker.patch("kiso.htcondor.installer.display._render")
-    mocker.patch("kiso.htcondor.installer.console.rule")
+    mocker.patch("kiso.deployment.htcondor.installer.display._render")
+    mocker.patch("kiso.deployment.htcondor.installer.console.rule")
 
     env = {"labels": mocker.MagicMock(), "is_public_ip_required": False}
     installer(env)
@@ -207,11 +209,12 @@ def test_htcondor_call_with_central_manager_waits(mocker: MockerFixture) -> None
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
-        "kiso.htcondor.installer.utils.get_pool_passwd_file",
+        "kiso.deployment.htcondor.installer.utils.get_pool_passwd_file",
         return_value="/fake/pool_passwd",
     )
     mocker.patch(
-        "kiso.htcondor.installer.utils.resolve_labels", return_value=[mock_host]
+        "kiso.deployment.htcondor.installer.utils.resolve_labels",
+        return_value=[mock_host],
     )
 
     mock_future = mocker.MagicMock()
@@ -222,11 +225,12 @@ def test_htcondor_call_with_central_manager_waits(mocker: MockerFixture) -> None
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_executor)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
     mocker.patch(
-        "kiso.htcondor.installer.get_process_pool_executor", return_value=mock_cm
+        "kiso.deployment.htcondor.installer.get_process_pool_executor",
+        return_value=mock_cm,
     )
 
-    mocker.patch("kiso.htcondor.installer.display._render")
-    mocker.patch("kiso.htcondor.installer.console.rule")
+    mocker.patch("kiso.deployment.htcondor.installer.display._render")
+    mocker.patch("kiso.deployment.htcondor.installer.console.rule")
 
     env = {"labels": mocker.MagicMock(), "is_public_ip_required": False}
     installer(env)
@@ -253,10 +257,12 @@ def test_htcondor_call_with_chameleon_device_submits_edge_install(
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
-        "kiso.htcondor.installer.utils.get_pool_passwd_file",
+        "kiso.deployment.htcondor.installer.utils.get_pool_passwd_file",
         return_value="/fake/pool_passwd",
     )
-    mocker.patch("kiso.htcondor.installer.utils.resolve_labels", return_value=[])
+    mocker.patch(
+        "kiso.deployment.htcondor.installer.utils.resolve_labels", return_value=[]
+    )
 
     mock_future = mocker.MagicMock()
     mock_future.result.return_value = [mocker.MagicMock()]
@@ -266,10 +272,11 @@ def test_htcondor_call_with_chameleon_device_submits_edge_install(
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_executor)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
     mocker.patch(
-        "kiso.htcondor.installer.get_process_pool_executor", return_value=mock_cm
+        "kiso.deployment.htcondor.installer.get_process_pool_executor",
+        return_value=mock_cm,
     )
-    mocker.patch("kiso.htcondor.installer.display._render")
-    mocker.patch("kiso.htcondor.installer.console.rule")
+    mocker.patch("kiso.deployment.htcondor.installer.display._render")
+    mocker.patch("kiso.deployment.htcondor.installer.console.rule")
 
     env = {"labels": mocker.MagicMock(), "is_public_ip_required": False}
     installer(env)

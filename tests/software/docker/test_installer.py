@@ -1,4 +1,4 @@
-"""Unit tests for kiso.docker.installer.DockerInstaller."""
+"""Unit tests for kiso.software.docker.installer.DockerInstaller."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from kiso.docker.configuration import Docker
-from kiso.docker.installer import DockerInstaller
+from kiso.software.docker.configuration import Docker
+from kiso.software.docker.installer import DockerInstaller
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -67,15 +67,16 @@ def test_docker_call_with_vms_runs_ansible(mocker: MockerFixture) -> None:
     mock_containers.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.docker.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.docker.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.docker.installer.utils.split_labels",
+        "kiso.software.docker.installer.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
-    mocker.patch("kiso.docker.installer.utils.run_ansible", return_value=[])
-    mocker.patch("kiso.docker.installer.display._render")
-    mocker.patch("kiso.docker.installer.console.rule")
+    mocker.patch("kiso.software.docker.installer.utils.run_ansible", return_value=[])
+    mocker.patch("kiso.software.docker.installer.display._render")
+    mocker.patch("kiso.software.docker.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     assert mock_host.extra[installer.HAS_SOFTWARE_KEY] is True
@@ -90,13 +91,14 @@ def test_docker_call_with_containers_raises(mocker: MockerFixture) -> None:
     mock_container = mocker.MagicMock()
 
     mocker.patch(
-        "kiso.docker.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.docker.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.docker.installer.utils.split_labels",
+        "kiso.software.docker.installer.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
-    mocker.patch("kiso.docker.installer.console.rule")
+    mocker.patch("kiso.software.docker.installer.console.rule")
 
     with pytest.raises(RuntimeError, match="Docker cannot be installed on containers"):
         installer({"labels": mocker.MagicMock()})

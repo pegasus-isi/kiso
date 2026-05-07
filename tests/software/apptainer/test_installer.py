@@ -1,4 +1,4 @@
-"""Unit tests for kiso.apptainer.installer.ApptainerInstaller."""
+"""Unit tests for kiso.software.apptainer.installer.ApptainerInstaller."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from kiso.apptainer.configuration import Apptainer
-from kiso.apptainer.installer import ApptainerInstaller
+from kiso.software.apptainer.configuration import Apptainer
+from kiso.software.apptainer.installer import ApptainerInstaller
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -57,15 +57,16 @@ def test_apptainer_call_with_vms_runs_ansible(mocker: MockerFixture) -> None:
     mock_containers.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.apptainer.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.apptainer.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.apptainer.installer.utils.split_labels",
+        "kiso.software.apptainer.installer.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
-    mocker.patch("kiso.apptainer.installer.utils.run_ansible", return_value=[])
-    mocker.patch("kiso.apptainer.installer.display._render")
-    mocker.patch("kiso.apptainer.installer.console.rule")
+    mocker.patch("kiso.software.apptainer.installer.utils.run_ansible", return_value=[])
+    mocker.patch("kiso.software.apptainer.installer.display._render")
+    mocker.patch("kiso.software.apptainer.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     assert mock_host.extra[installer.HAS_SOFTWARE_KEY] is True
@@ -81,17 +82,19 @@ def test_apptainer_call_with_containers_uses_run_script(mocker: MockerFixture) -
     mock_vms.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.apptainer.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.apptainer.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.apptainer.installer.utils.split_labels",
+        "kiso.software.apptainer.installer.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_run_script = mocker.patch(
-        "kiso.apptainer.installer.edge.run_script", return_value=mocker.MagicMock()
+        "kiso.software.apptainer.installer.edge.run_script",
+        return_value=mocker.MagicMock(),
     )
-    mocker.patch("kiso.apptainer.installer.display._render")
-    mocker.patch("kiso.apptainer.installer.console.rule")
+    mocker.patch("kiso.software.apptainer.installer.display._render")
+    mocker.patch("kiso.software.apptainer.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     mock_run_script.assert_called_once()

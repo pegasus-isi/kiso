@@ -65,7 +65,7 @@ Plugins are loaded at runtime via `utils.get_runner()`, `utils.get_software()`, 
 
 ## Plugin Interface
 
-Each plugin subpackage (e.g., `src/kiso/docker/`, `src/kiso/pegasus/`) follows the same structure:
+Each plugin subpackage (e.g., `src/kiso/software/docker/`, `src/kiso/experiments/pegasus/`) follows the same structure:
 
 - `installer.py` or `runner.py` — Main class with `__init__()`, `check()`, and `__call__()` methods
 - `configuration.py` — Dataclass for typed config

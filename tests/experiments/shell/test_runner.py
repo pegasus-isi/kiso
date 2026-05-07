@@ -1,4 +1,4 @@
-"""Unit tests for kiso.shell.runner.ShellRunner."""
+"""Unit tests for kiso.experiments.shell.runner.ShellRunner."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import pytest
 
 from kiso import constants as const
 from kiso.configuration import Kiso
+from kiso.experiments.pegasus.configuration import PegasusConfiguration
+from kiso.experiments.shell.configuration import ShellConfiguration
+from kiso.experiments.shell.runner import ShellRunner
 from kiso.objects import Location, Script
-from kiso.pegasus.configuration import PegasusConfiguration
-from kiso.shell.configuration import ShellConfiguration
-from kiso.shell.runner import ShellRunner
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -239,13 +239,15 @@ def _mock_roles(
 ) -> tuple[Any, Any]:
     """Patch resolve_labels and split_labels in shell runner."""
     mock_roles = mocker.MagicMock()
-    mocker.patch("kiso.shell.runner.utils.resolve_labels", return_value=mock_roles)
+    mocker.patch(
+        "kiso.experiments.shell.runner.utils.resolve_labels", return_value=mock_roles
+    )
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: vms_truthy
     mock_containers = mocker.MagicMock()
     mock_containers.__bool__ = lambda _: containers_truthy
     mocker.patch(
-        "kiso.shell.runner.utils.split_labels",
+        "kiso.experiments.shell.runner.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
     return mock_vms, mock_containers
@@ -284,14 +286,15 @@ def test_copy_input_with_containers_uses_edge(
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.shell.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.shell.runner.utils.split_labels",
+        "kiso.experiments.shell.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_upload = mocker.patch(
-        "kiso.shell.runner.edge.upload", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.edge.upload", return_value=mocker.MagicMock()
     )
 
     runner.env = {}
@@ -315,7 +318,7 @@ def test_copy_input_with_vms_uses_actions(
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.shell.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.shell.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._copy_input(0, inputs[0])
@@ -348,14 +351,15 @@ def test_run_script_with_containers_uses_run_script(mocker: MockerFixture) -> No
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.shell.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.shell.runner.utils.split_labels",
+        "kiso.experiments.shell.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_run_script = mocker.patch(
-        "kiso.shell.runner.edge.run_script", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.edge.run_script", return_value=mocker.MagicMock()
     )
 
     runner.env = {}
@@ -376,7 +380,7 @@ def test_run_script_with_vms_uses_actions(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.shell.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.shell.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._run_script(0, script)
@@ -442,7 +446,7 @@ def test_fetch_output_with_vms_uses_actions(
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.shell.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.shell.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._fetch_output(0, outputs[0])
@@ -461,14 +465,15 @@ def test_fetch_output_with_containers_uses_edge(
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.shell.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.shell.runner.utils.split_labels",
+        "kiso.experiments.shell.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_download = mocker.patch(
-        "kiso.shell.runner.edge.download", return_value=mocker.MagicMock()
+        "kiso.experiments.shell.runner.edge.download", return_value=mocker.MagicMock()
     )
 
     runner.env = {}

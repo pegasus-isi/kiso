@@ -381,7 +381,7 @@ def test_copy_experiment_dir_with_vms_uses_actions(
 def test_schema_get_experiment_kinds_select_path(mocker: MockerFixture) -> None:
     """_get_experiment_kinds uses .select() when entry_points() is not a dict."""
     mock_ep = mocker.MagicMock()
-    mock_ep.value = "kiso.shell.runner:ShellRunner"
+    mock_ep.value = "kiso.experiments.shell.runner:ShellRunner"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
@@ -396,7 +396,7 @@ def test_schema_get_software_schemas_select_path(mocker: MockerFixture) -> None:
     """_get_software_schemas uses .select() when entry_points() is not a dict."""
     mock_ep = mocker.MagicMock()
     mock_ep.name = "docker"
-    mock_ep.value = "kiso.docker.installer:DockerInstaller"
+    mock_ep.value = "kiso.software.docker.installer:DockerInstaller"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
@@ -411,7 +411,7 @@ def test_schema_get_deployment_schemas_select_path(mocker: MockerFixture) -> Non
     """_get_deployment_schemas uses .select() when entry_points() is not a dict."""
     mock_ep = mocker.MagicMock()
     mock_ep.name = "htcondor"
-    mock_ep.value = "kiso.htcondor.installer:HTCondorInstaller"
+    mock_ep.value = "kiso.deployment.htcondor.installer:HTCondorInstaller"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])

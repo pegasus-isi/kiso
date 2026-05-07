@@ -1,4 +1,4 @@
-"""Tests for kiso.display, kiso.shell.display, and kiso.pegasus.display."""
+"""Tests for kiso.display and the experiments plugin display modules."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ from rich.console import Console
 
 import kiso.constants as const
 from kiso import display as kiso_display
-from kiso.pegasus import display as pegasus_display
-from kiso.pegasus.display import PegasusWorkflowProgress
-from kiso.shell import display as shell_display
+from kiso.experiments.pegasus import display as pegasus_display
+from kiso.experiments.pegasus.display import PegasusWorkflowProgress
+from kiso.experiments.shell import display as shell_display
 
 # ---------------------------------------------------------------------------
 # Helpers

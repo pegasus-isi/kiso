@@ -18,7 +18,7 @@ from .schema import SCHEMA
 
 import kiso.constants as const
 from kiso import edge, utils
-from kiso.shell import display
+from kiso.experiments.shell import display
 from kiso.utils import experiment_state
 
 if TYPE_CHECKING:

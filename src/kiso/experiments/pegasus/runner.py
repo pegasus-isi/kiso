@@ -25,8 +25,8 @@ from .schema import SCHEMA
 import kiso.constants as const
 from kiso import edge, utils
 from kiso.errors import KisoTimeoutError, KisoValueError
-from kiso.pegasus import display
-from kiso.pegasus.display import PegasusWorkflowProgress
+from kiso.experiments.pegasus import display
+from kiso.experiments.pegasus.display import PegasusWorkflowProgress
 from kiso.utils import experiment_state
 
 if TYPE_CHECKING:

@@ -178,7 +178,7 @@ With a config that uses `experiments[]` with `kind: myworkflow`, the validator s
 
 ## Step 8 — Write tests
 
-Add tests in `tests/` following the existing patterns for `shell`, and `pegasus`. Run:
+Add tests in `tests/experiments/` following the existing patterns in `tests/experiments/shell/` and `tests/experiments/pegasus/`. Run:
 
 ```bash
 pytest tests/

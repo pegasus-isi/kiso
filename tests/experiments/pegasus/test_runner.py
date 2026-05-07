@@ -1,4 +1,4 @@
-"""Unit tests for kiso.pegasus.runner.PegasusRunner."""
+"""Unit tests for kiso.experiments.pegasus.runner.PegasusRunner."""
 
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ from enoslib.objects import Host
 
 from kiso import constants as const
 from kiso.configuration import Deployment, Kiso
+from kiso.deployment.htcondor.configuration import HTCondorDaemon
 from kiso.errors import KisoTimeoutError, KisoValueError
-from kiso.htcondor.configuration import HTCondorDaemon
+from kiso.experiments.pegasus.configuration import PegasusConfiguration
+from kiso.experiments.pegasus.runner import PegasusRunner
+from kiso.experiments.shell.configuration import ShellConfiguration
 from kiso.objects import Location, Script
-from kiso.pegasus.configuration import PegasusConfiguration
-from kiso.pegasus.runner import PegasusRunner
-from kiso.shell.configuration import ShellConfiguration
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -226,13 +226,15 @@ def test_call_sets_attributes_and_calls_steps(mocker: MockerFixture) -> None:
     fetch = mocker.patch.object(runner, "_fetch_outputs")
 
     mock_labels = mocker.MagicMock()
-    mocker.patch("kiso.pegasus.runner.utils.resolve_labels", return_value=mock_labels)
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.utils.resolve_labels", return_value=mock_labels
+    )
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mock_containers = mocker.MagicMock()
     mock_containers.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
 
@@ -389,13 +391,15 @@ def _mock_pegasus_roles(
 ) -> tuple[Any, Any]:
     """Patch resolve_labels and split_labels in pegasus runner."""
     mock_roles = mocker.MagicMock()
-    mocker.patch("kiso.pegasus.runner.utils.resolve_labels", return_value=mock_roles)
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.utils.resolve_labels", return_value=mock_roles
+    )
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: vms_truthy
     mock_containers = mocker.MagicMock()
     mock_containers.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
     return mock_vms, mock_containers
@@ -440,14 +444,15 @@ def test_pegasus_copy_input_with_containers_uses_edge(
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_upload = mocker.patch(
-        "kiso.pegasus.runner.edge.upload", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge.upload", return_value=mocker.MagicMock()
     )
 
     runner.env = {}
@@ -477,7 +482,7 @@ def test_run_post_scripts_non_empty_calls_run_post_script(
     runner.env = {}
     runner.labels = {}
     mock_run = mocker.patch.object(runner, "_run_post_script", return_value=[])
-    mocker.patch("kiso.pegasus.runner.display.post_scripts")
+    mocker.patch("kiso.experiments.pegasus.runner.display.post_scripts")
     runner._run_post_scripts()
     mock_run.assert_called_once_with(0, post[0])
 
@@ -509,14 +514,16 @@ def test_run_post_script_with_containers_uses_run_script(mocker: MockerFixture) 
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_run_script = mocker.patch(
-        "kiso.pegasus.runner.edge.run_script", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge.run_script",
+        return_value=mocker.MagicMock(),
     )
 
     runner.env = {}
@@ -546,7 +553,7 @@ def test_pegasus_fetch_outputs_non_empty_calls_fetch_output(
     runner.labels = {}
     runner.remote_wd = "/remote"
     mock_fetch = mocker.patch.object(runner, "_fetch_output", return_value=[])
-    mocker.patch("kiso.pegasus.runner.display.outputs")
+    mocker.patch("kiso.experiments.pegasus.runner.display.outputs")
     runner._fetch_outputs()
     mock_fetch.assert_called_once_with(0, outputs[0])
 
@@ -610,7 +617,7 @@ def test_pegasus_fetch_output_with_vms_uses_actions(
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._fetch_output(0, outputs[0])
@@ -630,14 +637,15 @@ def test_pegasus_fetch_output_with_containers_uses_edge(
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_download = mocker.patch(
-        "kiso.pegasus.runner.edge.download", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge.download", return_value=mocker.MagicMock()
     )
 
     runner.env = {}
@@ -660,8 +668,8 @@ def test_run_experiment_calls_generate_wait_fetch(mocker: MockerFixture) -> None
     mock_gen = mocker.patch.object(runner, "_generate_workflow", return_value=None)
     mock_wait = mocker.patch.object(runner, "_wait_for_workflow")
     mock_fetch = mocker.patch.object(runner, "_fetch_submit_dir")
-    mocker.patch("kiso.pegasus.runner.display.generate_workflow")
-    mocker.patch("kiso.pegasus.runner.console.rule")
+    mocker.patch("kiso.experiments.pegasus.runner.display.generate_workflow")
+    mocker.patch("kiso.experiments.pegasus.runner.console.rule")
 
     runner._run_experiment(0)
 
@@ -683,8 +691,10 @@ def test_run_experiment_handles_kiso_value_error(mocker: MockerFixture) -> None:
         side_effect=KisoValueError("fail", mock_result),
     )
     mock_fetch = mocker.patch.object(runner, "_fetch_submit_dir")
-    mock_display = mocker.patch("kiso.pegasus.runner.display.generate_workflow")
-    mocker.patch("kiso.pegasus.runner.console.rule")
+    mock_display = mocker.patch(
+        "kiso.experiments.pegasus.runner.display.generate_workflow"
+    )
+    mocker.patch("kiso.experiments.pegasus.runner.console.rule")
 
     runner._run_experiment(0)  # must not raise
 
@@ -708,14 +718,16 @@ def test_run_setup_script_containers_uses_run_script(mocker: MockerFixture) -> N
     mock_vms = mocker.MagicMock()
     mock_vms.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_run_script = mocker.patch(
-        "kiso.pegasus.runner.edge.run_script", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge.run_script",
+        return_value=mocker.MagicMock(),
     )
 
     runner.env = {}
@@ -750,10 +762,11 @@ def test_run_setup_script_with_vms_uses_actions(mocker: MockerFixture) -> None:
     mock_containers = mocker.MagicMock()
     mock_containers.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
 
@@ -762,7 +775,7 @@ def test_run_setup_script_with_vms_uses_actions(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._run_setup_script(0, setup_script)
@@ -786,10 +799,11 @@ def test_run_post_script_with_vms_uses_actions(mocker: MockerFixture) -> None:
     mock_containers = mocker.MagicMock()
     mock_containers.__bool__ = lambda _: False
     mocker.patch(
-        "kiso.pegasus.runner.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.pegasus.runner.utils.split_labels",
+        "kiso.experiments.pegasus.runner.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
 
@@ -798,7 +812,7 @@ def test_run_post_script_with_vms_uses_actions(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._run_post_script(0, post_script)
@@ -826,7 +840,7 @@ def test_pegasus_copy_input_with_vms_uses_actions(
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.env = {}
     results = runner._copy_input(0, inputs[0])
@@ -891,7 +905,7 @@ def test_wait_for_workflow_already_ok(mocker: MockerFixture) -> None:
     runner.poll_interval = 5
     runner.timeout = 60
     runner.env = {0: {"wait-workflow": const.STATUS_OK}}
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._wait_for_workflow(0)  # must not raise
 
@@ -941,7 +955,7 @@ def test_pegasus_remove_host_path(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     result = runner.pegasus_remove(h, "/submit/dir")
     assert result is mock_p.results[0]
@@ -957,7 +971,7 @@ def test_pegasus_statistics_host_path(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.pegasus_statistics(h, "/submit/dir")  # must not raise
 
@@ -972,7 +986,7 @@ def test_pegasus_analyzer_host_path(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.pegasus_analyzer(h, "/submit/dir")  # must not raise
 
@@ -989,7 +1003,7 @@ def test_fetch_submit_dir_already_ok(mocker: MockerFixture, tmp_path: Path) -> N
     runner.containers = []
     runner.resultdir = str(tmp_path)
     runner.env = {0: {"fetch-submit-dir": const.STATUS_OK, "submit-dir": "/submit/dir"}}
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._fetch_submit_dir(0)  # must not raise
 
@@ -1004,9 +1018,9 @@ def test_fetch_submit_dir_with_containers_uses_edge(
     runner.containers = [mocker.MagicMock()]
     runner.resultdir = str(tmp_path)
     runner.env = {0: {"submit-dir": submit_dir}}
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
-    mock_download = mocker.patch("kiso.pegasus.runner.edge.download")
+    mock_download = mocker.patch("kiso.experiments.pegasus.runner.edge.download")
     runner._fetch_submit_dir(0)
     mock_download.assert_called_once()
 
@@ -1022,13 +1036,13 @@ def test_fetch_submit_dir_with_vms_uses_actions(
     runner.containers = []
     runner.resultdir = str(tmp_path)
     runner.env = {0: {"submit-dir": submit_dir}}
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     mock_p = mocker.MagicMock()
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner._fetch_submit_dir(0)  # must not raise
 
@@ -1055,7 +1069,9 @@ def test_get_submit_dir_no_match_host_queries_db(mocker: MockerFixture) -> None:
         "stdout": "WORKFLOW_STARTED|/submit/dir\n",
         "stderr": "",
     }
-    mocker.patch("kiso.pegasus.runner.en.run_command", return_value=[mock_cmd_result])
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.en.run_command", return_value=[mock_cmd_result]
+    )
 
     path = runner._get_submit_dir(result, h, MagicMock())
     assert str(path) == "/submit/dir"
@@ -1074,7 +1090,9 @@ def test_get_submit_dir_no_match_host_cmd_fails(mocker: MockerFixture) -> None:
     mock_cmd_result = MagicMock()
     mock_cmd_result.status = const.STATUS_FAILED
     mock_cmd_result.payload = {"stdout": "", "stderr": "error"}
-    mocker.patch("kiso.pegasus.runner.en.run_command", return_value=[mock_cmd_result])
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.en.run_command", return_value=[mock_cmd_result]
+    )
 
     with pytest.raises(ValueError, match="Could not identify the submit dir"):
         runner._get_submit_dir(result, h, MagicMock())
@@ -1093,7 +1111,9 @@ def test_get_submit_dir_no_match_host_empty_state(mocker: MockerFixture) -> None
     mock_cmd_result = MagicMock()
     mock_cmd_result.status = const.STATUS_OK
     mock_cmd_result.payload = {"stdout": "   ", "stderr": ""}
-    mocker.patch("kiso.pegasus.runner.en.run_command", return_value=[mock_cmd_result])
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.en.run_command", return_value=[mock_cmd_result]
+    )
 
     with pytest.raises(ValueError, match="Could not identify the submit dir"):
         runner._get_submit_dir(result, h, MagicMock())
@@ -1112,7 +1132,9 @@ def test_get_submit_dir_no_match_host_invalid_state(mocker: MockerFixture) -> No
     mock_cmd_result = MagicMock()
     mock_cmd_result.status = const.STATUS_OK
     mock_cmd_result.payload = {"stdout": "WORKFLOW_FAILED|/submit/dir\n", "stderr": ""}
-    mocker.patch("kiso.pegasus.runner.en.run_command", return_value=[mock_cmd_result])
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.en.run_command", return_value=[mock_cmd_result]
+    )
 
     with pytest.raises(ValueError, match="Invalid workflow state"):
         runner._get_submit_dir(result, h, MagicMock())
@@ -1187,7 +1209,7 @@ def test_wait_for_workflow_calls_sub_methods(mocker: MockerFixture) -> None:
     mock_wait2 = mocker.patch.object(runner, "_wait_for_workflow_2")
     mock_stats = mocker.patch.object(runner, "pegasus_statistics")
     mock_analyze = mocker.patch.object(runner, "pegasus_analyzer")
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._wait_for_workflow(0)
 
@@ -1218,7 +1240,7 @@ def test_pegasus_status_calls_edge_execute(mocker: MockerFixture) -> None:
     runner, _ = _make_runner()
     mock_container = mocker.MagicMock()
     mock_execute = mocker.patch(
-        "kiso.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
     )
 
     runner.pegasus_status(mock_container, "/submit/dir", user="kiso")
@@ -1230,7 +1252,7 @@ def test_pegasus_remove_edge_execute(mocker: MockerFixture) -> None:
     runner, _ = _make_runner()
     mock_container = mocker.MagicMock()
     mock_execute = mocker.patch(
-        "kiso.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
     )
 
     runner._pegasus_remove(mock_container, "/submit/dir", user="kiso")
@@ -1242,7 +1264,7 @@ def test_pegasus_statistics_edge_execute(mocker: MockerFixture) -> None:
     runner, _ = _make_runner()
     mock_container = mocker.MagicMock()
     mock_execute = mocker.patch(
-        "kiso.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
     )
 
     runner._pegasus_statistics(mock_container, "/submit/dir", user="kiso")
@@ -1263,7 +1285,7 @@ def test_pegasus_run_host_path(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
 
     runner.pegasus_run(h, "/submit/dir")  # must not raise
 
@@ -1273,7 +1295,7 @@ def test_pegasus_run_edge_execute(mocker: MockerFixture) -> None:
     runner, _ = _make_runner()
     mock_container = mocker.MagicMock()
     mock_execute = mocker.patch(
-        "kiso.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
     )
 
     runner._pegasus_run(mock_container, Path("/submit/dir"), user="kiso")
@@ -1285,7 +1307,7 @@ def test_pegasus_analyzer_edge_execute(mocker: MockerFixture) -> None:
     runner, _ = _make_runner()
     mock_container = mocker.MagicMock()
     mock_execute = mocker.patch(
-        "kiso.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
+        "kiso.experiments.pegasus.runner.edge._execute", return_value=mocker.MagicMock()
     )
 
     runner._pegasus_analyzer(mock_container, Path("/submit/dir"), user="kiso")
@@ -1311,7 +1333,7 @@ def test_wait_for_workflow_timeout_sets_failed(mocker: MockerFixture) -> None:
     )
     mocker.patch.object(runner, "pegasus_statistics")
     mocker.patch.object(runner, "pegasus_analyzer")
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._wait_for_workflow(0)
     # experiment_state suppresses the error but records STATUS_FAILED
@@ -1339,7 +1361,7 @@ def test_get_submit_dir_container_sqlite_path(mocker: MockerFixture) -> None:
     mock_sqlite_result.stdout = "WORKFLOW_STARTED|/workflow/dir|extra"
 
     mocker.patch(
-        "kiso.pegasus.runner.edge._execute",
+        "kiso.experiments.pegasus.runner.edge._execute",
         return_value=mock_sqlite_result,
     )
 
@@ -1354,7 +1376,7 @@ def test_generate_workflow_already_ok_returns_none(mocker: MockerFixture) -> Non
     runner.vms = [mocker.MagicMock()]
     runner.containers = []
     runner.env = {0: {"workflow-generate": const.STATUS_OK}}
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     result = runner._generate_workflow(0)
     assert result is None
@@ -1380,9 +1402,9 @@ def test_generate_workflow_vms_path(mocker: MockerFixture) -> None:
     mock_cm = mocker.MagicMock()
     mock_cm.__enter__ = mocker.MagicMock(return_value=mock_p)
     mock_cm.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("kiso.pegasus.runner.utils.actions", return_value=mock_cm)
+    mocker.patch("kiso.experiments.pegasus.runner.utils.actions", return_value=mock_cm)
     mocker.patch.object(runner, "_get_submit_dir", return_value=Path("/submit/dir"))
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._generate_workflow(0)
     assert runner.env[0]["submit-dir"] == Path("/submit/dir")
@@ -1401,9 +1423,11 @@ def test_generate_workflow_containers_path(mocker: MockerFixture) -> None:
     mock_status.rc = 0
     mock_status.stdout = "submit_dir: /submit/dir"
     mock_status.stderr = ""
-    mocker.patch("kiso.pegasus.runner.edge.run_script", return_value=mock_status)
+    mocker.patch(
+        "kiso.experiments.pegasus.runner.edge.run_script", return_value=mock_status
+    )
     mocker.patch.object(runner, "_get_submit_dir", return_value=Path("/submit/dir"))
-    mocker.patch("kiso.pegasus.runner.console.print")
+    mocker.patch("kiso.experiments.pegasus.runner.console.print")
 
     runner._generate_workflow(0)
     assert runner.env[0]["submit-dir"] == Path("/submit/dir")

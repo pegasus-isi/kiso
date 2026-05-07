@@ -14,11 +14,11 @@ from jsonschema.exceptions import ValidationError
 
 from kiso import task
 from kiso.configuration import Deployment, Kiso, Software
-from kiso.docker.configuration import Docker
+from kiso.deployment.htcondor.configuration import HTCondorDaemon
 from kiso.errors import KisoError
-from kiso.htcondor.configuration import HTCondorDaemon
+from kiso.experiments.shell.configuration import ShellConfiguration
 from kiso.objects import Script
-from kiso.shell.configuration import ShellConfiguration
+from kiso.software.docker.configuration import Docker
 from kiso.task import (
     _check_deployed_software,
     _check_experiments,

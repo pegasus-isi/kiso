@@ -1,4 +1,4 @@
-"""Unit tests for kiso.ollama.installer.OllamaInstaller."""
+"""Unit tests for kiso.software.ollama.installer.OllamaInstaller."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from kiso.ollama.configuration import Ollama
-from kiso.ollama.installer import OllamaInstaller
+from kiso.software.ollama.configuration import Ollama
+from kiso.software.ollama.installer import OllamaInstaller
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -67,15 +67,16 @@ def test_ollama_call_with_vms_runs_ansible(mocker: MockerFixture) -> None:
     mock_containers.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.ollama.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.ollama.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.ollama.installer.utils.split_labels",
+        "kiso.software.ollama.installer.utils.split_labels",
         return_value=(mock_vms, mock_containers),
     )
-    mocker.patch("kiso.ollama.installer.utils.run_ansible", return_value=[])
-    mocker.patch("kiso.ollama.installer.display._render")
-    mocker.patch("kiso.ollama.installer.console.rule")
+    mocker.patch("kiso.software.ollama.installer.utils.run_ansible", return_value=[])
+    mocker.patch("kiso.software.ollama.installer.display._render")
+    mocker.patch("kiso.software.ollama.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     assert mock_host.extra[installer.HAS_SOFTWARE_KEY] is True
@@ -94,17 +95,18 @@ def test_ollama_call_with_vms_and_environment(mocker: MockerFixture) -> None:
     mock_containers.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.ollama.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.ollama.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.ollama.installer.utils.split_labels",
+        "kiso.software.ollama.installer.utils.split_labels",
         return_value=([mock_host], mock_containers),
     )
     mock_run_ansible = mocker.patch(
-        "kiso.ollama.installer.utils.run_ansible", return_value=[]
+        "kiso.software.ollama.installer.utils.run_ansible", return_value=[]
     )
-    mocker.patch("kiso.ollama.installer.display._render")
-    mocker.patch("kiso.ollama.installer.console.rule")
+    mocker.patch("kiso.software.ollama.installer.display._render")
+    mocker.patch("kiso.software.ollama.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     # Verify extra_vars includes config key
@@ -124,17 +126,19 @@ def test_ollama_call_with_containers_uses_run_script(mocker: MockerFixture) -> N
     mock_vms.__bool__ = lambda _: False
 
     mocker.patch(
-        "kiso.ollama.installer.utils.resolve_labels", return_value=mocker.MagicMock()
+        "kiso.software.ollama.installer.utils.resolve_labels",
+        return_value=mocker.MagicMock(),
     )
     mocker.patch(
-        "kiso.ollama.installer.utils.split_labels",
+        "kiso.software.ollama.installer.utils.split_labels",
         return_value=(mock_vms, [mock_container]),
     )
     mock_run_script = mocker.patch(
-        "kiso.ollama.installer.edge.run_script", return_value=mocker.MagicMock()
+        "kiso.software.ollama.installer.edge.run_script",
+        return_value=mocker.MagicMock(),
     )
-    mocker.patch("kiso.ollama.installer.display._render")
-    mocker.patch("kiso.ollama.installer.console.rule")
+    mocker.patch("kiso.software.ollama.installer.display._render")
+    mocker.patch("kiso.software.ollama.installer.console.rule")
 
     installer({"labels": mocker.MagicMock()})
     mock_run_script.assert_called_once()

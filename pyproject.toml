@@ -63,18 +63,18 @@ kiso = "kiso.__main__:kiso"
 
 [project.entry-points."kiso.software"]
 
-apptainer = "kiso.apptainer.installer:ApptainerInstaller"
-docker = "kiso.docker.installer:DockerInstaller"
-ollama = "kiso.ollama.installer:OllamaInstaller"
+apptainer = "kiso.software.apptainer.installer:ApptainerInstaller"
+docker = "kiso.software.docker.installer:DockerInstaller"
+ollama = "kiso.software.ollama.installer:OllamaInstaller"
 
 [project.entry-points."kiso.deployment"]
 
-htcondor = "kiso.htcondor.installer:HTCondorInstaller"
+htcondor = "kiso.deployment.htcondor.installer:HTCondorInstaller"
 
 [project.entry-points."kiso.experiment"]
 
-pegasus = "kiso.pegasus.runner:PegasusRunner"
-shell = "kiso.shell.runner:ShellRunner"
+pegasus = "kiso.experiments.pegasus.runner:PegasusRunner"
+shell = "kiso.experiments.shell.runner:ShellRunner"
 
 [project.optional-dependencies]
 

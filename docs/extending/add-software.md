@@ -11,7 +11,7 @@ Read [How Kiso extensions work](how-extensions-work.md) first for background on 
 
 ## Step 1 — Create the plugin subpackage
 
-Create a directory under `src/kiso/` for your plugin:
+Create a top-level package directory for your plugin:
 
 ```
 src/kiso_podman/
@@ -171,7 +171,7 @@ With a config that uses `software.podman`, the validator should accept it. An in
 
 ## Step 8 — Write tests
 
-Add tests in `tests/` following the existing patterns for `docker` and `apptainer`. Run:
+Add tests in `tests/software/` following the existing patterns in `tests/software/docker/` and `tests/software/apptainer/`. Run:
 
 ```bash
 pytest tests/
