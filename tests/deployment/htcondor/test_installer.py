@@ -158,7 +158,7 @@ def test_htcondor_call_with_host_non_central_manager(mocker: MockerFixture) -> N
     mocker.patch.object(
         installer,
         "_get_label_daemon_machine_map",
-        return_value={mock_host: {(0, "execute")}},
+        return_value={mock_host: {HTCondorDaemon(kind="execute", labels=["worker"])}},
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
@@ -176,6 +176,10 @@ def test_htcondor_call_with_host_non_central_manager(mocker: MockerFixture) -> N
     mocker.patch(
         "kiso.deployment.htcondor.installer.get_process_pool_executor",
         return_value=mock_cm,
+    )
+    mocker.patch(
+        "kiso.deployment.htcondor.installer.as_completed",
+        return_value=iter([mock_future]),
     )
 
     mocker.patch(
@@ -205,7 +209,9 @@ def test_htcondor_call_with_central_manager_waits(mocker: MockerFixture) -> None
     mocker.patch.object(
         installer,
         "_get_label_daemon_machine_map",
-        return_value={mock_host: {(0, "central-manager")}},
+        return_value={
+            mock_host: {HTCondorDaemon(kind="central-manager", labels=["cm"])}
+        },
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
@@ -253,7 +259,9 @@ def test_htcondor_call_with_chameleon_device_submits_edge_install(
     mocker.patch.object(
         installer,
         "_get_label_daemon_machine_map",
-        return_value={mock_container: {(0, "execute")}},
+        return_value={
+            mock_container: {HTCondorDaemon(kind="execute", labels=["edge"])}
+        },
     )
     mocker.patch.object(installer, "_get_condor_config", return_value=([], {}))
     mocker.patch(
@@ -274,6 +282,10 @@ def test_htcondor_call_with_chameleon_device_submits_edge_install(
     mocker.patch(
         "kiso.deployment.htcondor.installer.get_process_pool_executor",
         return_value=mock_cm,
+    )
+    mocker.patch(
+        "kiso.deployment.htcondor.installer.as_completed",
+        return_value=iter([mock_future]),
     )
     mocker.patch("kiso.deployment.htcondor.installer.display._render")
     mocker.patch("kiso.deployment.htcondor.installer.console.rule")
@@ -301,7 +313,7 @@ def test_htcondor_get_label_daemon_machine_map() -> None:
 
     result = installer._get_label_daemon_machine_map(installer.config, labels)
     assert h in result
-    assert any(d[1] == "execute" for d in result[h])
+    assert any(d.kind == "execute" for d in result[h])
 
 
 def test_htcondor_get_label_daemon_machine_map_unknown_label() -> None:
@@ -323,22 +335,24 @@ def test_htcondor_get_label_daemon_machine_map_unknown_label() -> None:
 
 def test_htcondor_cmp_central_manager() -> None:
     installer = HTCondorInstaller([])
-    assert installer._cmp(("", {(0, "central-manager")})) == 0
+    assert (
+        installer._cmp(("", {HTCondorDaemon(kind="central-manager", labels=[])})) == 1
+    )
 
 
 def test_htcondor_cmp_personal() -> None:
     installer = HTCondorInstaller([])
-    assert installer._cmp(("", {(0, "personal")})) == 1
+    assert installer._cmp(("", {HTCondorDaemon(kind="personal", labels=[])})) == 0
 
 
 def test_htcondor_cmp_execute() -> None:
     installer = HTCondorInstaller([])
-    assert installer._cmp(("", {(0, "execute")})) == 2
+    assert installer._cmp(("", {HTCondorDaemon(kind="execute", labels=[])})) == 2
 
 
 def test_htcondor_cmp_submit() -> None:
     installer = HTCondorInstaller([])
-    assert installer._cmp(("", {(0, "submit")})) == 3
+    assert installer._cmp(("", {HTCondorDaemon(kind="submit", labels=[])})) == 3
 
 
 def test_htcondor_cmp_empty_daemons() -> None:
@@ -349,7 +363,7 @@ def test_htcondor_cmp_empty_daemons() -> None:
 def test_htcondor_cmp_invalid_daemon_raises() -> None:
     installer = HTCondorInstaller([])
     with pytest.raises(ValueError, match="Daemon"):
-        installer._cmp(("", {(0, "invalid-daemon")}))
+        installer._cmp(("", {HTCondorDaemon(kind="invalid-daemon", labels=[])}))
 
 
 # ---------------------------------------------------------------------------
@@ -370,7 +384,7 @@ def test_htcondor_get_condor_config_execute() -> None:
     env = {"is_public_ip_required": False}
 
     config_lines, config_files = installer._get_condor_config(
-        installer.config, {(0, "execute")}, "10.0.0.2", h, env
+        {HTCondorDaemon(kind="execute", labels=["worker"])}, "10.0.0.2", h, env
     )
     assert any("Execute" in line for line in config_lines)
     assert config_files == {}
@@ -389,7 +403,7 @@ def test_htcondor_get_condor_config_submit() -> None:
     env = {"is_public_ip_required": False}
 
     config_lines, config_files = installer._get_condor_config(
-        installer.config, {(0, "submit")}, "10.0.0.2", h, env
+        {HTCondorDaemon(kind="submit", labels=["sub"])}, "10.0.0.2", h, env
     )
     assert any("Submit" in line for line in config_lines)
 
@@ -407,7 +421,7 @@ def test_htcondor_get_condor_config_personal() -> None:
     env = {"is_public_ip_required": False}
 
     config_lines, _ = installer._get_condor_config(
-        installer.config, {(0, "personal")}, None, h, env
+        {HTCondorDaemon(kind="personal", labels=["all"])}, None, h, env
     )
     assert any("CentralManager" in line for line in config_lines)
 
@@ -428,7 +442,10 @@ def test_htcondor_get_condor_config_with_config_file(tmp_path: Path) -> None:
     env = {"is_public_ip_required": False}
 
     config_lines, config_files = installer._get_condor_config(
-        installer.config, {(0, "execute")}, "10.0.0.2", h, env
+        {HTCondorDaemon(kind="execute", labels=["worker"], config_file=str(cfg))},
+        "10.0.0.2",
+        h,
+        env,
     )
     assert "kiso-execute-config-file" in config_files
 
@@ -447,7 +464,7 @@ def test_htcondor_get_condor_config_tcp_forwarding_host() -> None:
     env = {"is_public_ip_required": True}
 
     config_lines, _ = installer._get_condor_config(
-        installer.config, {(0, "submit")}, "10.0.0.2", h, env
+        {HTCondorDaemon(kind="submit", labels=["sub"])}, "10.0.0.2", h, env
     )
     assert any("TCP_FORWARDING_HOST" in line for line in config_lines)
 

@@ -522,17 +522,12 @@ def test_run_body_with_force_clears_experiments(mocker: MockerFixture) -> None:
 def test_down_with_vagrant_provider_cleans_up(
     mocker: MockerFixture, tmp_path: Path
 ) -> None:
-    """down() cleans up .vagrant dir when vagrant provider present (lines 1184-1190)."""
+    """down() calls destroy() when vagrant is present; provider handles dir cleanup."""
     if not hasattr(en, "Vagrant"):
         pytest.skip("Vagrant not available")
 
     raw_down = down.__wrapped__.__wrapped__.__wrapped__
     mocker.patch("kiso.task.console.rule")
-
-    vagrant_dir = tmp_path / ".vagrant"
-    vagrant_dir.mkdir()
-    vagrant_file = tmp_path / "Vagrantfile"
-    vagrant_file.write_text("# stub")
 
     mock_vagrant = MagicMock(spec=en.Vagrant)
     mock_providers = MagicMock()
@@ -545,35 +540,27 @@ def test_down_with_vagrant_provider_cleans_up(
     }
     raw_down(MagicMock(), env=env)
     mock_providers.destroy.assert_called_once()
-    # .vagrant dir and Vagrantfile removed
-    assert not vagrant_dir.exists()
-    assert not vagrant_file.exists()
 
 
-def test_down_vagrant_ssh_key_removal(mocker: MockerFixture, tmp_path: Path) -> None:
-    """down() calls ssh-add -d to remove vagrant SSH keys (lines 1186-1190)."""
+def test_down_vagrant_removes_vboxheadless_logs(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """down() removes VBoxHeadless log files matching the current month."""
     if not hasattr(en, "Vagrant"):
         pytest.skip("Vagrant not available")
 
     raw_down = down.__wrapped__.__wrapped__.__wrapped__
     mocker.patch("kiso.task.console.rule")
 
-    # Create .vagrant dir with a private_key file
-    vagrant_dir = tmp_path / ".vagrant"
-    key_dir = vagrant_dir / "machines" / "default" / "virtualbox"
-    key_dir.mkdir(parents=True)
-    key_file = key_dir / "private_key"
-    key_file.write_text("fake key")
+    from datetime import datetime, timezone
+
+    current_date = datetime.now(timezone.utc).strftime("%Y-%m")
+    log_file = tmp_path / f"{current_date}-12-34-VBoxHeadless-1234.log"
+    log_file.write_text("log")
 
     mock_vagrant = MagicMock(spec=en.Vagrant)
     mock_providers = MagicMock()
     mock_providers.providers = [mock_vagrant]
-
-    mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh-add")
-    mock_subproc = mocker.patch(
-        "kiso.task.subprocess.run",
-        return_value=MagicMock(returncode=0),
-    )
 
     env = {
         "wd": str(tmp_path),
@@ -581,5 +568,4 @@ def test_down_vagrant_ssh_key_removal(mocker: MockerFixture, tmp_path: Path) -> 
         "providers": mock_providers,
     }
     raw_down(MagicMock(), env=env)
-    # ssh-add -d was called for each private_key
-    mock_subproc.assert_called_once()
+    assert not log_file.exists()

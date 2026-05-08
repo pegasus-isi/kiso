@@ -652,7 +652,7 @@ def test_ssh_command_appended(mocker: MockerFixture) -> None:
     mock_execvp = mocker.patch("kiso.task.os.execvp")
     mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
 
-    _ssh("worker1", command="hostname", env=_make_ssh_env(host))
+    _ssh("worker1", command=["hostname"], env=_make_ssh_env(host))
 
     cmd = mock_execvp.call_args[0][1]
     assert cmd[-1] == "hostname"
@@ -663,7 +663,7 @@ def test_ssh_extra_args_appended(mocker: MockerFixture) -> None:
     mock_execvp = mocker.patch("kiso.task.os.execvp")
     mocker.patch("kiso.task.shutil.which", return_value="/usr/bin/ssh")
 
-    _ssh("worker1", extra_ssh_args=["-L", "8080:localhost:80"], env=_make_ssh_env(host))
+    _ssh("worker1", ssh_options=["-L", "8080:localhost:80"], env=_make_ssh_env(host))
 
     cmd = mock_execvp.call_args[0][1]
     assert "-L" in cmd
