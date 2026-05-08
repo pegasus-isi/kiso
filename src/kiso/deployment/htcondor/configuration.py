@@ -3,11 +3,11 @@
 # ruff: noqa: UP045
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class HTCondorDaemon:
     """HTCondor daemon configuration."""
 
@@ -15,7 +15,7 @@ class HTCondorDaemon:
     kind: str
 
     #:
-    labels: list[str]
+    labels: list[str] = field(default_factory=list, hash=False)
 
     #:
     config_file: Optional[str] = None

@@ -6,12 +6,12 @@ import itertools
 import logging
 import re
 from collections import defaultdict
+from concurrent.futures import as_completed
 from ipaddress import ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import enoslib as en
-from enoslib.objects import Roles
 from rich.console import Console
 
 from .configuration import HTCondorDaemon
@@ -23,20 +23,19 @@ from kiso.log import get_process_pool_executor
 
 if TYPE_CHECKING:
     from enoslib.api import CommandResult
+    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.objects import Host, Roles
     from enoslib.task import Environment
+elif hasattr(en, "ChameleonEdge"):
+    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
+else:
+    ChameleonDevice = utils.undefined
 
 
 log = logging.getLogger("kiso.deployment.htcondor")
 
 
 console = Console()
-
-
-if hasattr(en, "ChameleonEdge"):
-    from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
-else:
-    ChameleonDevice = utils.undefined
 
 
 class HTCondorInstaller:
@@ -244,7 +243,7 @@ class HTCondorInstaller:
                     else machine.alias,
                 )
                 htcondor_config, config_files = self._get_condor_config(
-                    self.config, daemons, condor_host_ip, machine, env
+                    daemons, condor_host_ip, machine, env
                 )
 
                 extra_vars = dict(extra_vars)
@@ -273,19 +272,13 @@ class HTCondorInstaller:
 
                 # Wait for HTCondor Central Manager to be installed and started before
                 # installing in on any other machine
-                if "central-manager" in daemons:
-                    result = future.result()
-                    results.append(result[-1])
+                if any(d.kind[0] == "c" for d in daemons):
+                    results.append(future.result()[-1])
                 else:
                     futures.append(future)
 
-            # We need to wait for HTCondor to be installed on the remaining machines,
-            # because even though the ProcessPoolExecutor does not exit the context
-            # until all running futures have finished, the code gets stuck if we don't
-            # invoke result() on the futures
-            for future in futures:
-                result = future.result()
-                results.append(result[-1])
+            for future in as_completed(futures):
+                results.append(future.result()[-1])
 
             display._render(console, results)
 
@@ -412,72 +405,71 @@ class HTCondorInstaller:
 
     def _get_label_daemon_machine_map(
         self, condor_config: list, labels: Roles
-    ) -> dict[ChameleonDevice | Host, set]:
+    ) -> dict[ChameleonDevice | Host, set[HTCondorDaemon]]:
         """Build a machine-to-daemons mapping from the HTCondor configuration.
 
         Builds an intermediate label→daemon index mapping from the configuration,
         then resolves each label to the machines in ``labels``. The result is sorted
-        so that the central-manager machine comes first.
+        so that personal machines come first, followed by the central-manager, then
+        execute and submit machines.
 
         :param condor_config: List of HTCondorDaemon configuration objects
         :type condor_config: list
         :param labels: Mapping of labels to their associated nodes
         :type labels: Roles
-        :return: Ordered mapping of each machine to its set of (index, daemon-kind)
-            tuples
-        :rtype: dict[ChameleonDevice | Host, set]
+        :return: Ordered mapping of each machine to its set of HTCondorDaemon configs
+        :rtype: dict[ChameleonDevice | Host, set[HTCondorDaemon]]
         """
-        label_to_daemons: Roles = defaultdict(set)
-        machine_to_daemons: dict[ChameleonDevice | Host, set] = defaultdict(set)
+        label_to_daemons: defaultdict[str, set[HTCondorDaemon]] = defaultdict(set)
+        machine_to_daemons: dict[ChameleonDevice | Host, set[HTCondorDaemon]] = (
+            defaultdict(set)
+        )
 
-        for index, config in enumerate(condor_config):
-            kind = config.kind
-            _labels = config.labels
-            for label in _labels:
-                label_to_daemons[label].add((index, kind))
+        for config in condor_config:
+            for label in config.labels:
+                label_to_daemons[label].add(config)
 
         for label, machines in labels.items():
             if label in label_to_daemons:
                 for machine in machines:
                     machine_to_daemons[machine].update(label_to_daemons[label])
 
-        # Sort on daemons so that the HTCondor central-manager is installed first
+        # Sort so personal runs in parallel with central-manager, execute/submit
+        # run after
         return dict(sorted(machine_to_daemons.items(), key=self._cmp))
 
-    def _cmp(self, item: tuple[str, set]) -> int:
-        """Return a sort key for a machine→daemons entry, prioritising central-manager.
+    def _cmp(self, item: tuple[ChameleonDevice | Host, set[HTCondorDaemon]]) -> int:
+        """Sort key: personal (0), central-manager (1), execute (2), submit (3).
 
-        Assigns installation-order priority: central-manager (0), personal (1),
-        execute (2), submit (3). Machines with no recognised daemons receive 10.
+        Assigns installation-order priority: personal (0), central-manager (1),
+        execute (2), submit (3). Machines with no recognized daemons receive 10.
 
         :param item: A ``(machine, daemons)`` pair from
             ``_get_label_daemon_machine_map``
-        :type item: tuple[str, set]
-        :raises ValueError: If a daemon kind other than the four recognised types is
+        :type item: tuple[ChameleonDevice | Host, set[HTCondorDaemon]]
+        :raises ValueError: If a daemon kind other than the four recognized types is
             found
         :return: Integer sort key; lower values are installed first
         :rtype: int
         """
         rv = 10
         for daemon in item[1]:
-            if daemon[1][0] == "c":  # central-manager
+            if daemon.kind[0] == "p":  # personal
                 rv = min(rv, 0)
-                break
-            if daemon[1][0] == "p":  # personal
+            elif daemon.kind[0] == "c":  # central-manager
                 rv = min(rv, 1)
-            elif daemon[1][0] == "e":  # execute
+            elif daemon.kind[0] == "e":  # execute
                 rv = min(rv, 2)
-            elif daemon[1][0] == "s":  # submit
+            elif daemon.kind[0] == "s":  # submit
                 rv = min(rv, 3)
             else:
-                raise ValueError(f"Daemon <{daemon[1]}> is not valid")
+                raise ValueError(f"Daemon <{daemon.kind}> is not valid")
 
         return rv
 
     def _get_condor_config(
         self,
-        config: list,
-        daemons: set[tuple[int, str]],
+        daemons: set[HTCondorDaemon],
         condor_host_ip: str | None,
         machine: Host | ChameleonDevice,
         env: Environment,
@@ -488,10 +480,8 @@ class HTCondorInstaller:
         and environment requirements. Handles configuration for different daemon labels
         (personal, central manager, submit, execute) and special networking scenarios.
 
-        :param config: Configuration dictionary for HTCondor
-        :type config: list
-        :param daemons: Set of daemon types to configure
-        :type daemons: set[str]
+        :param daemons: Set of daemon configurations for this machine
+        :type daemons: set[HTCondorDaemon]
         :param condor_host_ip: IP address of the HTCondor host
         :type condor_host_ip: str | None
         :param machine: Machine (Host or ChameleonDevice) being configured
@@ -512,8 +502,9 @@ class HTCondorInstaller:
             f"TRUST_DOMAIN = {const.TRUST_DOMAIN}",
         ]
         config_files = {}
-        for index, daemon in daemons:
-            if daemon[0] == "p":  # personal
+        for daemon_config in daemons:
+            kind = daemon_config.kind
+            if kind[0] == "p":  # personal
                 htcondor_config = [
                     "CONDOR_HOST = $(IP_ADDRESS)",
                     "use ROLE: CentralManager",
@@ -521,7 +512,7 @@ class HTCondorInstaller:
                     "use ROLE: Execute",
                 ]
             else:
-                _daemon = re.sub(r"[-\d]", "", daemon.title())
+                _daemon = re.sub(r"[-\d]", "", kind.title())
                 htcondor_config.append(f"use ROLE: {_daemon}")
 
                 # Execute nodes without public IPs need these configuration
@@ -529,9 +520,9 @@ class HTCondorInstaller:
                     htcondor_config.append("USE_CCB = True")
                     htcondor_config.append("CCB_ADDRESS = $(CONDOR_HOST)")
 
-            if config[index].config_file:
-                config_files[f"kiso-{daemon}-config-file"] = str(
-                    Path(config[index].config_file).resolve()
+            if daemon_config.config_file:
+                config_files[f"kiso-{kind}-config-file"] = str(
+                    Path(daemon_config.config_file).resolve()
                 )
 
         if (
@@ -642,7 +633,7 @@ class HTCondorInstaller:
                 return results
 
         for daemon in extra_vars.get("htcondor_daemons", set()):
-            if daemon == "personal":
+            if daemon.kind[0] == "p":
                 return results
 
         sec_password_directory = edge._execute(
