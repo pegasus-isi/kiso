@@ -26,6 +26,9 @@ software:
   ollama:
     - labels: [compute]
       models: [llama3]
+  shell:
+    - labels: [compute]
+      script: echo hello
 
 deployment:
   htcondor:
@@ -171,6 +174,16 @@ Array of objects. Each object:
 | `labels`      | list[string] | Yes      | —       | Labels of nodes to install Ollama on         |
 | `models`      | list[string] | Yes      | —       | Model names to pull. Minimum 1.              |
 | `environment` | object       | No       | `{}`    | Environment variables for the Ollama service |
+
+## `software.shell[]`
+
+Array of objects. Each object:
+
+| Key          | Type         | Required | Default     | Description                             |
+| ------------ | ------------ | -------- | ----------- | --------------------------------------- |
+| `labels`     | list[string] | Yes      | —           | Labels of nodes to run the script on    |
+| `script`     | string       | Yes      | —           | Shell script content to execute         |
+| `executable` | string       | No       | `/bin/bash` | Shell executable used to run the script |
 
 ## `deployment.htcondor[]`
 

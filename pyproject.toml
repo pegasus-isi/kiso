@@ -66,6 +66,7 @@ kiso = "kiso.__main__:kiso"
 apptainer = "kiso.software.apptainer.installer:ApptainerInstaller"
 docker = "kiso.software.docker.installer:DockerInstaller"
 ollama = "kiso.software.ollama.installer:OllamaInstaller"
+shell = "kiso.software.shell.installer:ShellSoftwareInstaller"
 
 [project.entry-points."kiso.deployment"]
 

@@ -39,6 +39,7 @@ Chameleon). The same config file runs locally and on real testbeds with minimal 
    how-to/software/docker
    how-to/software/apptainer
    how-to/software/ollama
+   how-to/software/shell
    how-to/deployments/htcondor
    how-to/experiment-types/shell
    how-to/experiment-types/pegasus

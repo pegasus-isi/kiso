@@ -108,6 +108,14 @@ Use Ollama when your experiment involves:
 
 See [Run AI/ML experiments with Ollama](../how-to/software/ollama.md).
 
+(shell-software)=
+
+### Shell
+
+The shell software type runs arbitrary setup scripts on provisioned nodes. Use it when your setup steps do not fit any of the dedicated plugins — for example, installing a project-specific dependency, writing a config file, or bootstrapping a custom service.
+
+See [Run custom setup scripts](../how-to/software/shell.md).
+
 ## Deployments
 
 Deployments install and configure workload management systems across provisioned nodes.

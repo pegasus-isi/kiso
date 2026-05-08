@@ -272,7 +272,9 @@ def test_check_software_none_returns() -> None:
 
 
 def test_check_software_with_docker_config() -> None:
-    software = Software(docker=Docker(labels=["compute"]), apptainer=None, ollama=None)
+    software = Software(
+        docker=Docker(labels=["compute"]), apptainer=None, ollama=None, shell=None
+    )
     label_to_machines = defaultdict(set)
     label_to_machines["compute"].add("vm1")
     label_to_machines["chameleon-edge"] = set()
@@ -280,7 +282,9 @@ def test_check_software_with_docker_config() -> None:
 
 
 def test_check_software_with_invalid_docker_raises() -> None:
-    software = Software(docker=Docker(labels=["missing"]), apptainer=None, ollama=None)
+    software = Software(
+        docker=Docker(labels=["missing"]), apptainer=None, ollama=None, shell=None
+    )
     with pytest.raises(ValueError, match="No machines found"):
         _check_software(software, defaultdict(set))
 
@@ -399,7 +403,7 @@ def test_install_software_none_is_noop() -> None:
 
 def test_install_software_invokes_installer(mocker: MockerFixture) -> None:
     docker_config = Docker(labels=["compute"])
-    software = Software(docker=docker_config, apptainer=None, ollama=None)
+    software = Software(docker=docker_config, apptainer=None, ollama=None, shell=None)
     config = _make_kiso(software=software)
 
     mock_instance = mocker.MagicMock()
