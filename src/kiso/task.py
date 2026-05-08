@@ -10,11 +10,11 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import tempfile
 from collections import Counter, defaultdict
 from concurrent.futures import as_completed
 from dataclasses import fields
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
@@ -906,22 +906,12 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
         )
         return
 
-    vagrant_dir = Path(env["wd"]) / ".vagrant"
-    vagrant_file = Path(env["wd"]) / "Vagrantfile"
     providers = env["providers"]
     del env["providers"]
 
-    has_vagrant = hasattr(en, "Vagrant")
     has_chameleon_edge = hasattr(en, "ChameleonEdge")
     for provider in providers.providers:
-        if has_vagrant and isinstance(provider, en.Vagrant) and vagrant_dir.exists():
-            ssh_add = shutil.which("ssh-add")
-            if ssh_add:
-                for key in vagrant_dir.glob("**/private_key"):
-                    result = subprocess.run([ssh_add, "-d", str(key)])  # noqa: S603
-                    if result.returncode != 0:
-                        log.debug("Failed to remove SSH key <%s> from ssh-agent", key)
-        elif has_chameleon_edge and isinstance(provider, en.ChameleonEdge):
+        if has_chameleon_edge and isinstance(provider, en.ChameleonEdge):
             import chi
 
             for container in env["labels"]["chameleon-edge"]:
@@ -929,10 +919,13 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
                     chi.container.destroy_container(container.uuid)
 
     providers.destroy()
-    if has_vagrant and vagrant_dir.exists():
-        shutil.rmtree(vagrant_dir)
-    if has_vagrant and vagrant_file.exists():
-        vagrant_file.unlink()
+
+    has_vagrant = hasattr(en, "Vagrant")
+    if has_vagrant and isinstance(provider, en.Vagrant):
+        current_date = datetime.now(timezone.utc).strftime("%Y-%m")
+        for log_file in Path(env["wd"]).glob(f"**/{current_date}*-VBoxHeadless-*.log"):
+            log.debug("Removing Vagrant log file <%s>", log_file)
+            log_file.unlink(missing_ok=True)
 
 
 @enostask()
@@ -1038,12 +1031,21 @@ def _build_ssh_cmd(
         cmd.insert(1, f"ProxyCommand={proxy_cmd.replace('ssh', ssh_path)}")
         cmd.insert(1, "-o")
 
+    if node.keyfile:
+        cmd.extend(
+            [
+                "-o",
+                "IdentitiesOnly=yes",
+                "-o",
+                "AddKeysToAgent=no",
+                "-i",
+                str(node.keyfile),
+            ]
+        )
     if tty:
         cmd.append("-t")
     if node.port and node.port != 22:
         cmd.extend(["-p", str(node.port)])
-    if node.keyfile:
-        cmd.extend(["-i", str(node.keyfile)])
     if extra_ssh_args:
         cmd.extend(extra_ssh_args)
     cmd.append(target)
@@ -1063,7 +1065,7 @@ def _get_proxy_jump_cmd(node: Host) -> str | None:
         proxy_cmd = node.extra["ansible_ssh_common_args"]
         match = re.search(r".*ProxyCommand=\"(.*)\".*", proxy_cmd)
         if match:
-            # TODO: Remove single quotes from aroudn the ProxyCommand as we run it
+            # TODO: Remove single quotes from around the ProxyCommand as we run it
             # through ``os.execvp`` which doesn't not use a shell so there is no
             # need to escape them.
             return match.group(1).replace("'", "")
@@ -1085,7 +1087,9 @@ def _get_proxy_jump_cmd(node: Host) -> str | None:
     if gw_port:
         proxy_cmd += f" -p {gw_port}"
     if gw_private_key:
-        proxy_cmd += f" -o IdentitiesOnly=yes -i '{gw_private_key}'"
+        proxy_cmd += (
+            f" -o IdentitiesOnly=yes -o AddKeysToAgent=no -i '{gw_private_key}'"
+        )
     proxy_cmd += f" {gw}"
 
     return proxy_cmd
