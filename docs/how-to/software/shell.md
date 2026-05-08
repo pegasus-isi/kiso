@@ -74,8 +74,8 @@ software:
         apt-get install -y htop
     - labels: [storage]
       script: |
-        mkfs.ext4 /dev/sdb
-        mount /dev/sdb /mnt/data
+        sudo mkfs.ext4 /dev/sdb
+        sudo mount /dev/sdb /mnt/data
 ```
 
 ## See also

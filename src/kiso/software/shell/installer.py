@@ -150,7 +150,9 @@ class ShellSoftwareInstaller:
             script.seek(0)
 
             if vms:
-                with utils.actions(roles=vms, strategy="free") as p:
+                with utils.actions(
+                    roles=vms, run_as=const.KISO_USER, strategy="free"
+                ) as p:
                     p.copy(
                         src=script.name,
                         dest=dst,
