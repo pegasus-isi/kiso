@@ -932,9 +932,9 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
 @check_provisioned
 def ssh(
     node_alias: str,
-    command: str | None = None,
+    ssh_options: list[str] | None = None,
     tty: bool = True,
-    extra_ssh_args: list[str] | None = None,
+    command: list[str] | None = None,
     env: Environment = None,
     **kwargs: dict,
 ) -> None:
@@ -945,12 +945,12 @@ def ssh(
 
     :param node_alias: The alias of the node to SSH into
     :type node_alias: str
-    :param command: An SSH command to execute on the remote node
-    :type command: str | None, optional
+    :param ssh_options: Extra options to pass to the SSH command
+    :type ssh_options: list[str] | None, optional
     :param tty: Allocate a pseudo-TTY, defaults to True
     :type tty: bool, optional
-    :param extra_ssh_args: Extra arguments to pass to the SSH command
-    :type extra_ssh_args: list[str] | None, optional
+    :param command: Command tokens to execute on the remote node
+    :type command: list[str] | None, optional
     :param env: Environment object containing provider information
     :type env: Environment, optional
     :param kwargs: Additional keyword arguments
@@ -964,7 +964,7 @@ def ssh(
     login_user = login_user_prefix or node.user
     target = f"{login_user}@{node.address}" if login_user else node.address
 
-    ssh_cmd = _build_ssh_cmd(ssh_path, node, target, tty, extra_ssh_args, command)
+    ssh_cmd = _build_ssh_cmd(ssh_path, node, target, tty, ssh_options, command)
     log.debug("SSH command: %s", " ".join(ssh_cmd))
     os.execvp(ssh_path, ssh_cmd)  # noqa: S606
 
@@ -1012,8 +1012,8 @@ def _build_ssh_cmd(
     node: Host,
     target: str,
     tty: bool,
-    extra_ssh_args: list[str] | None,
-    command: str | None,
+    ssh_options: list[str] | None,
+    command: list[str] | None,
 ) -> list[str]:
     """Assemble the SSH command list ready for execvp."""
     cmd = [
@@ -1046,11 +1046,11 @@ def _build_ssh_cmd(
         cmd.append("-t")
     if node.port and node.port != 22:
         cmd.extend(["-p", str(node.port)])
-    if extra_ssh_args:
-        cmd.extend(extra_ssh_args)
+    if ssh_options:
+        cmd.extend(ssh_options)
     cmd.append(target)
     if command:
-        cmd.append(command)
+        cmd.extend(command)
 
     return cmd
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -157,11 +158,11 @@ def down(
     help="Environment to use for the experiment.",
 )
 @click.option(
-    "-c",
-    "--command",
+    "-s",
+    "--ssh-options",
     type=str,
     default=None,
-    help="Execute an SSH command directly.",
+    help="Options to pass to the SSH command (shell-quoted string).",
 )
 @click.option(
     "-t/-T",
@@ -170,22 +171,22 @@ def down(
     help="Enables tty when executing an ssh command (defaults to true).",
 )
 @click.argument("node-alias", required=True, type=str)
-@click.argument("extra-ssh-args", nargs=-1, type=click.UNPROCESSED)
+@click.argument("command", nargs=-1, type=click.UNPROCESSED)
 def ssh(
     ctx: click.Context,
     output: os.PathLike,
-    command: str | None,
+    ssh_options: str | None,
     tty: bool,
     node_alias: str,
-    extra_ssh_args: tuple[str, ...],
+    command: tuple[str, ...],
 ) -> None:
     """SSH into provisioned resources."""
     try:
         task.ssh(
             node_alias,
-            command=command,
+            ssh_options=shlex.split(ssh_options) if ssh_options else None,
             tty=tty,
-            extra_ssh_args=list(extra_ssh_args) if extra_ssh_args else None,
+            command=list(command) if command else None,
             env=output,
         )
     except Exception as e:

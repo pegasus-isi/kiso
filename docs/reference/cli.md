@@ -150,23 +150,23 @@ kiso down --output /data/exp1 experiment.yml
 SSH into a provisioned node by label or alias.
 
 ```
-kiso ssh [OPTIONS] NODE_ALIAS [EXTRA_SSH_ARGS]...
+kiso ssh [OPTIONS] NODE_ALIAS [-- COMMAND...]
 ```
 
 **Arguments:**
 
-| Argument         | Required | Description                                                                  |
-| ---------------- | -------- | ---------------------------------------------------------------------------- |
-| `NODE_ALIAS`     | Yes      | Label or node alias to connect to. Accepts `[user@]<label-or-alias>` format. |
-| `EXTRA_SSH_ARGS` | No       | Additional arguments passed verbatim to the underlying `ssh` command.        |
+| Argument     | Required | Description                                                                  |
+| ------------ | -------- | ---------------------------------------------------------------------------- |
+| `NODE_ALIAS` | Yes      | Label or node alias to connect to. Accepts `[user@]<label-or-alias>` format. |
+| `COMMAND`    | No       | Command to execute on the remote node. Separate from options with `--`.      |
 
 **Options:**
 
-| Option               | Default    | Description                                                                                  |
-| -------------------- | ---------- | -------------------------------------------------------------------------------------------- |
-| `-o, --output PATH`  | `output`   | Directory containing the EnOSlib environment (must match the `--output` used with `kiso up`) |
-| `-c, --command TEXT` | —          | Execute a command on the remote node instead of opening an interactive shell                 |
-| `-t / -T`            | `-t` (tty) | Allocate (`-t`) or suppress (`-T`) a pseudo-TTY. Suppress when piping output from `-c`       |
+| Option                   | Default    | Description                                                                                  |
+| ------------------------ | ---------- | -------------------------------------------------------------------------------------------- |
+| `-o, --output PATH`      | `output`   | Directory containing the EnOSlib environment (must match the `--output` used with `kiso up`) |
+| `-s, --ssh-options TEXT` | —          | Extra options passed to the underlying `ssh` command (shell-quoted string)                   |
+| `-t / -T`                | `-t` (tty) | Allocate (`-t`) or suppress (`-T`) a pseudo-TTY. Suppress when piping output                 |
 
 **Examples:**
 
@@ -178,13 +178,13 @@ kiso ssh submit-host
 kiso ssh ubuntu@submit-host
 
 # Run a one-off command
-kiso ssh -c "hostname" submit-host
+kiso ssh submit-host -- hostname
 
 # Run a command without TTY (useful for piping output)
-kiso ssh -T -c "cat /etc/os-release" submit-host
+kiso ssh -T submit-host -- cat /etc/os-release
 
 # Pass extra SSH options (e.g. port forwarding)
-kiso ssh submit-host -- -L 9000:localhost:8000
+kiso ssh -s "-L 9000:localhost:8000" submit-host
 ```
 
 **Notes:**
@@ -192,7 +192,7 @@ kiso ssh submit-host -- -L 9000:localhost:8000
 - Resources must be provisioned (`kiso up`) before connecting.
 - `NODE_ALIAS` can be either a **label** defined in the `sites` section of the config or the node's own **alias** assigned by the testbed. Labels that map to more than one node are not usable — use the specific node alias instead.
 - The `user@` prefix overrides the default login user for the node. Without it, Kiso uses the user configured by the testbed (e.g. `cc` for Chameleon bare metal, `rocky` for FABRIC Rocky images).
-- `EXTRA_SSH_ARGS` are appended after `--` and passed through to `ssh` unchanged.
+- `--ssh-options` accepts a shell-quoted string; `shlex.split` is used internally so quoting and escaping follow standard shell rules.
 - Not supported on Chameleon Edge — those resources are containers without SSH access.
 
 ## `kiso version`
