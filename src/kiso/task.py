@@ -921,7 +921,7 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
     providers.destroy()
 
     has_vagrant = hasattr(en, "Vagrant")
-    if has_vagrant and isinstance(provider, en.Vagrant):
+    if has_vagrant:
         current_date = datetime.now(timezone.utc).strftime("%Y-%m")
         for log_file in Path(env["wd"]).glob(f"**/{current_date}*-VBoxHeadless-*.log"):
             log.debug("Removing Vagrant log file <%s>", log_file)
