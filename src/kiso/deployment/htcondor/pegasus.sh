@@ -20,7 +20,7 @@ Specify only one of the following:
 -h, --help  : Display this message and exit
 --download  : Download the tarball for a user-level installation and exit.
 --dry-run   : Do not install, just print commands [default]
---no-dry-run: Issue all the commands neeed to install Pegasus
+--no-dry-run: Issue all the commands needed to install Pegasus
 EOF
     exit 0
 }

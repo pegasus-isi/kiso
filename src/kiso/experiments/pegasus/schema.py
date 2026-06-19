@@ -22,7 +22,7 @@ SCHEMA: dict = {
             "default": 1,
         },
         "main": {
-            "description": "A script which execute teh experiment",
+            "description": "A script which execute the experiment",
             "type": "string",
         },
         "poll_interval": {

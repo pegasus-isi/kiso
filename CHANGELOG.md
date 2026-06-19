@@ -8,7 +8,7 @@
 - JSON Schema oneOf won't work with [{type: integer}, {type: number}] as number encompasses integer
 - ollama now requires installing the zstd package
 - remove the ``args`` argument from Pegasus experiment type config as it use is confusing
-- configure condor to enable on IPv4 ot IPv6
+- configure condor to enable on IPv4 to IPv6
 - invoke Vagrant and Chameleon related cleanup actions only if those providers are installed
 
 ### Refactor
@@ -31,7 +31,7 @@
 - add retries and delay to apt command in commons main.yml file
 - add retries and delay to apt command in commons main.yml file
 - replace \*dst with dst in \_mkdir_remotely method
-- close the ProxyCommand in the copy experiment dir action with a single-quote after the endif as it is opended unconditionally
+- close the ProxyCommand in the copy experiment dir action with a single-quote after the endif as it is opened unconditionally
 - create HTCondor config, password, and token dir before creating files in them
 
 ### Refactor
@@ -63,7 +63,7 @@
 ### Fix
 
 - in kiso down, for vagrant, first remove the private_key from ssh agent, then call destroy, and then remove .vagrant dir and Vagrantfile
-- move providers.destroy at the end, otherwise Vagrant remove the ssh key and it can't be removed from tthe ssh-agent
+- move providers.destroy at the end, otherwise Vagrant remove the ssh key and it can't be removed from the ssh-agent
 - for console.rule show the rule using the color based on the result of the action
 
 ### Refactor

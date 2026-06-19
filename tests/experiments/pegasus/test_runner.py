@@ -504,7 +504,7 @@ def test_run_post_script_already_ok_returns_empty(mocker: MockerFixture) -> None
 
 
 def test_run_post_script_with_containers_uses_run_script(mocker: MockerFixture) -> None:
-    """_run_post_script calls egde.run_script for containers (lines 553-562)."""
+    """_run_post_script calls edge.run_script for containers (lines 553-562)."""
     post_script = Script(labels=["submit"], script="echo hi")
     runner, _ = _make_runner(post_scripts=[post_script])
     runner.labels = mocker.MagicMock()
