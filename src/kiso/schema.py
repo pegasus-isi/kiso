@@ -1,5 +1,7 @@
 """Kiso experiment configuration schema."""
 
+from __future__ import annotations
+
 from importlib.metadata import entry_points
 from typing import TYPE_CHECKING
 
