@@ -257,18 +257,18 @@ def _get_defined_machines(experiment_config: Kiso) -> Roles:
     return label_to_machines
 
 
-def _check_software(softwares: Software, label_to_machines: dict[str, set]) -> None:
+def _check_software(software: Software, label_to_machines: dict[str, set]) -> None:
     """Check software configuration."""
-    if softwares is None:
+    if software is None:
         return
 
-    for software in fields(Software):
-        config = getattr(softwares, software.name, None)
+    for sw in fields(Software):
+        config = getattr(software, sw.name, None)
         if config is None:
             continue
 
         # Get the `name` of the software
-        name = software.name
+        name = sw.name
 
         # Locate the EntryPoint for the software `name` and load it
         cls = utils.get_software(name)
@@ -685,17 +685,17 @@ def _generate_etc_hosts(env: Environment) -> str:
 
 def _install_software(experiment_config: Kiso, env: Environment) -> None:
     """Install software on specified labels in an experiment configuration."""
-    softwares = experiment_config.software
-    if softwares is None:
+    software = experiment_config.software
+    if software is None:
         return
 
-    for software in fields(Software):
-        config = getattr(softwares, software.name, None)
+    for sw in fields(Software):
+        config = getattr(software, sw.name, None)
         if config is None:
             continue
 
         # Get the `name` of the software
-        name = software.name
+        name = sw.name
 
         # Locate the EntryPoint for the software `name` and load it
         cls = utils.get_software(name)

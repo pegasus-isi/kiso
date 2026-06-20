@@ -5,7 +5,7 @@ repos:
         stages:
           - pre-push
     repo: https://github.com/commitizen-tools/commitizen
-    rev: 4fbeae7861663ecf4b4989211eba41c1a3fb1227  # frozen: v4.13.9
+    rev: 2a4ac6555711923a159f74cd3a324c785ac8f145  # frozen: v4.16.3
 
   # - hooks:
   #     - id: uv-lock
@@ -18,7 +18,7 @@ repos:
         additional_dependencies:
           - types-PyYAML
     repo: https://github.com/pre-commit/mirrors-mypy
-    rev: a66e98df7b4aeeb3724184b332785976d062b92e  # frozen: v1.19.1
+    rev: d2823d321df3af8f878f7ee3414dc94d037145b9  # frozen: v2.1.0
 
   - hooks:
       - id: ruff
@@ -26,7 +26,7 @@ repos:
         exclude: "^(docs/_includes)"
       - id: ruff-format
     repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: a27a2e47c7751b639d2b5badf0ef6ff11fee893f  # frozen: v0.15.4
+    rev: 77039ccbba72c8aede339c5f8ae29b42aced0a2e  # frozen: v0.15.18
 
   - hooks:
       - id: mdformat
@@ -36,7 +36,14 @@ repos:
           - mdformat-ruff
           - ruff
     repo: https://github.com/executablebooks/mdformat
-    rev: 2d496dbc18e31b83a1596685347ffe0b6041daf0  # frozen: 1.0.0
+    rev: 2d496dbc18e31b83a1596685347ffe0b6041daf0 # frozen: 1.0.0
+
+  - hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+    repo: https://github.com/codespell-project/codespell
+    rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a  # frozen: v2.4.2
 
   # - hooks:
   #   - id: shellcheck
@@ -54,4 +61,4 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
     repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0

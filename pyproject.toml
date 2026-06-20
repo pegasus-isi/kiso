@@ -202,6 +202,12 @@ markers = ["incremental"]
 "resource-path.directory-name-test-resources" = "resources"
 
 
+[tool.codespell]
+
+builtin = ["clear", "rare", "informal", "names"]
+ignore-words-list = ["startd", "nd"]
+
+
 [tool.tox]
 
 env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
@@ -211,7 +217,17 @@ env_list = ["py39", "py310", "py311", "py312", "py313", "py314"]
 dependency_groups = ["tests"]
 extras = ["vagrant", "chameleon", "fabric"]
 setenv = { PYTHONPATH = "{toxinidir}/src", PYTHONUNBUFFERED = "yes", PYTHONHASHSEED = "3104488430" }
-commands = [["pytest", "--cov", "src", "--no-cov-on-fail", "--cov-fail-under", "75", "{posargs:tests}"]]
+commands = [
+    [
+        "pytest",
+        "--cov",
+        "src",
+        "--no-cov-on-fail",
+        "--cov-fail-under",
+        "75",
+        "{posargs:tests}",
+    ],
+]
 
 [tool.tox.env.lint]
 

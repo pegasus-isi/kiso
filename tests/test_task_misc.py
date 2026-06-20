@@ -62,10 +62,10 @@ def test_get_ips_non_host_public_ip() -> None:
 
 def test_get_ips_host_with_default_network_ipv4() -> None:
     """Host with IPv4 address on DefaultNetwork → included in results."""
-    nd = NetDevice("eth0")
+    net_device = NetDevice("eth0")
     ipa = IPAddress(IPv4Interface("10.0.0.1/24"), network=DefaultNetwork("10.0.0.0/24"))
-    nd.addresses.add(ipa)
-    h = Host("10.0.0.1", net_devices={nd})
+    net_device.addresses.add(ipa)
+    h = Host("10.0.0.1", net_devices={net_device})
     h.extra = {}
 
     result = get_ips(h)
