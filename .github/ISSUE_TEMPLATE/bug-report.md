@@ -2,7 +2,7 @@
 name: Bug report
 about: Report a bug in Kiso
 title: ''
-labels: bug
+type: bug
 assignees: ''
 ---
 
@@ -10,10 +10,10 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **To Reproduce**
-Steps to reproduce the behavior.
-1. Plan the workflow '...'
-2. Run the workflow '...'
-3. See error '...'
+Steps to reproduce the behavior:
+1.
+2.
+3.
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -27,4 +27,4 @@ A clear and concise description of what you expected to happen.
  - Kiso Experiment Type [e.g. Shell, Pegasus]
 
 **Additional context**
-Add any other context about the problem here.
+Add any other context about the problem here (logs, screenshots, config).
