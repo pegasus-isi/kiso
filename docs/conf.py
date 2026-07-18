@@ -12,7 +12,7 @@
 project = "Kiso"
 copyright = "2007-2012 University Of Southern California"
 author = "Rajiv Mayani"
-release = "0.1.0a10"
+release = "0.1.0b0"
 repository_url = "https://github.com/pegasus-isi/kiso"
 
 # -- General configuration ---------------------------------------------------

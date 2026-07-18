@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.1.0b0 (2026-07-17)
+
+### Feat
+
+- add shell software plugin to run custom setup scripts during kiso up
+- add a ssh sub command so users can connect to nodes using `kiso ssh [user@]<node-alias>` or `kiso ssh [user@]<node-label>`
+
+### Fix
+
+- prevent SSH agent key leaks and clean up VBoxHeadless logs on down
+- run shell scripts as kiso user and use sudo in docs examples
+- use Manager queue and forkserver context for reliable multiprocessing
+- ensure executor shutdown and close logging queue to prevent hangs
+- retry get_network when FABRIC API returns None
+- resolve multiple bugs across edge, ip, task, pegasus, and utils
+- **utils**: check isinstance(address, IPv4Address) not address.ip in get_ips
+  address is a plain string from floating-ips; only ip (the parsed object)
+  is an IPv4Address/IPv6Address, so address.ip raised AttributeError.
+
+### Refactor
+
+- redesign kiso ssh interface to use positional command and -s for ssh options
+- store HTCondorDaemon objects directly in machine-to-daemons map
+- group built-in plugins under kiso.experiments, kiso.software, and kiso.deployment
+- remove use of `source_fabric_credentials_from_rc_file` and pass rc_file directly to the `FablibManager`
+
 ## v0.1.0a10 (2026-03-15)
 
 ### Fix
