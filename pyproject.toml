@@ -42,7 +42,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "enoslib>=10.4.0",
+    "enoslib>=10.7.0",
     "rich-click",
     "jsonschema<3.3",
     "jsonschema-pyref",
