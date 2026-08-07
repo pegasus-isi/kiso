@@ -422,6 +422,7 @@ def _init_sites(
     _extend_labels(labels)
 
     if errors:
+        log.error("Kiso up errors: %s", errors)
         raise KisoUpError("Failed to initialize sites", errors)
 
     # Save the environment
