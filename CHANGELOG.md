@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.0b1 (2026-09-02)
+
+### Fix
+
+- **task**: log site initialization errors before raising KisoUpError
+
 ## v0.1.0b0 (2026-07-17)
 
 ### Feat
