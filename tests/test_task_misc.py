@@ -385,7 +385,7 @@ def test_schema_get_experiment_kinds_select_path(mocker: MockerFixture) -> None:
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.schema.entry_points", return_value=mock_eps)
+    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
 
     result = schema._get_experiment_kinds()
     mock_eps.select.assert_called()
@@ -400,7 +400,7 @@ def test_schema_get_software_schemas_select_path(mocker: MockerFixture) -> None:
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.schema.entry_points", return_value=mock_eps)
+    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
 
     result = schema._get_software_schemas()
     mock_eps.select.assert_called()
@@ -415,7 +415,7 @@ def test_schema_get_deployment_schemas_select_path(mocker: MockerFixture) -> Non
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
     mock_eps = mocker.MagicMock()
     mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.schema.entry_points", return_value=mock_eps)
+    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
 
     result = schema._get_deployment_schemas()
     mock_eps.select.assert_called()

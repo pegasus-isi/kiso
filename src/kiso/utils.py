@@ -26,6 +26,7 @@ from enoslib.task import Environment
 from kiso import constants as const
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from types import TracebackType
 
     from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
@@ -211,6 +212,21 @@ def get_deployment(name: str) -> EntryPoint:
         raise ValueError(f"No software found for kind {name}") from e
 
 
+def get_entry_points(group: str) -> Iterable[EntryPoint]:
+    """Get all entry points in a group, across importlib.metadata API versions.
+
+    :param group: The entry point group to query
+    :type group: str
+    :return: The entry points registered in the group
+    :rtype: Iterable[EntryPoint]
+    """
+    all_eps: dict | EntryPoints = entry_points()
+    # SelectableGroups (3.10, 3.11) is a dict subclass whose dict API is deprecated
+    if hasattr(all_eps, "select"):
+        return all_eps.select(group=group)
+    return all_eps.get(group, [])
+
+
 def _get_single(group: str, name: str) -> EntryPoint:
     """Retrieve a single entry point from a specified group by its name.
 
@@ -225,11 +241,7 @@ def _get_single(group: str, name: str) -> EntryPoint:
     :rtype: EntryPoint
     :raises ValueError: If no entry point with the given name is found in the group
     """
-    all_eps: dict | EntryPoints = entry_points()
-    if isinstance(all_eps, dict):
-        all_eps = all_eps.get(group, [])
-    else:
-        all_eps = all_eps.select(group=group)
+    all_eps = get_entry_points(group)
 
     for ep in all_eps:
         if ep.name == name:

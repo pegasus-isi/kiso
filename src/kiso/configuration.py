@@ -4,15 +4,11 @@
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import field, make_dataclass
-from importlib.metadata import entry_points
 from typing import Any, Optional, Union, _SpecialForm
 
 from kiso import constants as const
-
-with contextlib.suppress(ImportError):
-    from importlib.metadata import EntryPoints
+from kiso import utils
 
 
 def _get_experiment_kinds() -> _SpecialForm:
@@ -43,11 +39,7 @@ def _get_kinds(kind: str) -> set:
     :return: A set of (name, config_type) tuples for all registered entry points
     :rtype: set
     """
-    all_eps: dict | EntryPoints = entry_points()
-    if isinstance(all_eps, dict):
-        all_eps = all_eps.get(kind, [])
-    else:
-        all_eps = all_eps.select(group=kind)
+    all_eps = utils.get_entry_points(kind)
 
     kinds = set()
     for ep in all_eps:

@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from importlib.metadata import entry_points
-from typing import TYPE_CHECKING
-
 import enoslib as en
 
 from kiso import constants as const
-
-if TYPE_CHECKING:
-    from importlib.metadata import EntryPoints
+from kiso import utils
 
 _labels_schema: dict = {
     "$$target": "py-obj:kiso.schema.COMMONS_SCHEMA#/$defs/labels",
@@ -226,11 +221,7 @@ if hasattr(en, "Fabric"):
 
 
 def _get_experiment_kinds() -> list[dict[str, str]]:
-    all_eps: dict | EntryPoints = entry_points()
-    if isinstance(all_eps, dict):
-        all_eps = all_eps.get(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP, [])
-    else:
-        all_eps = all_eps.select(group=const.KISO_EXPERIMENT_ENTRY_POINT_GROUP)
+    all_eps = utils.get_entry_points(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
@@ -247,11 +238,7 @@ def _get_experiment_kinds() -> list[dict[str, str]]:
 
 
 def _get_software_schemas() -> dict[str, dict]:
-    all_eps: dict | EntryPoints = entry_points()
-    if isinstance(all_eps, dict):
-        all_eps = all_eps.get(const.KISO_SOFTWARE_ENTRY_POINT_GROUP, [])
-    else:
-        all_eps = all_eps.select(group=const.KISO_SOFTWARE_ENTRY_POINT_GROUP)
+    all_eps = utils.get_entry_points(const.KISO_SOFTWARE_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
@@ -268,11 +255,7 @@ def _get_software_schemas() -> dict[str, dict]:
 
 
 def _get_deployment_schemas() -> dict[str, dict]:
-    all_eps: dict | EntryPoints = entry_points()
-    if isinstance(all_eps, dict):
-        all_eps = all_eps.get(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP, [])
-    else:
-        all_eps = all_eps.select(group=const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP)
+    all_eps = utils.get_entry_points(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP)
 
     # The set is required because entry_points() can return the same EntryPoint
     # multiple times when a package is installed as an editable install
