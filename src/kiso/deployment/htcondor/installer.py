@@ -109,18 +109,17 @@ class HTCondorInstaller:
 
             if not machines:
                 unlabel_to_machines[index] = labels
-        else:
-            if unlabel_to_machines:
-                raise ValueError(
-                    "No machines found to install HTCondor configuration section",
-                    unlabel_to_machines,
-                )
+        if unlabel_to_machines:
+            raise ValueError(
+                "No machines found to install HTCondor configuration section",
+                unlabel_to_machines,
+            )
 
-            if missing_config_files:
-                raise ValueError(
-                    "Missing config files referenced in HTCondor section",
-                    missing_config_files,
-                )
+        if missing_config_files:
+            raise ValueError(
+                "Missing config files referenced in HTCondor section",
+                missing_config_files,
+            )
 
     def _check_central_manager_cardinality(self, label_to_machines: Roles) -> None:
         """Check the cardinality of HTCondor central manager nodes in an experiment configuration.

@@ -10,7 +10,7 @@ import shlex
 import tempfile
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -224,12 +224,11 @@ class PegasusRunner:
 
             if not unlabel_to_machines[experiment.name]:
                 del unlabel_to_machines[experiment.name]
-        else:
-            if unlabel_to_machines:
-                raise ValueError(
-                    "Undefined labels referenced in experiments section",
-                    unlabel_to_machines,
-                )
+        if unlabel_to_machines:
+            raise ValueError(
+                "Undefined labels referenced in experiments section",
+                unlabel_to_machines,
+            )
 
     def _check_missing_input_files(self, experiment_config: Kiso) -> None:
         """Check for missing input files in experiment configurations.
@@ -700,7 +699,7 @@ class PegasusRunner:
             if state.status == const.STATUS_OK:
                 return None
 
-            ts = datetime.now(timezone.utc)
+            ts = datetime.now(UTC)
 
             dst = Path(self.remote_wd) / Path(script.name).name
             script.write(main.encode())

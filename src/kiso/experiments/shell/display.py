@@ -125,9 +125,8 @@ def _group_results(
                 != "conditional result was false"
             ):
                 status[(_results[0], result.host)] = result.status
-        else:
-            if not _results[-1]:
-                status[(_results[0], f"*{_results[0]}")] = const.STATUS_SKIPPED
+        if not _results[-1]:
+            status[(_results[0], f"*{_results[0]}")] = const.STATUS_SKIPPED
 
     return status
 

@@ -14,10 +14,10 @@ import tempfile
 from collections import Counter, defaultdict
 from concurrent.futures import as_completed
 from dataclasses import fields
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import enoslib as en
 import yaml
@@ -38,6 +38,7 @@ from kiso.schema import SCHEMA
 from kiso.version import __version__
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from os import PathLike
 
     from enoslib.infra.provider import Provider
@@ -881,7 +882,7 @@ def _run_experiments(
 @validate_config
 @enostask()
 @check_provisioned
-def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:  # noqa: C901
+def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> None:
     """Destroy the resources provisioned for the experiments.
 
     This function is responsible for tearing down and cleaning up resources
@@ -923,7 +924,7 @@ def down(experiment_config: Kiso, env: Environment = None, **kwargs: dict) -> No
 
     has_vagrant = hasattr(en, "Vagrant")
     if has_vagrant:
-        current_date = datetime.now(timezone.utc).strftime("%Y-%m")
+        current_date = datetime.now(UTC).strftime("%Y-%m")
         for log_file in Path(env["wd"]).glob(f"**/{current_date}*-VBoxHeadless-*.log"):
             log.debug("Removing Vagrant log file <%s>", log_file)
             log_file.unlink(missing_ok=True)

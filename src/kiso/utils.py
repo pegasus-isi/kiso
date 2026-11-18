@@ -161,7 +161,7 @@ def get_runner(kind: str) -> EntryPoint:
     :rtype: type
     :raises ValueError: If no entry point with the given kind is found or the
         module cannot be imported
-    """  # noqa: E501
+    """
     runner = _get_single(const.KISO_EXPERIMENT_ENTRY_POINT_GROUP, kind)
     try:
         return runner.load()
@@ -181,7 +181,7 @@ def get_software(name: str) -> EntryPoint:
     :rtype: type
     :raises ValueError: If no entry point with the given name is found or the
         module cannot be imported
-    """  # noqa: E501
+    """
     software = _get_single(const.KISO_SOFTWARE_ENTRY_POINT_GROUP, name)
     try:
         return software.load()
@@ -201,7 +201,7 @@ def get_deployment(name: str) -> EntryPoint:
     :rtype: type
     :raises ValueError: If no entry point with the given name is found or the
         module cannot be imported
-    """  # noqa: E501
+    """
     software = _get_single(const.KISO_DEPLOYMENT_ENTRY_POINT_GROUP, name)
     try:
         return software.load()

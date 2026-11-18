@@ -11,7 +11,7 @@ import subprocess
 import time
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import enoslib as en
 
@@ -20,6 +20,8 @@ from kiso import edge
 from kiso.errors import KisoError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.objects import Host
 

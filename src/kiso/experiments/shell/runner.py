@@ -132,12 +132,11 @@ class ShellRunner:
 
             if not unlabel_to_machines[experiment.name]:
                 del unlabel_to_machines[experiment.name]
-        else:
-            if unlabel_to_machines:
-                raise ValueError(
-                    "Undefined labels referenced in experiments section",
-                    unlabel_to_machines,
-                )
+        if unlabel_to_machines:
+            raise ValueError(
+                "Undefined labels referenced in experiments section",
+                unlabel_to_machines,
+            )
 
     def __call__(
         self, wd: str, remote_wd: str, resultdir: str, labels: Roles, env: Environment

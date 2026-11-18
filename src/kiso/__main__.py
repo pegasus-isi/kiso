@@ -1,6 +1,5 @@
 """Kiso command line interface."""
 
-# ruff: noqa: ARG001
 from __future__ import annotations
 
 import logging
