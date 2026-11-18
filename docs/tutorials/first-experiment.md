@@ -10,7 +10,7 @@ At the end of the tutorial you will make a single one-line change to the same co
 
 ## Prerequisites
 
-- Python 3.9 or later
+- Python 3.11 or later
 - [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed and working
 - [Vagrant](https://developer.hashicorp.com/vagrant/install) installed
 

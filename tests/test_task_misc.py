@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from ipaddress import IPv4Interface, IPv6Interface
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
@@ -374,51 +375,45 @@ def test_copy_experiment_dir_with_vms_uses_actions(
 
 # ---------------------------------------------------------------------------
 # schema.py — _get_experiment_kinds, _get_software_schemas, _get_deployment_schemas
-#             all use the .select() path on modern Python (lines 232, 253, 274)
+#             all query entry_points(group=...)
 # ---------------------------------------------------------------------------
 
 
 def test_schema_get_experiment_kinds_select_path(mocker: MockerFixture) -> None:
-    """_get_experiment_kinds uses .select() when entry_points() is not a dict."""
+    """_get_experiment_kinds queries entry_points(group=...)."""
     mock_ep = mocker.MagicMock()
     mock_ep.value = "kiso.experiments.shell.runner:ShellRunner"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
-    mock_eps = mocker.MagicMock()
-    mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
+    mock_eps = mocker.patch("kiso.utils.entry_points", return_value=[mock_ep])
 
     result = schema._get_experiment_kinds()
-    mock_eps.select.assert_called()
+    mock_eps.assert_called()
     assert isinstance(result, list)
 
 
 def test_schema_get_software_schemas_select_path(mocker: MockerFixture) -> None:
-    """_get_software_schemas uses .select() when entry_points() is not a dict."""
+    """_get_software_schemas queries entry_points(group=...)."""
     mock_ep = mocker.MagicMock()
     mock_ep.name = "docker"
     mock_ep.value = "kiso.software.docker.installer:DockerInstaller"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
-    mock_eps = mocker.MagicMock()
-    mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
+    mock_eps = mocker.patch("kiso.utils.entry_points", return_value=[mock_ep])
 
     result = schema._get_software_schemas()
-    mock_eps.select.assert_called()
+    mock_eps.assert_called()
     assert isinstance(result, dict)
 
 
 def test_schema_get_deployment_schemas_select_path(mocker: MockerFixture) -> None:
-    """_get_deployment_schemas uses .select() when entry_points() is not a dict."""
+    """_get_deployment_schemas queries entry_points(group=...)."""
     mock_ep = mocker.MagicMock()
     mock_ep.name = "htcondor"
     mock_ep.value = "kiso.deployment.htcondor.installer:HTCondorInstaller"
     mock_ep.load.return_value = mocker.MagicMock(schema={"$$target": ""})
-    mock_eps = mocker.MagicMock()
-    mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
+    mock_eps = mocker.patch("kiso.utils.entry_points", return_value=[mock_ep])
 
     result = schema._get_deployment_schemas()
-    mock_eps.select.assert_called()
+    mock_eps.assert_called()
     assert isinstance(result, dict)
 
 
@@ -552,9 +547,9 @@ def test_down_vagrant_removes_vboxheadless_logs(
     raw_down = down.__wrapped__.__wrapped__.__wrapped__
     mocker.patch("kiso.task.console.rule")
 
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    current_date = datetime.now(timezone.utc).strftime("%Y-%m")
+    current_date = datetime.now(UTC).strftime("%Y-%m")
     log_file = tmp_path / f"{current_date}-12-34-VBoxHeadless-1234.log"
     log_file.write_text("log")
 

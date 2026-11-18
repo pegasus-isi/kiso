@@ -270,22 +270,18 @@ def test_get_deployment_module_not_found_raises_value_error(
 
 
 # ---------------------------------------------------------------------------
-# _get_single — .select() path (non-dict entry_points)
+# _get_single — entry_points(group=...)
 # ---------------------------------------------------------------------------
 
 
 def test_get_single_uses_select_when_entry_points_not_dict(
     mocker: MockerFixture,
 ) -> None:
-    # Simulate a non-dict EntryPoints object (Python 3.12+ style)
     mock_ep = mocker.MagicMock()
     mock_ep.name = "shell"
 
-    mock_eps = mocker.MagicMock()
-    mock_eps.select = mocker.MagicMock(return_value=[mock_ep])
-    # Make isinstance(all_eps, dict) return False by using a non-dict object
-    mocker.patch("kiso.utils.entry_points", return_value=mock_eps)
+    mock_eps = mocker.patch("kiso.utils.entry_points", return_value=[mock_ep])
 
     result = utils._get_single("kiso.experiment", "shell")
     assert result is mock_ep
-    mock_eps.select.assert_called_once_with(group="kiso.experiment")
+    mock_eps.assert_called_once_with(group="kiso.experiment")

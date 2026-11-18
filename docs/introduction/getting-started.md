@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python version `3.9` or higher.
+- Python version `3.11` or higher.
 - Vagrant: `Vagrant` and `VirtualBox`.
 - FABRIC: An account and an allocation on `FABRIC`.
 - Chameleon: An account and an allocation on `Chameleon Cloud`.

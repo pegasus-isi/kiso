@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
-from contextlib import ContextDecorator, suppress
+from contextlib import ContextDecorator
 from functools import partial, reduce
 from importlib.metadata import EntryPoint, entry_points
 from ipaddress import (
@@ -32,9 +32,6 @@ if TYPE_CHECKING:
     from enoslib.infra.enos_chameleonedge.objects import ChameleonDevice
     from enoslib.objects import Roles
     from enoslib.task import Environment
-
-with suppress(ImportError):
-    from importlib.metadata import EntryPoints
 
 has_fabric = False
 
@@ -220,11 +217,7 @@ def get_entry_points(group: str) -> Iterable[EntryPoint]:
     :return: The entry points registered in the group
     :rtype: Iterable[EntryPoint]
     """
-    all_eps: dict | EntryPoints = entry_points()
-    # SelectableGroups (3.10, 3.11) is a dict subclass whose dict API is deprecated
-    if hasattr(all_eps, "select"):
-        return all_eps.select(group=group)
-    return all_eps.get(group, [])
+    return entry_points(group=group)
 
 
 def _get_single(group: str, name: str) -> EntryPoint:
